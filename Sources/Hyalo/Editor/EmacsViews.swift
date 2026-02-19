@@ -47,6 +47,27 @@ class EmacsContainerView: NSView {
         }
         super.mouseDown(with: event)
     }
+
+    override func layout() {
+        super.layout()
+        guard let ev = emacsView else { return }
+        guard bounds.width > 0 && bounds.height > 0 else { return }
+        if ev.frame.size != bounds.size {
+            // Defer the Emacs resize notification.  layout() can fire during
+            // makeKeyAndOrderFront (ns_raise_frame holds block_input),
+            // and change_frame_size must NOT be called with input blocked.
+            // Keep EmacsView at its current size (glyph matrices stay valid)
+            // and schedule the resize for the next event-loop iteration
+            // (fires safely during the next sit-for).
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let ev = self.emacsView else { return }
+                guard self.bounds.width > 0 && self.bounds.height > 0 else { return }
+                if ev.frame.size != self.bounds.size {
+                    ev.resize(withOldSuperviewSize: ev.frame.size)
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Emacs NSViewRepresentable
@@ -61,20 +82,24 @@ struct EmacsNSViewRepresentable: NSViewRepresentable {
         container.wantsLayer = true
         container.layer?.masksToBounds = true
 
-        emacsView.removeFromSuperview()
-        emacsView.translatesAutoresizingMaskIntoConstraints = false
-        emacsView.constraints.forEach { $0.isActive = false }
+        NSLog("[Hyalo:EmacsView] makeNSView: emacsView.window=%@, superview=%@",
+              String(describing: emacsView.window),
+              String(describing: emacsView.superview))
 
+        emacsView.removeFromSuperview()
+
+        // Keep translatesAutoresizingMaskIntoConstraints = true (default).
+        // Do NOT activate NSLayoutConstraints — constraint activation
+        // triggers resizeWithOldSuperviewSize: on EmacsView while the
+        // container still has zero bounds (SwiftUI hasn't laid it out),
+        // which calls change_frame_size(f, 0, 0, ...) and corrupts
+        // Emacs's glyph matrices.  EmacsContainerView.layout() handles
+        // sizing once the container has valid dimensions.
         container.addSubview(emacsView)
 
-        let constraints = [
-            emacsView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            emacsView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            emacsView.topAnchor.constraint(equalTo: container.topAnchor),
-            emacsView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ]
-        constraints.forEach { $0.priority = .defaultHigh }
-        NSLayoutConstraint.activate(constraints)
+        NSLog("[Hyalo:EmacsView] makeNSView: after addSubview — emacsView.window=%@, container.bounds=%@",
+              String(describing: emacsView.window),
+              NSStringFromRect(container.bounds))
 
         // Give Emacs initial focus once the view is in a window
         DispatchQueue.main.async {

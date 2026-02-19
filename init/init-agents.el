@@ -87,18 +87,7 @@
                              :family "Monaspace Krypton Frozen"
                              :height 110))
 
-  (add-hook 'pi-coding-agent-chat-mode-hook #'hyalo/pi-apply-chat-font)
-
-  ;; Advise pi-coding-agent to open in a new frame.
-  (defun hyalo/pi-in-new-frame (orig-fun &rest args)
-    "Run pi-coding-agent in a dedicated frame."
-    (let ((frame (make-frame '((name . "pi")
-                               (width . 120)
-                               (height . 45)))))
-      (select-frame-set-input-focus frame)
-      (apply orig-fun args)))
-
-  (advice-add 'pi-coding-agent :around #'hyalo/pi-in-new-frame))
+  (add-hook 'pi-coding-agent-chat-mode-hook #'hyalo/pi-apply-chat-font))
 
 (provide 'init-agents)
 

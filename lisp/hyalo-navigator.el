@@ -73,7 +73,10 @@ File tree construction is handled entirely in Swift."
         (hyalo-navigator-set-project-root (expand-file-name root))))))
 
 (defun hyalo-navigator--get-project-root ()
-  "Get the current project root directory."
+  "Get the current project root directory.
+Returns nil when no project or git repository is found, rather than
+falling back to `default-directory'.  Scanning arbitrary directories
+(especially the home directory) would freeze the file tree builder."
   (or (when-let* ((proj (project-current)))
         (if (fboundp 'project-root)
             (project-root proj)

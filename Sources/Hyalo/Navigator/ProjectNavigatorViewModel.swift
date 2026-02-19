@@ -53,6 +53,14 @@ final class ProjectNavigatorViewModel {
     /// The active file path (set by Emacs on buffer switch).
     var activeFilePath: String?
 
+    /// The file path set by the last UI-initiated click, and when.
+    /// Used to reject stale hook calls that arrive within the roundtrip window.
+    private var uiSelectPath: String?
+    private var uiSelectTime: Date = .distantPast
+
+    /// Roundtrip guard window — 100ms covers channel roundtrip + hook firing.
+    private static let guardWindow: TimeInterval = 0.1
+
     // MARK: - Callbacks
 
     var onFileSelect: ((String) -> Void)?
@@ -66,10 +74,19 @@ final class ProjectNavigatorViewModel {
     // MARK: - Project Root Update
 
     /// Set the project root and rebuild the file tree from the filesystem.
+    /// Rejects the user home directory and filesystem root as project roots
+    /// because scanning them recursively would freeze the UI.
     func setProjectRoot(_ root: String) {
         guard root != projectRoot else { return }
-        projectRoot = root
 
+        let normalized = (root as NSString).standardizingPath
+        let home = NSHomeDirectory()
+        if normalized == home || normalized == "/" {
+            NSLog("[Hyalo:Nav] setProjectRoot: rejecting '%@' (home or root directory)", root)
+            return
+        }
+
+        projectRoot = root
         rebuildFileTree()
     }
 
@@ -181,10 +198,12 @@ final class ProjectNavigatorViewModel {
     /// Set the active file and update selection to match.
     /// Expands all ancestor directories so the file is visible in the tree.
     func setActiveFile(_ path: String) {
-        // Skip if this is a stale callback for a file that's no longer active.
-        // The user may have clicked a different file while this callback was
-        // in flight. activeFilePath is set immediately in selectFile().
-        if let active = activeFilePath, path != active {
+        // Within 100ms of a UI click, reject stale calls with a different path.
+        // The guard is NOT cleared on match — it stays active for the full
+        // window so stale calls arriving 1ms after the echo are still blocked.
+        if let pending = uiSelectPath,
+           Date().timeIntervalSince(uiSelectTime) < Self.guardWindow,
+           path != pending {
             return
         }
 
@@ -241,6 +260,8 @@ final class ProjectNavigatorViewModel {
         // This prevents race where second click arrives before first
         // setActiveFile callback, causing revert.
         activeFilePath = path
+        uiSelectPath = path
+        uiSelectTime = Date()
         onFileSelect?(path)
     }
 

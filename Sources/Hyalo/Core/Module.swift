@@ -105,6 +105,26 @@ final class HyaloModule: Module {
     let isGPLCompatible = true
     private let version = "2.0.0"
 
+    // Base directory of the Hyalo lisp/ folder.
+    // Set once via hyalo-set-base-dir called from hyalo-window--early-setup.
+    // Used by LoadingView to locate hyalo-splash.svg.
+    static var baseLispDir: String = ""
+
+    // Observable state for the loading proxy window.
+    // Decoupled from HyaloWorkspaceState so the proxy can exist independently.
+    @available(macOS 26.0, *)
+    @MainActor static var loadingState = LoadingState()
+
+    // The standalone proxy window shown while the Emacs window stays invisible.
+    // Created in decorateWindow, closed in hyalo-loading-done.
+    static var loadingProxyWindow: NSWindow?
+
+    // When true, decorateWindow creates the loading proxy window.
+    // Set from Lisp via hyalo-set-needs-bootstrap before decoration.
+    // Default false: the proxy is only shown when a bootstrap will occur
+    // (e.g., .local or .local/elpa does not exist).
+    static var needsBootstrap: Bool = false
+
     // Channel references (prevent deallocation)
     static var navigatorChannel: Any?
     static var editorTabChannel: Any?
@@ -287,6 +307,119 @@ final class HyaloModule: Module {
             }
             return false
         }
+
+        // MARK: - Loading Proxy
+
+        try env.defun("hyalo-set-needs-bootstrap",
+            with: "Set whether a package bootstrap is needed. When true, the loading proxy window is shown during init. Call before hyalo-navigation-setup."
+        ) { (env: EmacsSwiftModule.Environment, needed: Bool) throws -> Bool in
+            HyaloModule.needsBootstrap = needed
+            return true
+        }
+
+        try env.defun("hyalo-set-base-dir",
+            with: "Set the Hyalo lisp/ directory path. Called once during early setup so LoadingView can locate hyalo-splash.svg."
+        ) { (env: EmacsSwiftModule.Environment, path: String) throws -> Bool in
+            HyaloModule.baseLispDir = path
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    HyaloModule.loadingState.lispDir = path
+                }
+            }
+            return true
+        }
+
+        try env.defun("hyalo-set-loading-message",
+            with: "Update the proxy window message shown while init.el runs. MSG is a short string describing the current init step."
+        ) { (env: EmacsSwiftModule.Environment, msg: String) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    HyaloModule.loadingState.message = msg
+                }
+                return true
+            }
+            return false
+        }
+
+        try env.defun("hyalo-loading-done",
+            with: """
+            Close the loading proxy window.  Called at the end of hyalo-window--post-setup.
+            Does NOT call makeKeyAndOrderFront or NSApp.activate — those must be done by
+            the Lisp caller via (make-frame-visible) so Emacs can update its internal
+            frame visibility state before AppKit triggers display callbacks.
+            """
+        ) { () -> Bool in
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    NSLog("[Hyalo:Nav] hyalo-loading-done: closing proxy, %d workspaces",
+                          HyaloModule.allWorkspaces.count)
+                    // Mark all workspaces as initialized
+                    for workspace in HyaloModule.allWorkspaces {
+                        workspace.isLoading = false
+                    }
+                    // Remove the proxy from screen immediately but do NOT
+                    // close() it yet.  close() deallocates the window while
+                    // CoreAnimation still holds references to its transition
+                    // animations (_NSWindowTransformAnimation).  When CA
+                    // flushes the transaction seconds later, the animation
+                    // dealloc accesses the freed window → SIGSEGV.
+                    //
+                    // orderOut removes it from the screen instantly (no
+                    // visible delay), then we nil the reference after 1s
+                    // to let CA finish its transaction.
+                    if let proxy = HyaloModule.loadingProxyWindow {
+                        proxy.orderOut(nil)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            // Reference was kept alive by loadingProxyWindow;
+                            // dropping it now lets ARC deallocate cleanly
+                            // after CA is done.
+                            HyaloModule.loadingProxyWindow = nil
+                        }
+                    }
+                    NSLog("[Hyalo:Nav] hyalo-loading-done: proxy closed")
+                    // Frame reveal intentionally omitted.
+                    // makeKeyAndOrderFront from Swift (bypassing Emacs's
+                    // ns_make_frame_visible) crashes because AppKit fires
+                    // display callbacks before Emacs's internal frame state
+                    // is updated.  The Lisp caller must call (make-frame-visible).
+                }
+                return true
+            }
+            return false
+        }
+
+        // MARK: - Keycast
+
+        try env.defun("hyalo-update-keycast",
+            with: """
+            Update the keycast toolbar pill with the current key binding and command.
+            KEY is the key description string (e.g. \"C-x C-f\").
+            COMMAND is the command name string (e.g. \"find-file\").
+            """
+        ) { (env: EmacsSwiftModule.Environment, key: String, command: String) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    let vm = ToolbarManager.shared.viewModel
+                    vm.keycastKey = key
+                    vm.keycastCommand = command
+                }
+                return true
+            }
+            return false
+        }
+
+        try env.defun("hyalo-set-keycast-visible",
+            with: "Set keycast toolbar pill visibility. VISIBLE is t or nil."
+        ) { (env: EmacsSwiftModule.Environment, visible: Bool) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    ToolbarManager.shared.viewModel.keycastVisible = visible
+                }
+                return true
+            }
+            return false
+        }
+
         // MARK: - Appearance
 
         try env.defun(
@@ -319,7 +452,12 @@ final class HyaloModule: Module {
             """
         ) { (env: EmacsSwiftModule.Environment, frameId: Int) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                // Called from the Emacs main thread.  Run decoration synchronously
+                // rather than via DispatchQueue.main.async so the window hierarchy
+                // is fully set up before this function returns to Lisp.
+                // Async dispatch caused decorateWindow to run during a subsequent
+                // sit-for, interleaving with Emacs drawing code and causing a segfault.
+                MainActor.assumeIsolated {
                     guard let window = findEmacsWindow() else { return }
                     HyaloModule.decorateWindow(window, frameId: frameId)
                 }
@@ -580,13 +718,25 @@ final class HyaloModule: Module {
         // MARK: - Utility Area
 
         try env.defun("hyalo-utility-area-toggle",
-            with: "Toggle the utility area (bottom panel) visibility."
+            with: """
+            Toggle the utility area (bottom panel) visibility.
+            When shown, the terminal gains keyboard focus.
+            When hidden, the Emacs view regains focus.
+            """
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
                 MainActor.assumeIsolated {
-                    guard let workspace = HyaloModule.activeWorkspace else { return }
+                    guard let controller = HyaloModule.activeController else { return }
+                    let workspace = controller.workspace
+                    let willShow = !workspace.utilityAreaVisible
                     withAnimation(.easeInOut(duration: 0.15)) {
-                        workspace.utilityAreaVisible.toggle()
+                        workspace.utilityAreaVisible = willShow
+                    }
+                    if willShow {
+                        // Defer focus until the view is laid out
+                        DispatchQueue.main.async { controller.focusTerminal() }
+                    } else {
+                        controller.focusEmacs()
                     }
                 }
                 return true
@@ -595,14 +745,18 @@ final class HyaloModule: Module {
         }
 
         try env.defun("hyalo-utility-area-show",
-            with: "Show the utility area (bottom panel)."
+            with: """
+            Show the utility area (bottom panel).
+            The terminal gains keyboard focus.
+            """
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
                 MainActor.assumeIsolated {
-                    guard let workspace = HyaloModule.activeWorkspace else { return }
+                    guard let controller = HyaloModule.activeController else { return }
                     withAnimation(.easeInOut(duration: 0.15)) {
-                        workspace.utilityAreaVisible = true
+                        controller.workspace.utilityAreaVisible = true
                     }
+                    DispatchQueue.main.async { controller.focusTerminal() }
                 }
                 return true
             }
@@ -610,14 +764,18 @@ final class HyaloModule: Module {
         }
 
         try env.defun("hyalo-utility-area-hide",
-            with: "Hide the utility area (bottom panel)."
+            with: """
+            Hide the utility area (bottom panel).
+            The Emacs view regains keyboard focus.
+            """
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
                 MainActor.assumeIsolated {
-                    guard let workspace = HyaloModule.activeWorkspace else { return }
+                    guard let controller = HyaloModule.activeController else { return }
                     withAnimation(.easeInOut(duration: 0.15)) {
-                        workspace.utilityAreaVisible = false
+                        controller.workspace.utilityAreaVisible = false
                     }
+                    controller.focusEmacs()
                 }
                 return true
             }
@@ -1684,39 +1842,63 @@ final class HyaloModule: Module {
 
     // MARK: - Module Build File Watcher
 
-    /// FSEventStream watching the .build/debug/ directory for swift build
-    /// completions.  Only reacts when libHyalo.dylib modification time
-    /// changes — all other FS events (SPM caches, description.json,
-    /// per-target .build dirs) are ignored.
-    /// No polling — uses macOS FSEvents (kernel-level file system notifications).
-    ///
-    /// Build START is pushed by Emacs when `hyalo-build` is called.
-    /// External builds (from terminal) only show at completion.
-    static var buildWatcherStream: FSEventStreamRef?
+    /// Per-configuration build watcher state.
+    /// Each watched directory (.build/debug, .build/release) has its own
+    /// FSEventStream and last-known dylib modification time.
+    private struct BuildWatcherEntry {
+        var stream: FSEventStreamRef
+        var dylibPath: String
+        var lastModTime: Date?
+    }
+
+    /// Active build watchers keyed by config name ("debug", "release").
+    private static var buildWatchers: [String: BuildWatcherEntry] = [:]
 
     /// Project root directory (set by startBuildWatcher).
     static var baseDir: String = ""
 
-    /// Last known modification time of the dylib, used to detect changes.
-    static var lastDylibModTime: Date?
-
-    /// Path to the dylib being watched.
+    /// Convenience: path to whichever dylib was most recently written.
+    /// Used by the async build process to update the watcher after build.
     static var watchedDylibPath: String = ""
 
-    /// Start watching .build/debug/ for dylib changes (build completions).
+    /// Convenience: last mod time of the most recently written dylib.
+    static var lastDylibModTime: Date? {
+        get {
+            // Return the most recent mod time across all watchers
+            buildWatchers.values.compactMap(\.lastModTime).max()
+        }
+        set {
+            // Update the watcher whose dylibPath matches watchedDylibPath
+            for key in buildWatchers.keys {
+                if buildWatchers[key]?.dylibPath == watchedDylibPath {
+                    buildWatchers[key]?.lastModTime = newValue
+                }
+            }
+        }
+    }
+
+    /// Start watching .build/debug/ and .build/release/ for dylib changes.
     /// Called once after module load. Uses FSEvents — no polling.
     @available(macOS 26.0, *)
     static func startBuildWatcher(baseDir: String) {
         stopBuildWatcher()
         self.baseDir = baseDir
 
-        let watchDir = (baseDir as NSString).appendingPathComponent(".build/debug")
+        for config in ["debug", "release"] {
+            startSingleWatcher(baseDir: baseDir, config: config)
+        }
+    }
+
+    /// Start a single FSEventStream watcher for one build configuration.
+    @available(macOS 26.0, *)
+    private static func startSingleWatcher(baseDir: String, config: String) {
+        let watchDir = (baseDir as NSString).appendingPathComponent(".build/\(config)")
         let dylibPath = (watchDir as NSString).appendingPathComponent("libHyalo.dylib")
-        watchedDylibPath = dylibPath
 
         // Record initial mod time
+        var initialModTime: Date?
         if FileManager.default.fileExists(atPath: dylibPath) {
-            lastDylibModTime = (try? FileManager.default.attributesOfItem(atPath: dylibPath))?[.modificationDate] as? Date
+            initialModTime = (try? FileManager.default.attributesOfItem(atPath: dylibPath))?[.modificationDate] as? Date
         }
 
         // Create the directory if it doesn't exist
@@ -1725,11 +1907,12 @@ final class HyaloModule: Module {
         var context = FSEventStreamContext()
         let paths = [watchDir as CFString] as CFArray
 
+        // FSEvents callback is a C function pointer — cannot capture context.
+        // Use a single static callback that checks ALL watched configs.
         guard let stream = FSEventStreamCreate(
             nil,
             { _, _, numEvents, eventPaths, eventFlags, _ in
-                // FSEvents callback — runs on the scheduled run loop
-                HyaloModule.handleBuildDirectoryChange()
+                HyaloModule.handleAnyBuildDirectoryChange()
             },
             &context,
             paths,
@@ -1743,40 +1926,55 @@ final class HyaloModule: Module {
 
         FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
         FSEventStreamStart(stream)
-        buildWatcherStream = stream
+
+        buildWatchers[config] = BuildWatcherEntry(
+            stream: stream,
+            dylibPath: dylibPath,
+            lastModTime: initialModTime
+        )
+
+        // Keep watchedDylibPath pointing at debug for backward compat with async build
+        if config == "debug" {
+            watchedDylibPath = dylibPath
+        }
+
         NSLog("[Hyalo:BuildWatcher] Watching %@ for dylib changes", watchDir)
     }
 
-    /// Handle a file system change in the .build/debug/ directory.
+    /// Handle a file system change from any watched .build/ directory.
+    /// Checks all registered watcher entries for dylib modification time changes.
     /// Only reacts when the dylib modification time actually changes.
-    /// All other FS events (SPM caches, description.json, .build dirs)
-    /// are silently ignored to prevent false "building" activity.
     @available(macOS 26.0, *)
-    private static func handleBuildDirectoryChange() {
-        let dylibPath = watchedDylibPath
-        guard !dylibPath.isEmpty else { return }
-        guard FileManager.default.fileExists(atPath: dylibPath) else { return }
-        guard let attrs = try? FileManager.default.attributesOfItem(atPath: dylibPath),
-              let modTime = attrs[.modificationDate] as? Date else { return }
+    private static func handleAnyBuildDirectoryChange() {
+        for config in buildWatchers.keys {
+            guard var entry = buildWatchers[config] else { continue }
+            let dylibPath = entry.dylibPath
+            guard FileManager.default.fileExists(atPath: dylibPath) else { continue }
+            guard let attrs = try? FileManager.default.attributesOfItem(atPath: dylibPath),
+                  let modTime = attrs[.modificationDate] as? Date else { continue }
 
-        // Only react if dylib mod time actually changed
-        if let last = lastDylibModTime, modTime <= last { return }
-        lastDylibModTime = modTime
+            // Only react if dylib mod time actually changed
+            if let last = entry.lastModTime, modTime <= last { continue }
+            entry.lastModTime = modTime
+            buildWatchers[config] = entry
 
-        DispatchQueue.main.async {
-            ActivityManager.shared.finishModuleBuild(success: true)
-            NSLog("[Hyalo:BuildWatcher] Build completed — new dylib detected")
+            DispatchQueue.main.async {
+                ActivityManager.shared.finishModuleBuild(success: true)
+                NSLog("[Hyalo:BuildWatcher] Build completed (%@) — new dylib detected", config)
+            }
+            // Only fire once per FSEvents batch
+            return
         }
     }
 
-    /// Stop the build watcher.
+    /// Stop all build watchers.
     static func stopBuildWatcher() {
-        if let stream = buildWatcherStream {
-            FSEventStreamStop(stream)
-            FSEventStreamInvalidate(stream)
-            FSEventStreamRelease(stream)
-            buildWatcherStream = nil
+        for (_, entry) in buildWatchers {
+            FSEventStreamStop(entry.stream)
+            FSEventStreamInvalidate(entry.stream)
+            FSEventStreamRelease(entry.stream)
         }
+        buildWatchers.removeAll()
     }
 
     // MARK: - Async Build Process
@@ -1855,12 +2053,12 @@ final class HyaloModule: Module {
                 mgr.finishModuleBuild(success: success)
                 // Update the FSEvents watcher's known mod time so it doesn't
                 // re-trigger for this build's dylib.
-                if success {
-                    let dylibPath = watchedDylibPath
-                    if !dylibPath.isEmpty,
-                       let attrs = try? FileManager.default.attributesOfItem(atPath: dylibPath),
+                if success, var entry = buildWatchers[config] {
+                    let dylibPath = entry.dylibPath
+                    if let attrs = try? FileManager.default.attributesOfItem(atPath: dylibPath),
                        let modTime = attrs[.modificationDate] as? Date {
-                        lastDylibModTime = modTime
+                        entry.lastModTime = modTime
+                        buildWatchers[config] = entry
                     }
                 }
                 NSLog("[Hyalo:Build] swift build %@ (exit %d)", success ? "succeeded" : "failed", proc.terminationStatus)
@@ -1899,10 +2097,18 @@ final class HyaloModule: Module {
         guard let contentView = window.contentView else { return }
         guard let emacsView = extractEmacsView(from: contentView) else { return }
 
-        emacsView.removeFromSuperview()
+        // Drain autoreleased objects from the view hierarchy teardown
+        // immediately.  removeFromSuperview and clearing the content
+        // view controller autorelease internal AppKit objects (layers,
+        // layout engines).  If left in the outer pool, Emacs's
+        // ns_read_socket_1 pops them later when they may already be
+        // invalid → SIGSEGV in AutoreleasePoolPage::releaseUntil.
+        autoreleasepool {
+            emacsView.removeFromSuperview()
 
-        if window.contentViewController != nil {
-            window.contentViewController = nil
+            if window.contentViewController != nil {
+                window.contentViewController = nil
+            }
         }
 
         let workspace = HyaloWorkspaceState()
@@ -1931,8 +2137,71 @@ final class HyaloModule: Module {
         // Wire channel callbacks to the new controller
         wireCallbacks(to: controller)
 
+        // Show a standalone loading proxy window at the same frame position.
+        // The Emacs window itself stays invisible (visibility . nil) until
+        // hyalo-loading-done is called.  The proxy is created only for the
+        // first (primary) frame, and only when a package bootstrap will
+        // occur (no .local/elpa).  Normal startups skip the proxy entirely.
+        if loadingProxyWindow == nil && needsBootstrap {
+            showLoadingProxy(matching: window)
+        }
+
         NSLog("[Hyalo:Nav] decorateWindow: frame %d (window %@) decorated (%d total)",
               frameId, window, controllers.count)
+
+        // Diagnostic: verify EmacsView is properly in the window hierarchy
+        // after HyaloWindowController.setup() replaced the contentView.
+        if let ev = controller.emacsView {
+            NSLog("[Hyalo:Nav] decorateWindow: emacsView.window=%@, superview=%@, frame=%@",
+                  String(describing: ev.window),
+                  String(describing: ev.superview),
+                  NSStringFromRect(ev.frame))
+        }
+    }
+
+    /// Create and show a vibrancy proxy window at the same screen position as
+    /// `emacsWindow`.  The proxy hosts LoadingView and stays visible until
+    /// `hyalo-loading-done` closes it and reveals the Emacs window.
+    @available(macOS 26.0, *)
+    @MainActor
+    private static func showLoadingProxy(matching emacsWindow: NSWindow) {
+        // Wrap in autoreleasepool: creating an NSWindow and calling
+        // makeKeyAndOrderFront autoreleases window transition animation
+        // objects.  Drain them immediately so they do not linger in
+        // Emacs's outer autorelease pool.
+        autoreleasepool {
+            let proxy = NSWindow(
+                contentRect: emacsWindow.frame,
+                styleMask: [.titled, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
+            proxy.titleVisibility = .hidden
+            proxy.titlebarAppearsTransparent = true
+            proxy.isOpaque = false
+            proxy.backgroundColor = .clear
+            proxy.isMovableByWindowBackground = true
+            proxy.level = emacsWindow.level
+
+            // Vibrancy background matching the default workspace material
+            let vibrancy = NSVisualEffectView(frame: proxy.contentView?.bounds ?? .zero)
+            vibrancy.autoresizingMask = [.width, .height]
+            vibrancy.material = .hudWindow
+            vibrancy.blendingMode = .behindWindow
+            vibrancy.state = .active
+            proxy.contentView?.addSubview(vibrancy)
+
+            // SwiftUI LoadingView hosted on top
+            let hostView = NSHostingView(
+                rootView: LoadingView(state: loadingState)
+            )
+            hostView.frame = vibrancy.bounds
+            hostView.autoresizingMask = [.width, .height]
+            vibrancy.addSubview(hostView)
+
+            proxy.makeKeyAndOrderFront(nil)
+            loadingProxyWindow = proxy
+        }
     }
 
     /// Remove Hyalo decoration from a frame.

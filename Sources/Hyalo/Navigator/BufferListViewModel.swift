@@ -21,6 +21,14 @@ final class BufferListViewModel {
     var selectedBuffer: String?
     var activeBuffer: String?
 
+    /// The buffer name set by the last UI-initiated click, and when.
+    /// Used to reject stale hook calls that arrive within the roundtrip window.
+    private var uiSelectName: String?
+    private var uiSelectTime: Date = .distantPast
+
+    /// Roundtrip guard window — 100ms covers channel roundtrip + hook firing.
+    private static let guardWindow: TimeInterval = 0.1
+
     // MARK: - Cached Output
 
     private(set) var filteredBuffers: [BufferInfo] = []
@@ -77,6 +85,8 @@ final class BufferListViewModel {
         // Prevents race where rapid clicks or stale callbacks revert selection.
         selectedBuffer = name
         activeBuffer = name
+        uiSelectName = name
+        uiSelectTime = Date()
         onBufferSelect?(name)
     }
 
@@ -95,11 +105,15 @@ final class BufferListViewModel {
     // MARK: - Updates from Emacs (callbacks)
 
     func setActiveBuffer(_ name: String) {
-        // Skip stale callbacks for buffers that are no longer active.
-        // activeBuffer is set immediately in selectBuffer().
-        if let active = activeBuffer, name != active {
+        // Within 100ms of a UI click, reject stale calls with a different name.
+        // The guard is NOT cleared on match — it stays active for the full
+        // window so stale calls arriving 1ms after the echo are still blocked.
+        if let pending = uiSelectName,
+           Date().timeIntervalSince(uiSelectTime) < Self.guardWindow,
+           name != pending {
             return
         }
         activeBuffer = name
+        selectedBuffer = name
     }
 }

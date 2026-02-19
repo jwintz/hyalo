@@ -60,12 +60,12 @@
 Respond with ONLY the commit message, no explanation, no markdown, no quotes."
     "System message for Gemini CLI commit message generation.")
 
-  (defcustom magit-commit-provider "google-gemini-cli"
+  (defcustom magit-commit-provider "synthetic"
     "AI provider for commit message generation."
     :type 'string
     :group 'magit)
 
-  (defcustom magit-commit-model "gemini-3-flash-preview"
+  (defcustom magit-commit-model "hf:MiniMaxAI/MiniMax-M2.1"
     "Model ID for commit message generation."
     :type 'string
     :group 'magit)

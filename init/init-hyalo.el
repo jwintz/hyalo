@@ -52,7 +52,9 @@
     "tm" '(demap-toggle :wk "minimap"))
   :config
   ;; Setup window controller after first frame is ready
-  (add-hook 'window-setup-hook #'hyalo-window-setup))
+  (add-hook 'window-setup-hook #'hyalo-window-setup)
+  (when (fboundp 'hyalo--boot-log)
+    (hyalo--boot-log "init-hyalo: window-setup-hook registered")))
 
 ;;;; Hyalo Status Bar
 
@@ -121,6 +123,14 @@
   :after hyalo
   :config
   (hyalo-package-setup))
+
+;;;; Hyalo Keycast
+
+(use-package hyalo-keycast
+  :ensure nil
+  :if (eq window-system 'ns)
+  :after hyalo
+  :commands (hyalo-keycast-mode))
 
 ;;;; Hyalo Appearance
 

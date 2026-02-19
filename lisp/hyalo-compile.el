@@ -45,21 +45,25 @@ not worth showing in the activity viewer.")
 
 (defun hyalo-compile--update-status ()
   "Push current compilation status to the Swift activity viewer.
-Only shows the activity when the queue has at least
-`hyalo-compile--quiet-threshold' files, to avoid noise from
-single-file background compilations at startup."
+Only shows the activity when REMAINING (currently pending) files
+meet `hyalo-compile--quiet-threshold', to avoid noise from
+single-file background compilations at startup.
+
+The `done' counter is never reset — files that complete before
+the activity becomes visible are counted in progress.  The log
+is not cleared retroactively so early completions keep their
+entries."
   (let ((remaining (hyalo-compile--queue-length)))
     (cond
-     ;; Compilation just started (only show if above threshold)
+     ;; Compilation just started (only show if enough files pending)
      ((and (> remaining 0) (not hyalo-compile--active))
-      (setq hyalo-compile--total (+ remaining hyalo-compile--done)
-            hyalo-compile--done 0)
-      (when (> remaining hyalo-compile--total)
-        (setq hyalo-compile--total remaining))
-      (when (>= hyalo-compile--total hyalo-compile--quiet-threshold)
+      ;; Grow total to include both pending and already-done files.
+      ;; Do NOT reset done — those files already completed.
+      (let ((new-total (+ remaining hyalo-compile--done)))
+        (when (> new-total hyalo-compile--total)
+          (setq hyalo-compile--total new-total)))
+      (when (>= remaining hyalo-compile--quiet-threshold)
         (setq hyalo-compile--active t)
-        (when (fboundp 'hyalo-activity-clear-log)
-          (hyalo-activity-clear-log hyalo-compile--activity-id))
         (hyalo-compile--push-building remaining)))
      ;; Compilation ongoing
      ((and (> remaining 0) hyalo-compile--active)

@@ -13,11 +13,22 @@
 ;; Must be defined BEFORE package-initialize
 (defvar demap--tools-demap-defined-start-p t)
 
+;; cua-mode is referenced by the built-in Options menu toggle handler
+;; during package archive download, before cua-base.el is loaded.
+;; Pre-declare it to avoid a void-variable error that aborts the bootstrap.
+(defvar cua-mode nil)
+
 ;;; ===========================================================================
 ;;; Performance & Output
 ;;; ===========================================================================
 
-(setq debug-on-error t)
+;; debug-on-error is deferred until after init completes.
+;; During a fresh install, benign errors from autoload files (e.g.,
+;; void-function in modus-themes) and network hiccups would trigger
+;; the interactive debugger.  The Emacs frame is invisible at this
+;; point (proxy window is showing), so the debugger blocks forever
+;; with no user interaction possible.  Use --debug-init for debugging.
+;; Enabled via emacs-startup-hook below (after gc restore).
 
 ;; Temporarily reduce garbage collection during startup
 (defvar hyalo--default-gc-cons-threshold gc-cons-threshold)
@@ -33,7 +44,10 @@
             (setq file-name-handler-alist
                   (delete-dups
                    (append file-name-handler-alist
-                           hyalo--default-file-name-handler-alist)))))
+                           hyalo--default-file-name-handler-alist)))
+            ;; Enable debug-on-error now that the frame is (or will be)
+            ;; visible.  Safe to interact with the debugger from here.
+            (setq debug-on-error t)))
 
 ;; Prevent early UI allocation
 (setq-default tool-bar-mode nil)
@@ -64,7 +78,7 @@
 
 (setq user-emacs-directory (expand-file-name ".local/" emacs-config-dir))
 
-(dolist (subdir '("" "auto-save" "auto-save-list" "transient" "eshell" "etc"))
+(dolist (subdir '("" "auto-save" "auto-save-list" "transient" "eshell" "etc" "elpa"))
   (make-directory (expand-file-name subdir user-emacs-directory) t))
 
 (setq auto-save-list-file-prefix (locate-user-emacs-file "auto-save-list/.saves-"))
@@ -81,14 +95,31 @@
 
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-(package-initialize)
+;; Some packages (e.g. modus-themes) have autoload files that call their own
+;; macros before those macros are loaded.  debug-on-error t would enter the
+;; debugger on those benign errors.  Silence them during package-initialize.
+(let ((debug-on-error nil))
+  (package-initialize))
 
 ;; package-refresh-contents is deferred to the first interactive
 ;; package-install via a transient hook.  See below, after hyalo-lib
 ;; is loaded (transient hook macro lives there).
 
 (unless (package-installed-p 'use-package)
-  (package-install 'use-package))
+  ;; The global message redirect (installed in init.el) forwards all
+  ;; `message' output to the loading proxy.  We only need explicit
+  ;; step messages here for key milestones.
+  (condition-case err
+      (progn
+        (when (fboundp 'hyalo-set-loading-message)
+          (hyalo-set-loading-message "Refreshing package archives…") (sit-for 0.01))
+        (package-refresh-contents)
+        (when (fboundp 'hyalo-set-loading-message)
+          (hyalo-set-loading-message "Installing use-package…") (sit-for 0.01))
+        (package-install 'use-package))
+    (error
+     (message "Bootstrap: use-package install failed (%s); continuing without it"
+              (error-message-string err)))))
 
 (require 'use-package)
 (setq use-package-always-ensure t)

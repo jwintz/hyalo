@@ -16,7 +16,8 @@ final class HyaloWindowController: NSWindowController {
     // MARK: - Properties
 
     private(set) var workspace: HyaloWorkspaceState
-    private var emacsView: NSView?
+    /// The original Emacs NSView, retained for focus restoration.
+    private(set) var emacsView: NSView?
     private var observers: [NSKeyValueObservation] = []
     private var titleObservation: NSKeyValueObservation?
     let editorTabViewModel = EditorTabViewModel()
@@ -36,9 +37,12 @@ final class HyaloWindowController: NSWindowController {
             win.delegate = self
         }
 
-        DispatchQueue.main.async { [weak self] in
-            self?.setup()
-        }
+        // Call setup() synchronously.  decorateWindow is already called from
+        // the Emacs main thread (via MainActor.assumeIsolated in the defun),
+        // so setup can safely manipulate the window hierarchy here.
+        // Async dispatch was removed because it caused setup to fire during a
+        // subsequent sit-for, interleaving with Emacs drawing and segfaulting.
+        setup()
     }
 
     @available(*, unavailable)
@@ -53,6 +57,18 @@ final class HyaloWindowController: NSWindowController {
         guard let emacsView else { return }
 
         NSLog("[Hyalo:Nav] setup: window=%@ emacsView=%@", window, emacsView)
+
+        // Wrap the entire view hierarchy manipulation in an autoreleasepool.
+        // Replacing window.contentView autoreleases the old content view and
+        // its internal AppKit objects (layers, constraints, layout engines).
+        // Without an explicit drain, these objects linger in the outer pool
+        // managed by Emacs's C code (ns_read_socket_1).  When the next
+        // (sit-for 0) triggers ns_read_socket_1 and pops its pool, some of
+        // those objects have already been invalidated by the hierarchy swap,
+        // causing a use-after-free → SIGSEGV in AutoreleasePoolPage::releaseUntil.
+        // Draining here ensures all temporaries are released deterministically
+        // before control returns to the Emacs event loop.
+        autoreleasepool {
 
         // Save the window's position before reconfiguring.
         // Emacs placed the window at a specific origin; we must preserve
@@ -96,6 +112,19 @@ final class HyaloWindowController: NSWindowController {
         window.contentView = hosting
         isSetUp = true
 
+        // Force SwiftUI to evaluate its body NOW so that makeNSView fires
+        // synchronously.  Without this, SwiftUI may defer makeNSView for
+        // invisible windows, leaving EmacsView orphaned (no window, no
+        // superview).  When make-frame-visible later calls
+        // makeKeyAndOrderFront, windowDidBecomeKey fires on an orphaned
+        // EmacsView and triggers gui_update_cursor on corrupted glyph
+        // matrices → segfault.
+        hosting.layoutSubtreeIfNeeded()
+
+        NSLog("[Hyalo:Nav] setup: after layoutSubtreeIfNeeded — emacsView.window=%@, emacsView.superview=%@",
+              String(describing: emacsView.window),
+              String(describing: emacsView.superview))
+
         // Restore the window position.  Setting contentView and styleMask
         // can shift the origin (AppKit adjusts for toolbar height changes).
         // Keep the same top-left corner by computing from the saved frame.
@@ -105,13 +134,14 @@ final class HyaloWindowController: NSWindowController {
         )
         window.setFrameOrigin(newOrigin)
 
-        // Reveal the window now that the chrome is installed.
-        // Always call makeKeyAndOrderFront + activate to ensure the window
-        // appears even when Emacs's (make-frame-visible) hasn't run yet.
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate()
+        // The Emacs window is intentionally NOT revealed here.
+        // A standalone loading proxy window (created in Module.decorateWindow)
+        // is shown instead while init.el runs.  The Emacs window is revealed
+        // by hyalo-loading-done once the IDE shell is fully initialized.
 
         NSLog("[Hyalo:Nav] hosting view installed: frame=%@", NSStringFromRect(window.frame))
+
+        } // autoreleasepool — drain all temporaries from view hierarchy swap
 
         // Observe window title to prevent Emacs from displaying geometry
         titleObservation = window.observe(\.title, options: [.new]) { window, _ in
@@ -194,18 +224,28 @@ final class HyaloWindowController: NSWindowController {
     }
 
     /// Select utility area tab by 1-based index. If already on that tab and visible, toggle off.
+    /// Manages focus: terminal gets focus when shown, Emacs when hidden.
     func selectUtilityAreaTab(_ index: Int) {
         let tabs = UtilityAreaTab.allCases
         guard index >= 1, index <= tabs.count else { return }
         let tab = tabs[index - 1]
 
+        let willHide = workspace.utilityAreaVisible && utilityAreaViewModel.selectedTab == tab
+
         withAnimation(Self.panelAnimation) {
-            if workspace.utilityAreaVisible && utilityAreaViewModel.selectedTab == tab {
+            if willHide {
                 workspace.utilityAreaVisible = false
             } else {
                 utilityAreaViewModel.selectedTab = tab
                 workspace.utilityAreaVisible = true
             }
+        }
+
+        if willHide {
+            focusEmacs()
+        } else if tab == .terminal {
+            // Defer until the view is laid out
+            DispatchQueue.main.async { [weak self] in self?.focusTerminal() }
         }
     }
 
@@ -223,6 +263,20 @@ final class HyaloWindowController: NSWindowController {
         guard let tab = vm.selectedTab,
               let index = vm.tabItems.firstIndex(of: tab) else { return 0 }
         return index + 1
+    }
+
+    // MARK: - Focus Management
+
+    /// Focus the utility area terminal view.
+    func focusTerminal() {
+        guard let tv = utilityAreaViewModel.terminalHolder.container?.terminalView else { return }
+        window?.makeFirstResponder(tv)
+    }
+
+    /// Focus the Emacs main view (restore keyboard input to Emacs).
+    func focusEmacs() {
+        guard let ev = emacsView else { return }
+        window?.makeFirstResponder(ev)
     }
 
     func applyAppearance(_ appearance: NSAppearance?) {

@@ -261,7 +261,14 @@ private struct PackagePopoverContent: View {
                         }
                         sectionHeader("VERSION CONTROL", count: viewModel.vcPackages.count)
                         ForEach(viewModel.vcPackages) { pkg in
-                            VCPackageRow(package: pkg)
+                            VCPackageRow(
+                                package: pkg,
+                                isActive: isActive,
+                                onUpgrade: {
+                                    viewModel.onPackageUpgradeSingle?(pkg.name)
+                                    HyaloModule.wakeEmacs()
+                                }
+                            )
                         }
                     }
                 }
@@ -360,6 +367,10 @@ private struct UpgradablePackageRow: View {
 @available(macOS 26.0, *)
 private struct VCPackageRow: View {
     let package: VCPackage
+    let isActive: Bool
+    let onUpgrade: () -> Void
+
+    @State private var isHovering = false
 
     var body: some View {
         HStack {
@@ -380,8 +391,27 @@ private struct VCPackageRow: View {
             }
 
             Spacer()
+
+            if isHovering && !isActive {
+                Button {
+                    onUpgrade()
+                } label: {
+                    Image(systemName: "arrow.up.circle")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.purple)
+                }
+                .buttonStyle(.borderless)
+                .help("Upgrade \(package.name)")
+                .transition(.opacity)
+            }
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 6)
+        .background {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(.primary.opacity(isHovering ? 0.04 : 0))
+        }
+        .onHover { isHovering = $0 }
+        .animation(.easeInOut(duration: 0.15), value: isHovering)
     }
 }

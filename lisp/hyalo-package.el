@@ -137,7 +137,9 @@ ARCHIVE is the source archive name (e.g. \"melpa\", \"gnu\")."
          (hyalo-package--finish-activity "Packages up to date"))))))
 
 (defun hyalo-package--upgrade-single (name-str)
-  "Upgrade a single package by NAME-STR."
+  "Upgrade a single package by NAME-STR.
+Handles both archive packages (via `package-install') and VC
+packages (via `package-vc-upgrade')."
   (unless hyalo-package--upgrading
     (setq hyalo-package--upgrading t)
     (hyalo-package--push-status)
@@ -147,12 +149,22 @@ ARCHIVE is the source archive name (e.g. \"melpa\", \"gnu\")."
      (lambda ()
        (unwind-protect
            (let* ((name (intern name-str))
-                  (desc (cadr (assq name package-archive-contents))))
-             (if desc
-                 (progn
-                   (package-install desc t)
-                   (message "Hyalo: Upgraded %s" name-str))
-               (message "Hyalo: Package %s not found in archives" name-str)))
+                  (installed-desc (cadr (assq name package-alist))))
+             (cond
+              ;; VC package — use package-vc-upgrade
+              ((and installed-desc
+                    (eq (package-desc-kind installed-desc) 'vc)
+                    (fboundp 'package-vc-upgrade))
+               (package-vc-upgrade installed-desc)
+               (message "Hyalo: Upgraded VC package %s" name-str))
+              ;; Archive package — use package-install
+              ((let ((archive-desc (cadr (assq name package-archive-contents))))
+                 (when archive-desc
+                   (package-install archive-desc t)
+                   (message "Hyalo: Upgraded %s" name-str)
+                   t)))
+              (t
+               (message "Hyalo: Package %s not found" name-str))))
          (setq hyalo-package--upgrading nil)
          (hyalo-package--push-status)
          (hyalo-package--finish-activity (format "Upgraded %s" name-str)))))))

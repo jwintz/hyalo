@@ -18,33 +18,33 @@
   "Non-nil once early setup (decoration + visibility) has completed.")
 
 (defun hyalo-window--early-setup ()
-  "Decorate the initial frame and make it visible.
-Called from `init-hyalo.el' immediately after module load, BEFORE
-the rest of init.el runs.  This ensures the user sees the Hyalo
-chrome rather than a raw Emacs frame during long init steps
-\(e.g., package-vc-install for missing packages\).
+  "Decorate the initial frame and show the loading proxy window.
+Called from `init.el' at the very top, before `init-bootstrap' runs.
+The Emacs frame itself stays invisible (`visibility . nil') until
+`hyalo-loading-done' is called at the end of `hyalo-window--post-setup'.
+A standalone SwiftUI proxy window is shown instead while init runs.
 Channel setup and data push happen later in `hyalo-window-setup'."
   (when (and (hyalo-available-p)
              (not hyalo-window--early-setup-done)
              (fboundp 'hyalo-navigation-setup))
+    ;; Set lisp dir first so LoadingView can locate the SVG before it appears.
+    (when (fboundp 'hyalo-set-base-dir)
+      (hyalo-set-base-dir (expand-file-name "lisp" hyalo--base-dir)))
     (let ((frame-id (string-to-number
                      (or (frame-parameter nil 'window-id) "0"))))
       (hyalo-navigation-setup frame-id))
-    ;; Wait for the Swift controller to install the hosting view
-    ;; BEFORE making the frame visible.  `sit-for' yields to AppKit
-    ;; so DispatchQueue.main.async blocks in decorateWindow and
-    ;; setup() can execute while the frame is still invisible.
-    ;; This prevents the raw Emacs frame from flashing briefly.
-    (let ((attempts 0))
-      (while (and (< attempts 30)
-                  (not (and (fboundp 'hyalo-window-controller-ready-p)
-                            (hyalo-window-controller-ready-p))))
-        (sit-for 0.05)
-        (setq attempts (1+ attempts))))
-    ;; Now make visible — the chrome is already installed.
-    (make-frame-visible)
+    ;; Setup is now synchronous — the controller is ready immediately.
+    ;; A single sit-for lets AppKit process the content-view swap before
+    ;; we continue.  No polling loop needed.
+    (sit-for 0)
+    ;; When no bootstrap is needed, the proxy was not created.
+    ;; Reveal the frame immediately so the user sees the IDE shell
+    ;; while the rest of init loads.  When bootstrapping, the proxy
+    ;; is visible and the frame stays hidden until hyalo-loading-done.
+    (unless (bound-and-true-p hyalo--needs-bootstrap)
+      (make-frame-visible))
     (setq hyalo-window--early-setup-done t)
-    (message "Hyalo: Chrome installed (early setup)")))
+    (message "Hyalo: Chrome installed")))
 
 ;;; Core Setup
 
@@ -53,15 +53,19 @@ Channel setup and data push happen later in `hyalo-window-setup'."
 Called from `window-setup-hook' after the first frame is ready.
 The window decoration was already done by `hyalo-window--early-setup'."
   (interactive)
+  (when (fboundp 'hyalo--boot-log)
+    (hyalo--boot-log "hyalo-window-setup: entered"))
   (when (hyalo-available-p)
     ;; If early setup didn't run (e.g., module loaded late),
-    ;; do the decoration now.
+    ;; do the decoration now.  decorateWindow creates the proxy window;
+    ;; hyalo-loading-done (at the end of post-setup) reveals the frame.
     (unless hyalo-window--early-setup-done
       (when (fboundp 'hyalo-navigation-setup)
+        (when (fboundp 'hyalo-set-base-dir)
+          (hyalo-set-base-dir (expand-file-name "lisp" hyalo--base-dir)))
         (let ((frame-id (string-to-number
                          (or (frame-parameter nil 'window-id) "0"))))
           (hyalo-navigation-setup frame-id))
-        (make-frame-visible)
         (hyalo-window--wait-for-controller 0)
         (setq hyalo-window--early-setup-done t)))
     ;; If the controller is ready (from early setup), do post-setup
@@ -83,59 +87,104 @@ ATTEMPT is the current retry count."
                hyalo-window--post-setup-max-retries))))
 
 (defun hyalo-window--post-setup ()
-  "Post-setup: initialize channels, push initial data, start status updates."
+  "Post-setup: initialize channels, push initial data, start status updates.
+Wrapped in condition-case so a failure in one step does not prevent
+subsequent steps from running.  Each step logs errors individually."
+  (when (fboundp 'hyalo--boot-log)
+    (hyalo--boot-log "hyalo-window--post-setup: entered"))
   ;; Load sub-modules
-  (require 'hyalo-channels)
-  (require 'hyalo-navigator)
-  (require 'hyalo-status)
-  (require 'hyalo-appearance)
-  (require 'hyalo-diagnostics)
+  (when (and (bound-and-true-p hyalo--needs-bootstrap) (fboundp 'hyalo-set-loading-message)) (hyalo-set-loading-message "Loading modules…") (sit-for 0.01))
+  (condition-case err
+      (progn
+        (require 'hyalo-channels)
+        (require 'hyalo-navigator)
+        (require 'hyalo-status)
+        (require 'hyalo-appearance)
+        (require 'hyalo-diagnostics))
+    (error (message "Hyalo: Failed to load sub-modules: %s" (error-message-string err))))
   ;; Open all async channels
-  (hyalo-channels-setup)
+  (when (and (bound-and-true-p hyalo--needs-bootstrap) (fboundp 'hyalo-set-loading-message)) (hyalo-set-loading-message "Opening channels…") (sit-for 0.01))
+  (condition-case err
+      (hyalo-channels-setup)
+    (error (message "Hyalo: Channel setup error: %s" (error-message-string err))))
   ;; Push initial data to the UI
-  (hyalo-navigator-refresh)
-  ;; Seed initial project root for change detection and cache
+  (when (and (bound-and-true-p hyalo--needs-bootstrap) (fboundp 'hyalo-set-loading-message)) (hyalo-set-loading-message "Refreshing navigator…") (sit-for 0.01))
+  (condition-case err
+      (hyalo-navigator-refresh)
+    (error (message "Hyalo: Navigator refresh error: %s" (error-message-string err))))
+  ;; Seed initial project root for change detection and cache.
+  ;; Only directories with a git root get a project root — bare
+  ;; directories (e.g. ~/) must not be pushed to the navigator,
+  ;; because the Swift file tree builder would scan recursively.
   (let* ((dir (or (and buffer-file-name
                        (file-name-directory buffer-file-name))
                   (and default-directory
                        (expand-file-name default-directory))))
          (git-root (when dir (locate-dominating-file dir ".git"))))
-    (when git-root
-      (let ((expanded (expand-file-name git-root)))
-        (setq hyalo-status--last-project-root expanded)
-        (puthash dir expanded hyalo-status--project-root-cache))))
+    (if git-root
+        (let ((expanded (expand-file-name git-root)))
+          (setq hyalo-status--last-project-root expanded)
+          (setq hyalo-status--last-git-root expanded)
+          (puthash dir expanded hyalo-status--project-root-cache))
+      ;; No git repo — record :none so the cache prevents future walks,
+      ;; but do NOT set a project root for the navigator.
+      (when dir
+        (setq hyalo-status--last-project-root nil)
+        (setq hyalo-status--last-git-root nil)
+        (puthash dir :none hyalo-status--project-root-cache))))
   ;; Register hook-driven status updates (no polling)
-  (hyalo-status-setup)
-  ;; Push initial branch info and file info (one-time synchronous, at startup only)
-  (hyalo-status--push-branch-info)
-  (hyalo-status--push-file-info)
+  (condition-case err
+      (progn
+        (hyalo-status-setup)
+        ;; Push initial branch info and file info (one-time synchronous, at startup only)
+        (hyalo-status--push-branch-info)
+        (hyalo-status--push-file-info))
+    (error (message "Hyalo: Status setup error: %s" (error-message-string err))))
   ;; Push initial source control data (changed files + commit history)
-  (when (fboundp 'hyalo-source-control--do-update)
-    (hyalo-source-control--do-update))
+  (condition-case err
+      (when (fboundp 'hyalo-source-control--do-update)
+        (hyalo-source-control--do-update))
+    (error (message "Hyalo: Source control update error: %s" (error-message-string err))))
   ;; Source control updates on save (debounced 3s)
   (add-hook 'after-save-hook #'hyalo-source-control--schedule-update)
   ;; Register hook-driven diagnostics updates (flymake → Swift)
-  (hyalo-diagnostics-setup)
+  (condition-case err
+      (hyalo-diagnostics-setup)
+    (error (message "Hyalo: Diagnostics setup error: %s" (error-message-string err))))
   ;; Sync appearance with current Emacs theme
-  (hyalo-appearance-sync)
+  (condition-case err
+      (hyalo-appearance-sync)
+    (error (message "Hyalo: Appearance sync error: %s" (error-message-string err))))
   ;; Push initial terminal palette and color theme (theme loaded before hook registered)
-  (when (fboundp 'hyalo-theme-send-palette)
-    (hyalo-theme-send-palette))
-  (when (fboundp 'hyalo-theme-send-color-theme)
-    (hyalo-theme-send-color-theme))
-  ;; Push current theme name (theme loaded before module, so hyalo-theme--on-enable skipped it)
-  (when (and (fboundp 'hyalo-set-current-theme-name) custom-enabled-themes)
-    (hyalo-set-current-theme-name (symbol-name (car custom-enabled-themes))))
+  (condition-case err
+      (progn
+        (when (fboundp 'hyalo-theme-send-palette)
+          (hyalo-theme-send-palette))
+        (when (fboundp 'hyalo-theme-send-color-theme)
+          (hyalo-theme-send-color-theme))
+        ;; Push current theme name (theme loaded before module, so hyalo-theme--on-enable skipped it)
+        (when (and (fboundp 'hyalo-set-current-theme-name) custom-enabled-themes)
+          (hyalo-set-current-theme-name (symbol-name (car custom-enabled-themes)))))
+    (error (message "Hyalo: Theme push error: %s" (error-message-string err))))
   ;; Register multi-frame hooks
   (add-hook 'after-make-frame-functions #'hyalo-window--on-frame-created)
   (add-hook 'delete-frame-functions #'hyalo-window--on-frame-deleted)
   ;; Setup Cmd+O / Cmd+P interception
-  (hyalo-window--setup-keybindings)
-  ;; Frame was already revealed in hyalo-window-setup (before polling).
-  ;; Ensure it is visible in case of race conditions.
+  (condition-case err
+      (hyalo-window--setup-keybindings)
+    (error (message "Hyalo: Keybindings setup error: %s" (error-message-string err))))
+  ;; Close the proxy window (Swift side).  Then reveal the Emacs frame via
+  ;; Emacs's own make-frame-visible so Emacs updates its internal visibility
+  ;; state before AppKit fires display callbacks.  Calling makeKeyAndOrderFront
+  ;; directly from Swift (as hyalo-loading-done used to do) bypasses that state
+  ;; update and causes a segfault in the NS display code.
+  (if (fboundp 'hyalo-loading-done)
+      (hyalo-loading-done)
+    ;; Module not available — nothing to close.
+    nil)
   (make-frame-visible)
   (message "Hyalo: IDE shell initialized (v%s)"
-           (or (hyalo-version-check) "?")))
+           (or (ignore-errors (hyalo-version-check)) "?")))
 
 ;;; Multi-Frame Support
 
@@ -268,12 +317,13 @@ Collects Emacs commands and opens the Swift panel."
 ;;; Data Collectors
 
 (defun hyalo-window--get-project-root ()
-  "Get project root: git root, project.el root, or `default-directory'."
+  "Get project root: project.el root, git root, file directory, or `default-directory'."
   (or (when-let* ((proj (project-current)))
         (if (fboundp 'project-root)
             (project-root proj)
           (car (project-roots proj))))
       (locate-dominating-file default-directory ".git")
+      (and buffer-file-name (file-name-directory buffer-file-name))
       default-directory))
 
 (defun hyalo-window--collect-project-files ()

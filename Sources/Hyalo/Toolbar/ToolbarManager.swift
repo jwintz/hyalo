@@ -32,6 +32,11 @@ final class ToolbarViewModel {
     var vcPackages: [VCPackage] = []
     var lastChecked: Date? = nil
 
+    // Keycast
+    var keycastVisible: Bool = false
+    var keycastKey: String = ""
+    var keycastCommand: String = ""
+
     // Callbacks (set by Module.swift channel setup)
     var onBranchSwitch: ((String) -> Void)?
     var onPackageRefresh: (() -> Void)?

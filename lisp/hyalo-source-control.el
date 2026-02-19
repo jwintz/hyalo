@@ -23,9 +23,12 @@ Intended to be called from `after-save-hook'."
         (run-with-timer 3 nil #'hyalo-source-control--do-update)))
 
 (defun hyalo-source-control--do-update ()
-  "Perform the source control update."
-  (hyalo-source-control--update-changes)
-  (hyalo-source-control--update-history))
+  "Perform the source control update.
+Only runs when inside a git repository."
+  (let ((root (hyalo-source-control--project-root)))
+    (when (and root (locate-dominating-file root ".git"))
+      (hyalo-source-control--update-changes)
+      (hyalo-source-control--update-history))))
 
 ;; MARK: - Changed Files
 

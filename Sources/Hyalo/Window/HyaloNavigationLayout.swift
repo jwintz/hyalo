@@ -121,6 +121,14 @@ struct HyaloNavigationLayout: View {
                 }
             }
 
+            // Keycast pill — lowest priority trailing item, collapses first
+            // when the toolbar is too narrow
+            ToolbarItem {
+                ControlGroup {
+                    KeycastView(viewModel: ToolbarManager.shared.viewModel)
+                }
+            }
+
             // Push trailing items to the right
             ToolbarSpacer(.flexible)
 

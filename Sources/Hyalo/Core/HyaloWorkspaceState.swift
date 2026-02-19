@@ -38,6 +38,12 @@ final class HyaloWorkspaceState {
     var vibrancyMaterial: VibrancyMaterial = .ultraThin
     var decorationsVisible: Bool = true
 
+    // MARK: - Loading State
+
+    /// True while Emacs init.el is still running.  Cleared by `hyalo-loading-done'.
+    /// Used to track initialization state across the workspace.
+    var isLoading: Bool = true
+
     // MARK: - Theme Name (not persisted — pushed from Emacs)
 
     var currentThemeName: String = ""
