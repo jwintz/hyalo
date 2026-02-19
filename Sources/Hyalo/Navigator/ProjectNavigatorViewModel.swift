@@ -53,14 +53,6 @@ final class ProjectNavigatorViewModel {
     /// The active file path (set by Emacs on buffer switch).
     var activeFilePath: String?
 
-    /// The file path set by the last UI-initiated click, and when.
-    /// Used to reject stale hook calls that arrive within the roundtrip window.
-    private var uiSelectPath: String?
-    private var uiSelectTime: Date = .distantPast
-
-    /// Roundtrip guard window — 100ms covers channel roundtrip + hook firing.
-    private static let guardWindow: TimeInterval = 0.1
-
     // MARK: - Callbacks
 
     var onFileSelect: ((String) -> Void)?
@@ -198,15 +190,6 @@ final class ProjectNavigatorViewModel {
     /// Set the active file and update selection to match.
     /// Expands all ancestor directories so the file is visible in the tree.
     func setActiveFile(_ path: String) {
-        // Within 100ms of a UI click, reject stale calls with a different path.
-        // The guard is NOT cleared on match — it stays active for the full
-        // window so stale calls arriving 1ms after the echo are still blocked.
-        if let pending = uiSelectPath,
-           Date().timeIntervalSince(uiSelectTime) < Self.guardWindow,
-           path != pending {
-            return
-        }
-
         let oldActive = activeFilePath
         let oldSelection = viewState.selection
         activeFilePath = path
@@ -254,14 +237,9 @@ final class ProjectNavigatorViewModel {
     }
 
     // MARK: - Actions
+    // Swift does NOT modify local state.  Emacs is the single source of truth.
 
     func selectFile(_ path: String) {
-        // Set activeFilePath IMMEDIATELY before sending to channel.
-        // This prevents race where second click arrives before first
-        // setActiveFile callback, causing revert.
-        activeFilePath = path
-        uiSelectPath = path
-        uiSelectTime = Date()
         onFileSelect?(path)
     }
 

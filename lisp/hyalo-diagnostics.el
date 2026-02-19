@@ -11,6 +11,9 @@
 (require 'json)
 (require 'hyalo)
 
+;; Declared in hyalo-status.el — used to suppress re-entry via first-change-hook
+(defvar hyalo-sync--inhibit)
+
 (defvar hyalo-diagnostics--timer nil
   "Debounce timer for diagnostics push.
 Coalesces rapid diagnostic updates (e.g., during typing) into a single push.")
@@ -20,8 +23,10 @@ Coalesces rapid diagnostic updates (e.g., during typing) into a single push.")
   (hyalo-diagnostics-teardown)
   ;; Advise flymake's report handler — fires when any backend delivers diagnostics
   (advice-add 'flymake--handle-report :after #'hyalo-diagnostics--on-report)
-  ;; Also push when switching buffers (show diagnostics for all open buffers)
-  (add-hook 'window-buffer-change-functions #'hyalo-diagnostics--on-buffer-change)
+  ;; Buffer switch diagnostics refresh is triggered explicitly by
+  ;; hyalo-status--on-buffer-change (inside its internal-buffer filter).
+  ;; NOT registered on window-buffer-change-functions directly — doing so
+  ;; caused a feedback loop: push → json-encode → temp buffer → hook → push.
   (hyalo-log 'diagnostics "Setup complete (advice on flymake--handle-report)"))
 
 (defun hyalo-diagnostics-teardown ()
@@ -82,8 +87,11 @@ Coalesces rapid diagnostic updates (e.g., during typing) into a single push.")
                                 (source . ,source))
                               all-diags))))))))
           (hyalo-log 'diagnostics "Pushing %d total diagnostics to Swift" id)
-          (hyalo-update-diagnostics
-           (json-encode (vconcat (nreverse all-diags)))))
+          ;; Bind hyalo-sync--inhibit so json-encode's temp buffers
+          ;; cannot re-enter hyalo-sync--push via first-change-hook.
+          (let ((hyalo-sync--inhibit t))
+            (hyalo-update-diagnostics
+             (json-encode (vconcat (nreverse all-diags))))))
       (error
        (message "Hyalo: diagnostics push error: %s" (error-message-string err))))))
 

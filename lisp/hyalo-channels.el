@@ -131,25 +131,37 @@ Already-visited buffers are simply switched to."
         (switch-to-buffer buf)))))
 
 (defun hyalo-channels--handle-open-file (path)
-  "Handle file open request from command palette.  PATH is the file path."
+  "Handle file open request from command palette.  PATH is the file path.
+Explicitly pushes state because channel callbacks run inside a pipe
+process filter where `window-buffer-change-functions' is deferred."
   (hyalo-channels--fast-find-file path)
-  ;; Push state to all UI components after file opens
-  (when (fboundp 'hyalo-push-active-buffer-state)
-    (hyalo-push-active-buffer-state)))
+  (hyalo-sync--push))
 
 (defun hyalo-channels--handle-switch-buffer (buffer-name)
-  "Handle buffer switch request from navigator.  BUFFER-NAME is the target."
+  "Handle buffer switch request from editor tab bar or navigator.
+BUFFER-NAME is the target.  Switches and explicitly pushes state
+because channel callbacks run inside a pipe process filter where
+`window-buffer-change-functions' is deferred until the next redisplay."
   (switch-to-buffer buffer-name)
-  ;; Push state to all UI components after buffer switch
-  (when (fboundp 'hyalo-push-active-buffer-state)
-    (hyalo-push-active-buffer-state)))
+  (hyalo-sync--push))
 
 (defun hyalo-channels--handle-find-file (file-path)
-  "Handle file open request from navigator.  FILE-PATH is the target."
+  "Handle file open request from navigator.  FILE-PATH is the target.
+Explicitly pushes state because channel callbacks run inside a pipe
+process filter where `window-buffer-change-functions' is deferred."
   (hyalo-channels--fast-find-file file-path)
-  ;; Push state to all UI components after file opens
-  (when (fboundp 'hyalo-push-active-buffer-state)
-    (hyalo-push-active-buffer-state)))
+  (hyalo-sync--push))
+
+(defun hyalo-channels--handle-close-tab (buffer-name)
+  "Handle tab close request from editor tab bar.  BUFFER-NAME is the target.
+Buries the buffer so it no longer appears in the editor tab bar.
+Explicitly pushes state because channel callbacks run inside a pipe
+process filter where `window-buffer-change-functions' is deferred."
+  (let ((buf (get-buffer buffer-name)))
+    (when buf
+      (with-current-buffer buf
+        (bury-buffer))))
+  (hyalo-sync--push))
 
 (defun hyalo-channels--handle-execute-command (command)
   "Handle command execution from command palette.  COMMAND is the command name."

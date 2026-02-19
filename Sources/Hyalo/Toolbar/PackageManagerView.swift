@@ -116,6 +116,16 @@ struct PackageManagerView: View {
     }
 }
 
+// MARK: - Content Height Preference Key
+
+@available(macOS 26.0, *)
+private struct ContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 // MARK: - Package Popover Content
 
 @available(macOS 26.0, *)
@@ -124,6 +134,12 @@ private struct PackagePopoverContent: View {
 
     @Environment(\.colorScheme)
     private var colorScheme
+
+    /// Measured content height of the package list.
+    @State private var contentHeight: CGFloat = 0
+
+    /// Window height for computing max list height.
+    @State private var windowHeight: CGFloat = 600
 
     private var isActive: Bool {
         viewModel.packageOperation != .idle
@@ -272,8 +288,16 @@ private struct PackagePopoverContent: View {
                         }
                     }
                 }
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: ContentHeightKey.self,
+                            value: geo.size.height)
+                    }
+                )
             }
-            .frame(maxHeight: 350)
+            .frame(height: min(contentHeight, windowHeight * 0.7))
+            .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
 
             // Last checked footer
             Divider()
@@ -289,6 +313,11 @@ private struct PackagePopoverContent: View {
         }
         .padding(12)
         .frame(width: 340)
+        .onAppear {
+            if let window = NSApp.mainWindow {
+                windowHeight = window.frame.height
+            }
+        }
     }
 
     private func sectionHeader(_ title: String, count: Int) -> some View {

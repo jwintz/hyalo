@@ -993,59 +993,45 @@ final class HyaloModule: Module {
                 let channel = try env.openChannel(name: "hyalo-editor-tabs")
                 HyaloModule.editorTabChannel = channel
 
-                let tabSelectCallback: (String) -> Void = channel.callback {
+                // window-buffer-change-functions is the single sync point.
+                // Swift clicks send commands to Emacs; the buffer switch
+                // triggers the hook which pushes state back via
+                // hyalo-sync--push.  wakeEmacs() is required because the
+                // click goes to SwiftUI, not the Emacs view — without it,
+                // Emacs never reads the channel pipe (see FINDINGS.md).
+
+                let tabSelectCallback: @MainActor (String) -> Void = channel.callback {
                     (env: EmacsSwiftModule.Environment, bufferName: String) in
-                    // Use centralized handler that pushes state to all UI components
                     try env.funcall("hyalo-channels--handle-switch-buffer", with: bufferName)
                 }
 
                 let tabCloseCallback: (String) -> Void = channel.callback {
                     (env: EmacsSwiftModule.Environment, bufferName: String) in
-                    try env.funcall("kill-buffer", with: bufferName)
+                    try env.funcall("hyalo-channels--handle-close-tab", with: bufferName)
                 }
 
                 let navigateBackCallback: () -> Void = channel.callback {
                     (env: EmacsSwiftModule.Environment) in
                     try env.funcall("previous-buffer")
-                    // Push state after navigation
-                    try env.funcall("hyalo-push-active-buffer-state")
+                    try env.funcall("hyalo-sync--push")
                 }
 
                 let navigateForwardCallback: () -> Void = channel.callback {
                     (env: EmacsSwiftModule.Environment) in
                     try env.funcall("next-buffer")
-                    // Push state after navigation
-                    try env.funcall("hyalo-push-active-buffer-state")
+                    try env.funcall("hyalo-sync--push")
                 }
 
                 // Store callbacks globally
+                HyaloModule.editorTabSelectCallback = tabSelectCallback
                 HyaloModule.editorTabCloseCallback = tabCloseCallback
                 HyaloModule.editorNavigateBackCallback = navigateBackCallback
                 HyaloModule.editorNavigateForwardCallback = navigateForwardCallback
 
-                // Create wrapped select callback that pre-syncs view model state
-                let wrappedSelectCallback: @MainActor (String) -> Void = { bufferName in
-                    // Pre-sync buffer list
-                    let bufVM = NavigatorManager.shared.bufferListViewModel
-                    bufVM.activeBuffer = bufferName
-                    bufVM.selectedBuffer = bufferName
-
-                    // Pre-sync project navigator - look up file path from buffer list
-                    let navVM = NavigatorManager.shared.projectNavigatorViewModel
-                    if let bufferInfo = bufVM.buffers.first(where: { $0.name == bufferName }),
-                       let filePath = bufferInfo.path,
-                       !filePath.isEmpty {
-                        navVM.activeFilePath = filePath
-                    }
-
-                    tabSelectCallback(bufferName)
-                }
-                HyaloModule.editorTabSelectCallback = wrappedSelectCallback
-
                 // Wire to all existing controllers
                 MainActor.assumeIsolated {
                     for controller in HyaloModule.allControllers {
-                        controller.editorTabViewModel.onTabSelect = wrappedSelectCallback
+                        controller.editorTabViewModel.onTabSelect = tabSelectCallback
                         controller.editorTabViewModel.onTabClose = tabCloseCallback
                         controller.editorTabViewModel.onNavigateBack = navigateBackCallback
                         controller.editorTabViewModel.onNavigateForward = navigateForwardCallback
@@ -1842,17 +1828,24 @@ final class HyaloModule: Module {
 
     // MARK: - Module Build File Watcher
 
-    /// Per-configuration build watcher state.
-    /// Each watched directory (.build/debug, .build/release) has its own
-    /// FSEventStream and last-known dylib modification time.
-    private struct BuildWatcherEntry {
-        var stream: FSEventStreamRef
-        var dylibPath: String
-        var lastModTime: Date?
-    }
+    /// Single FSEventStream watching `.build/` for build activity.
+    private static var buildWatcherStream: FSEventStreamRef?
 
-    /// Active build watchers keyed by config name ("debug", "release").
-    private static var buildWatchers: [String: BuildWatcherEntry] = [:]
+    /// Dylib paths to monitor (debug and release).
+    private static var watchedDylibPaths: [String] = []
+
+    /// Last known modification times keyed by path (dylibs + build.db).
+    private static var watchedModTimes: [String: Date] = [:]
+
+    /// Path to `.build/build.db` — always updated on every build, even
+    /// incremental no-ops where the dylib is not relinked.
+    private static var buildDbPath: String = ""
+
+    /// Whether an external build is currently detected as in-progress.
+    private static var externalBuildInProgress = false
+
+    /// Timer for stale build detection (used by internal async builds).
+    private static var buildStaleTimer: DispatchSourceTimer?
 
     /// Project root directory (set by startBuildWatcher).
     static var baseDir: String = ""
@@ -1863,118 +1856,153 @@ final class HyaloModule: Module {
 
     /// Convenience: last mod time of the most recently written dylib.
     static var lastDylibModTime: Date? {
-        get {
-            // Return the most recent mod time across all watchers
-            buildWatchers.values.compactMap(\.lastModTime).max()
-        }
+        get { watchedModTimes.values.max() }
         set {
-            // Update the watcher whose dylibPath matches watchedDylibPath
-            for key in buildWatchers.keys {
-                if buildWatchers[key]?.dylibPath == watchedDylibPath {
-                    buildWatchers[key]?.lastModTime = newValue
-                }
+            if let nv = newValue {
+                watchedModTimes[watchedDylibPath] = nv
             }
         }
     }
 
-    /// Start watching .build/debug/ and .build/release/ for dylib changes.
-    /// Called once after module load. Uses FSEvents — no polling.
+    /// Start watching `.build/` for swift build activity.
+    /// A single FSEventStream covers both debug and release subdirectories.
+    /// Called once after module load.  Uses FSEvents — no polling.
     @available(macOS 26.0, *)
     static func startBuildWatcher(baseDir: String) {
         stopBuildWatcher()
         self.baseDir = baseDir
 
-        for config in ["debug", "release"] {
-            startSingleWatcher(baseDir: baseDir, config: config)
+        let buildDir = (baseDir as NSString).appendingPathComponent(".build")
+        let debugDylib = (buildDir as NSString).appendingPathComponent("debug/libHyalo.dylib")
+        let releaseDylib = (buildDir as NSString).appendingPathComponent("release/libHyalo.dylib")
+
+        watchedDylibPaths = [debugDylib, releaseDylib]
+        watchedDylibPath = debugDylib
+        buildDbPath = (buildDir as NSString).appendingPathComponent("build.db")
+
+        // Record initial mod times
+        for path in watchedDylibPaths + [buildDbPath] {
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+               let modTime = attrs[.modificationDate] as? Date {
+                watchedModTimes[path] = modTime
+            }
         }
-    }
 
-    /// Start a single FSEventStream watcher for one build configuration.
-    @available(macOS 26.0, *)
-    private static func startSingleWatcher(baseDir: String, config: String) {
-        let watchDir = (baseDir as NSString).appendingPathComponent(".build/\(config)")
-        let dylibPath = (watchDir as NSString).appendingPathComponent("libHyalo.dylib")
-
-        // Record initial mod time
-        var initialModTime: Date?
-        if FileManager.default.fileExists(atPath: dylibPath) {
-            initialModTime = (try? FileManager.default.attributesOfItem(atPath: dylibPath))?[.modificationDate] as? Date
-        }
-
-        // Create the directory if it doesn't exist
-        try? FileManager.default.createDirectory(atPath: watchDir, withIntermediateDirectories: true)
+        // Ensure .build/ exists so FSEvents has something to watch
+        try? FileManager.default.createDirectory(
+            atPath: buildDir, withIntermediateDirectories: true)
 
         var context = FSEventStreamContext()
-        let paths = [watchDir as CFString] as CFArray
+        let paths = [buildDir as CFString] as CFArray
 
-        // FSEvents callback is a C function pointer — cannot capture context.
-        // Use a single static callback that checks ALL watched configs.
         guard let stream = FSEventStreamCreate(
             nil,
-            { _, _, numEvents, eventPaths, eventFlags, _ in
-                HyaloModule.handleAnyBuildDirectoryChange()
+            { _, _, numEvents, eventPaths, _, _ in
+                // eventPaths is a C array of const char* (no UseCFTypes flag)
+                let cPaths = eventPaths.assumingMemoryBound(
+                    to: UnsafePointer<CChar>.self)
+                var paths: [String] = []
+                paths.reserveCapacity(numEvents)
+                for i in 0..<numEvents {
+                    paths.append(String(cString: cPaths[i]))
+                }
+                HyaloModule.handleBuildDirectoryChange(eventPaths: paths)
             },
             &context,
             paths,
             FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
-            2.0,  // 2 second latency — coalesces rapid changes
+            1.0,  // 1s latency — quick feedback for build start
             FSEventStreamCreateFlags(kFSEventStreamCreateFlagFileEvents)
         ) else {
-            NSLog("[Hyalo:BuildWatcher] Failed to create FSEventStream for %@", watchDir)
+            NSLog("[Hyalo:BuildWatcher] Failed to create FSEventStream for %@", buildDir)
             return
         }
 
-        FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+        FSEventStreamScheduleWithRunLoop(
+            stream, CFRunLoopGetMain(),
+            CFRunLoopMode.defaultMode.rawValue)
         FSEventStreamStart(stream)
+        buildWatcherStream = stream
 
-        buildWatchers[config] = BuildWatcherEntry(
-            stream: stream,
-            dylibPath: dylibPath,
-            lastModTime: initialModTime
-        )
-
-        // Keep watchedDylibPath pointing at debug for backward compat with async build
-        if config == "debug" {
-            watchedDylibPath = dylibPath
-        }
-
-        NSLog("[Hyalo:BuildWatcher] Watching %@ for dylib changes", watchDir)
+        NSLog("[Hyalo:BuildWatcher] Watching %@ for build activity", buildDir)
     }
 
-    /// Handle a file system change from any watched .build/ directory.
-    /// Checks all registered watcher entries for dylib modification time changes.
-    /// Only reacts when the dylib modification time actually changes.
+    /// Handle file system changes in `.build/`.
+    ///
+    /// Lifecycle detection:
+    /// - **Start**: FSEvents activity in build-relevant paths (not index
+    ///   store) without `build.db` mod-time change.
+    /// - **Completion**: `build.db` mod-time changes (SPM always updates it,
+    ///   even for incremental builds that skip relinking).
+    /// - **Dylib changed**: additionally check dylib mod-times so the
+    ///   "Reload" button is only offered when the binary actually changed.
+    /// - **Stalled**: 30s of FSEvents silence → assume failure.
+    ///
+    /// Paths containing `/index/` or `/IndexStore/` are ignored for build
+    /// start detection — sourcekit-lsp writes to these directories when
+    /// opening Swift files, which would otherwise cause false positives.
     @available(macOS 26.0, *)
-    private static func handleAnyBuildDirectoryChange() {
-        for config in buildWatchers.keys {
-            guard var entry = buildWatchers[config] else { continue }
-            let dylibPath = entry.dylibPath
-            guard FileManager.default.fileExists(atPath: dylibPath) else { continue }
-            guard let attrs = try? FileManager.default.attributesOfItem(atPath: dylibPath),
-                  let modTime = attrs[.modificationDate] as? Date else { continue }
-
-            // Only react if dylib mod time actually changed
-            if let last = entry.lastModTime, modTime <= last { continue }
-            entry.lastModTime = modTime
-            buildWatchers[config] = entry
-
-            DispatchQueue.main.async {
-                ActivityManager.shared.finishModuleBuild(success: true)
-                NSLog("[Hyalo:BuildWatcher] Build completed (%@) — new dylib detected", config)
+    private static func handleBuildDirectoryChange(eventPaths: [String]) {
+        // Check build.db — the reliable completion signal
+        var buildDbChanged = false
+        if FileManager.default.fileExists(atPath: buildDbPath),
+           let attrs = try? FileManager.default.attributesOfItem(atPath: buildDbPath),
+           let modTime = attrs[.modificationDate] as? Date {
+            let last = watchedModTimes[buildDbPath]
+            if last == nil || modTime > last! {
+                watchedModTimes[buildDbPath] = modTime
+                buildDbChanged = true
             }
-            // Only fire once per FSEvents batch
-            return
         }
+
+        // Check if any dylib was relinked (for the reload button)
+        var dylibChanged = false
+        for path in watchedDylibPaths {
+            guard FileManager.default.fileExists(atPath: path) else { continue }
+            guard let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+                  let modTime = attrs[.modificationDate] as? Date else { continue }
+            let last = watchedModTimes[path]
+            if let l = last, modTime <= l { continue }
+            watchedModTimes[path] = modTime
+            dylibChanged = true
+            break
+        }
+
+        if buildDbChanged {
+            // build.db updated — build finished (success: SPM wrote the db)
+            cancelBuildStaleTimer()
+            externalBuildInProgress = false
+            DispatchQueue.main.async {
+                ActivityManager.shared.finishModuleBuild(
+                    success: true, dylibChanged: dylibChanged)
+                NSLog("[Hyalo:BuildWatcher] Build completed (dylibChanged=%d)",
+                      dylibChanged ? 1 : 0)
+            }
+        }
+        // No external build start detection.  sourcekit-lsp and other
+        // tools write to .build/ (index store, module cache, etc.) and
+        // reliably distinguishing real builds from LSP activity is not
+        // feasible with path filtering alone.  Internal builds are
+        // tracked explicitly via hyalo-async-build / startModuleBuild().
     }
 
-    /// Stop all build watchers.
+    private static func cancelBuildStaleTimer() {
+        buildStaleTimer?.cancel()
+        buildStaleTimer = nil
+    }
+
+    /// Stop the build watcher.
     static func stopBuildWatcher() {
-        for (_, entry) in buildWatchers {
-            FSEventStreamStop(entry.stream)
-            FSEventStreamInvalidate(entry.stream)
-            FSEventStreamRelease(entry.stream)
+        if let stream = buildWatcherStream {
+            FSEventStreamStop(stream)
+            FSEventStreamInvalidate(stream)
+            FSEventStreamRelease(stream)
+            buildWatcherStream = nil
         }
-        buildWatchers.removeAll()
+        cancelBuildStaleTimer()
+        watchedDylibPaths.removeAll()
+        watchedModTimes.removeAll()
+        externalBuildInProgress = false
     }
 
     // MARK: - Async Build Process
@@ -2050,17 +2078,24 @@ final class HyaloModule: Module {
 
             let success = proc.terminationStatus == 0
             DispatchQueue.main.async {
-                mgr.finishModuleBuild(success: success)
-                // Update the FSEvents watcher's known mod time so it doesn't
-                // re-trigger for this build's dylib.
-                if success, var entry = buildWatchers[config] {
-                    let dylibPath = entry.dylibPath
+                mgr.finishModuleBuild(success: success, dylibChanged: success)
+                // Update the FSEvents watcher's known mod times so it doesn't
+                // re-trigger for this build's artifacts.
+                if success {
+                    let debugDylib = (HyaloModule.baseDir as NSString).appendingPathComponent(".build/debug/libHyalo.dylib")
+                    let releaseDylib = (HyaloModule.baseDir as NSString).appendingPathComponent(".build/release/libHyalo.dylib")
+                    let dylibPath = config == "release" ? releaseDylib : debugDylib
                     if let attrs = try? FileManager.default.attributesOfItem(atPath: dylibPath),
                        let modTime = attrs[.modificationDate] as? Date {
-                        entry.lastModTime = modTime
-                        buildWatchers[config] = entry
+                        HyaloModule.watchedModTimes[dylibPath] = modTime
                     }
                 }
+                // Update build.db mod time
+                if let attrs = try? FileManager.default.attributesOfItem(atPath: HyaloModule.buildDbPath),
+                   let modTime = attrs[.modificationDate] as? Date {
+                    HyaloModule.watchedModTimes[HyaloModule.buildDbPath] = modTime
+                }
+                HyaloModule.externalBuildInProgress = false
                 NSLog("[Hyalo:Build] swift build %@ (exit %d)", success ? "succeeded" : "failed", proc.terminationStatus)
             }
 

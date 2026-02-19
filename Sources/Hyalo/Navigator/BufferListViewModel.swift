@@ -21,14 +21,6 @@ final class BufferListViewModel {
     var selectedBuffer: String?
     var activeBuffer: String?
 
-    /// The buffer name set by the last UI-initiated click, and when.
-    /// Used to reject stale hook calls that arrive within the roundtrip window.
-    private var uiSelectName: String?
-    private var uiSelectTime: Date = .distantPast
-
-    /// Roundtrip guard window — 100ms covers channel roundtrip + hook firing.
-    private static let guardWindow: TimeInterval = 0.1
-
     // MARK: - Cached Output
 
     private(set) var filteredBuffers: [BufferInfo] = []
@@ -79,23 +71,16 @@ final class BufferListViewModel {
     }
 
     // MARK: - Actions to Emacs
+    // Swift does NOT modify local state.  Emacs is the single source of truth.
+    // The callback tells Emacs to switch; Emacs pushes the new state back
+    // via hyalo-sync--push within ~20ms (requires wakeEmacs).
 
     func selectBuffer(_ name: String) {
-        // Set activeBuffer IMMEDIATELY before sending to channel.
-        // Prevents race where rapid clicks or stale callbacks revert selection.
-        selectedBuffer = name
-        activeBuffer = name
-        uiSelectName = name
-        uiSelectTime = Date()
         onBufferSelect?(name)
     }
 
     func closeBuffer(_ name: String) {
         onBufferClose?(name)
-        buffers.removeAll { $0.name == name }
-        if selectedBuffer == name {
-            selectedBuffer = nil
-        }
     }
 
     func saveBuffer(_ name: String) {
@@ -104,15 +89,10 @@ final class BufferListViewModel {
 
     // MARK: - Updates from Emacs (callbacks)
 
+    /// Called from Emacs when the active buffer changes.
+    /// No guard needed — window-buffer-change-functions fires AFTER the
+    /// buffer switch is complete, so stale echoes cannot arrive.
     func setActiveBuffer(_ name: String) {
-        // Within 100ms of a UI click, reject stale calls with a different name.
-        // The guard is NOT cleared on match — it stays active for the full
-        // window so stale calls arriving 1ms after the echo are still blocked.
-        if let pending = uiSelectName,
-           Date().timeIntervalSince(uiSelectTime) < Self.guardWindow,
-           name != pending {
-            return
-        }
         activeBuffer = name
         selectedBuffer = name
     }

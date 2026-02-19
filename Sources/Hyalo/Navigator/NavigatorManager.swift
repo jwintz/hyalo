@@ -110,19 +110,10 @@ final class NavigatorManager {
     private init() {
         // Wire up focused view model callbacks
         projectNavigatorViewModel.onFileSelect = { [weak self] path in
-            // Notify editor tab view model to set pending tab for stale callback detection
-            if let wc = HyaloModule.activeController {
-                let bufferName = (path as NSString).lastPathComponent
-                wc.editorTabViewModel.selectFile(path, bufferName: bufferName)
-            }
             self?.onFileSelect?(path)
             HyaloModule.wakeEmacs()
         }
         bufferListViewModel.onBufferSelect = { [weak self] name in
-            // Notify editor tab view model to set pending tab for stale callback detection
-            if let wc = HyaloModule.activeController {
-                wc.editorTabViewModel.selectFile(name, bufferName: name)
-            }
             self?.onBufferSelect?(name)
             HyaloModule.wakeEmacs()
         }

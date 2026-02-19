@@ -204,12 +204,31 @@ final class ActivityManager {
         )
     }
 
-    func finishModuleBuild(success: Bool) {
-        finish(
-            id: Self.moduleBuildID,
-            message: success ? "Build succeeded" : "Build failed"
-        )
-        // Do not auto-remove — show reload button
+    func finishModuleBuild(success: Bool, dylibChanged: Bool = false) {
+        let msg: String
+        if success {
+            msg = dylibChanged ? "Build succeeded — reload available" : "Build succeeded"
+        } else {
+            msg = "Build failed"
+        }
+        // For external builds (detected by FSEvents watcher), no
+        // startModuleBuild was called.  Upsert in finished state
+        // so the activity appears in the viewer with the result.
+        if activities.firstIndex(where: { $0.id == Self.moduleBuildID }) == nil {
+            upsert(
+                id: Self.moduleBuildID,
+                kind: .moduleCompilation,
+                title: "Module Build",
+                message: msg,
+                isActive: false
+            )
+        } else {
+            finish(id: Self.moduleBuildID, message: msg)
+        }
+        // Auto-remove after delay when no reload needed
+        if !dylibChanged {
+            removeAfterDelay(id: Self.moduleBuildID, delay: 5.0)
+        }
     }
 
     // MARK: - Convenience: Package Installation

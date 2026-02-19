@@ -131,22 +131,31 @@ It attempts to detect error/warning messages to route them appropriate."
     (when (file-exists-p pkg) pkg)))
 
 (defun hyalo--needs-rebuild-p ()
-  "Return non-nil if the module needs to be rebuilt."
+  "Return non-nil if the module needs to be rebuilt.
+Compares source file timestamps against `.build/build.db' which SPM
+always updates on every build (even incremental ones that skip
+relinking).  The dylib timestamp is unreliable because Swift 6.2
+skips relinking when the ABI is unchanged."
   (let ((dylib (hyalo--find-dylib)))
     (if (null dylib)
         t
-      (let ((dylib-time (file-attribute-modification-time
-                         (file-attributes dylib)))
-            (pkg-file (hyalo--package-file))
-            (source-files (hyalo--source-files)))
+      (let* ((build-db (expand-file-name ".build/build.db" hyalo--base-dir))
+             (ref-time (if (file-exists-p build-db)
+                           (file-attribute-modification-time
+                            (file-attributes build-db))
+                         ;; No build.db: fall back to dylib time
+                         (file-attribute-modification-time
+                          (file-attributes dylib))))
+             (pkg-file (hyalo--package-file))
+             (source-files (hyalo--source-files)))
         (or
          (and pkg-file
-              (time-less-p dylib-time
+              (time-less-p ref-time
                            (file-attribute-modification-time
                             (file-attributes pkg-file))))
          (cl-some
           (lambda (src)
-            (time-less-p dylib-time
+            (time-less-p ref-time
                          (file-attribute-modification-time
                           (file-attributes src))))
           source-files))))))
@@ -240,22 +249,35 @@ Returns the most recently modified dylib (release or debug)."
 ;;;###autoload
 (defun hyalo-load ()
   "Load the hyalo dynamic module.
-If `hyalo-auto-build' is non-nil and the module needs rebuilding,
-it will be built automatically before loading.
+Always loads the existing dylib immediately if available.  If
+`hyalo-auto-build' is non-nil and the module needs rebuilding,
+the rebuild runs in the background after loading (via the async
+build process with activity viewer tracking).
 Returns non-nil on success, nil on failure."
   (interactive)
   (cond
    (hyalo--loaded
     (hyalo-log 'core "Already loaded")
     t)
-   ((and hyalo-auto-build (hyalo--needs-rebuild-p))
-    (hyalo-log 'core "Module needs building, auto-building...")
-    (if (hyalo-build t)
-        (hyalo--do-load)
-      (hyalo-log 'core "Auto-build failed")
-      nil))
    (t
-    (hyalo--do-load))))
+    (let ((dylib-path (hyalo--find-dylib)))
+      (if dylib-path
+          ;; Dylib exists — load it, then optionally rebuild in background
+          (let ((loaded (hyalo--do-load)))
+            (when (and loaded hyalo-auto-build (hyalo--needs-rebuild-p))
+              (hyalo-log 'core "Module outdated — rebuilding in background...")
+              (hyalo-async-build hyalo--base-dir "debug"))
+            loaded)
+        ;; No dylib — must build synchronously first
+        (if hyalo-auto-build
+            (progn
+              (hyalo-log 'core "Module not found, building...")
+              (if (hyalo-build t)
+                  (hyalo--do-load)
+                (hyalo-log 'core "Build failed")
+                nil))
+          (hyalo-log 'core "Dynamic module not found. Run: swift build")
+          nil))))))
 
 (defun hyalo--do-load ()
   "Internal function to load the dylib."

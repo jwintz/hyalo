@@ -22,8 +22,8 @@
 
 (defvar hyalo-status--cursor-timer nil
   "Debounce timer for cursor/status bar updates.")
-(defvar hyalo-status--tabs-timer nil
-  "Debounce timer for editor tab updates.")
+;; hyalo-status--tabs-timer removed — hyalo-sync--push is called directly
+;; from window-buffer-change-functions (fires once per redisplay cycle).
 (defvar hyalo-status--branch-timer nil
   "Debounce timer for branch info updates.")
 (defvar hyalo-status--navigator-timer nil
@@ -33,8 +33,7 @@
 
 ;; MARK: - Caches
 
-(defvar hyalo-status--last-tab-state nil
-  "Last serialized tab state to avoid redundant pushes.")
+;; hyalo-status--last-tab-state removed — hyalo-sync--push replaces dedup.
 
 (defvar hyalo-status--last-file-info-path nil
   "Last file path for which file info was pushed.")
@@ -52,9 +51,19 @@ May be a directory without a git repo (for navigator file tree).")
 Used to decide whether VCS views should be populated or cleared.")
 
 (defvar hyalo-status--last-pushed-buffer nil
-  "Last buffer for which `hyalo-push-active-buffer-state' was called.
+  "Last buffer for which `hyalo-sync--push' was called.
 Used to skip redundant pushes when the selected window changes but
 the current buffer is unchanged.")
+
+(defvar hyalo-sync--inhibit nil
+  "Non-nil while `hyalo-sync--push' is executing.
+Prevents re-entry when `json-encode' creates transient temp buffers
+that fire `window-buffer-change-functions'.")
+
+(defvar hyalo-sync--shutting-down nil
+  "Non-nil during `kill-emacs-hook'.  Suppresses all sync hooks
+to prevent `first-change-hook' from corrupting buffers written
+by other shutdown hooks (e.g., transient-save-history).")
 
 (defvar hyalo-status--branch-cache (make-hash-table :test 'equal)
   "Cache: project-root -> (current-branch . branch-list-vector).
@@ -69,16 +78,22 @@ Invalidated when branch cache is invalidated (on save, magit refresh).")
 (defun hyalo-status-setup ()
   "Register hooks for event-driven status updates."
   (hyalo-status-teardown)
+  ;; Shutdown guard — suppress sync hooks during kill-emacs to prevent
+  ;; first-change-hook from corrupting buffers written by other hooks.
+  (add-hook 'kill-emacs-hook
+            (lambda () (setq hyalo-sync--shutting-down t)) -90)
   ;; Status bar (line/col/mode): debounced on cursor movement
   (add-hook 'post-command-hook #'hyalo-status--schedule-cursor-update)
-  ;; Editor tabs: on buffer list changes and saves
-  (add-hook 'buffer-list-update-hook #'hyalo-status--schedule-tabs-update)
-  (add-hook 'after-save-hook #'hyalo-status--schedule-tabs-update)
-  (add-hook 'first-change-hook #'hyalo-status--schedule-tabs-update)
-  ;; Buffer switch: immediate selection + deferred git work
+  ;; Editor tabs + buffer list + active buffer: driven by hyalo-sync--push.
+  ;; window-buffer-change-functions fires AFTER the buffer switch is
+  ;; complete, so the push always reflects the final state.  No guards
+  ;; or debounce needed — the hook fires once per redisplay cycle.
   (add-hook 'window-buffer-change-functions #'hyalo-status--on-buffer-change)
   ;; Window selection change: windmove, mouse click into different window
   (add-hook 'window-selection-change-functions #'hyalo-status--on-window-selection-change)
+  ;; Tab state refresh on save (modified flag changes) and first edit
+  (add-hook 'after-save-hook #'hyalo-sync--push-from-hook)
+  (add-hook 'first-change-hook #'hyalo-sync--push-from-hook)
   ;; Project switch: advice catches project-switch-project dispatch
   (advice-add 'project-switch-project :after #'hyalo-status--on-project-switch)
   ;; Special mode hooks: dired/magit may open without triggering window-buffer-change
@@ -96,11 +111,10 @@ Invalidated when branch cache is invalidated (on save, magit refresh).")
 (defun hyalo-status-teardown ()
   "Remove all hooks and cancel pending timers."
   (remove-hook 'post-command-hook #'hyalo-status--schedule-cursor-update)
-  (remove-hook 'buffer-list-update-hook #'hyalo-status--schedule-tabs-update)
-  (remove-hook 'after-save-hook #'hyalo-status--schedule-tabs-update)
-  (remove-hook 'first-change-hook #'hyalo-status--schedule-tabs-update)
   (remove-hook 'window-buffer-change-functions #'hyalo-status--on-buffer-change)
   (remove-hook 'window-selection-change-functions #'hyalo-status--on-window-selection-change)
+  (remove-hook 'after-save-hook #'hyalo-sync--push-from-hook)
+  (remove-hook 'first-change-hook #'hyalo-sync--push-from-hook)
   (advice-remove 'project-switch-project #'hyalo-status--on-project-switch)
   (remove-hook 'dired-mode-hook #'hyalo-status--on-special-buffer-enter)
   (remove-hook 'magit-status-mode-hook #'hyalo-status--on-special-buffer-enter)
@@ -110,7 +124,6 @@ Invalidated when branch cache is invalidated (on save, magit refresh).")
   (remove-hook 'after-save-hook #'hyalo-status--schedule-branch-update)
   (remove-hook 'magit-post-refresh-hook #'hyalo-status--on-magit-refresh)
   (dolist (sym '(hyalo-status--cursor-timer
-                 hyalo-status--tabs-timer
                  hyalo-status--branch-timer
                  hyalo-status--navigator-timer
                  hyalo-status--file-info-timer))
@@ -126,13 +139,6 @@ Invalidated when branch cache is invalidated (on save, magit refresh).")
     (cancel-timer hyalo-status--cursor-timer))
   (setq hyalo-status--cursor-timer
         (run-with-timer 0.05 nil #'hyalo-status--push-cursor)))
-
-(defun hyalo-status--schedule-tabs-update ()
-  "Schedule an editor tabs update after 200ms debounce."
-  (when hyalo-status--tabs-timer
-    (cancel-timer hyalo-status--tabs-timer))
-  (setq hyalo-status--tabs-timer
-        (run-with-timer 0.2 nil #'hyalo-status--push-editor-tabs)))
 
 (defun hyalo-status--schedule-branch-update ()
   "Schedule a branch info update after 1s debounce.
@@ -175,98 +181,185 @@ Captures the project root so stale callbacks are skipped."
                             (when (equal target-root hyalo-status--last-project-root)
                               (hyalo-status--do-navigator-refresh)))))))
 
-;; MARK: - Buffer Change Handler (ZERO subprocess cost)
+;; MARK: - Unified Sync Push
 
-;; MARK: - Centralized Active Buffer State Push
+(defun hyalo-sync--push ()
+  "Push buffer/tab state and active buffer to all Swift UI components.
+Collects user-visible buffers from `buffer-list' (filtered to exclude
+internal space-prefixed and *...*  buffers) and pushes:
+  1. Editor tabs JSON
+  2. Selected tab name
+  3. Buffer list JSON (for navigator)
+  4. Active buffer name
+  5. Active file path (for project navigator)
+
+Called from `window-buffer-change-functions' (fires AFTER the buffer
+switch is complete) and `window-selection-change-functions'.  No guards
+needed — the hook fires once per redisplay cycle with the final state.
+
+Uses `window-buffer' of the selected window as the authoritative active
+buffer.  This is critical because Emacs saves and restores
+`current-buffer' around process filter execution; channel callbacks run
+inside a pipe process filter, so after the filter returns,
+`current-buffer' reverts to the pre-filter value while the window's
+buffer reflects the actual switch.
+
+Defense-in-depth: `hyalo-sync--inhibit' prevents re-entry when
+`json-encode' creates transient ` *temp*' buffers that fire
+`first-change-hook' (because `hyalo-sync--push-from-hook' is on the
+global value of that hook).  The buffer-name guard rejects internal
+buffers regardless of entry point."
+  (let* ((win-buf (window-buffer (selected-window)))
+         (win-buf-name (buffer-name win-buf)))
+  (unless (or hyalo-sync--inhibit
+              (string-prefix-p " " win-buf-name)
+              (string-prefix-p "*" win-buf-name))
+  (let ((hyalo-sync--inhibit t))
+  (condition-case nil
+      (let* ((buf-name win-buf-name)
+             (file-path (buffer-file-name win-buf))
+             ;; Collect user-visible buffers for editor tabs
+             (tab-bufs (cl-remove-if
+                        (lambda (b)
+                          (let ((name (buffer-name b)))
+                            (or (string-prefix-p " " name)
+                                (string-prefix-p "*" name))))
+                        (buffer-list)))
+             ;; Collect all non-internal buffers for navigator buffer list
+             (nav-bufs (cl-remove-if
+                        (lambda (b)
+                          (string-prefix-p " " (buffer-name b)))
+                        (buffer-list))))
+        ;; Push editor tabs
+        (when (fboundp 'hyalo-update-editor-tabs)
+          (let ((tab-data
+                 (mapcar
+                  (lambda (b)
+                    (let* ((name (buffer-name b))
+                           (file (buffer-file-name b))
+                           (modified (buffer-modified-p b))
+                           (icon (cond
+                                  ((string-suffix-p ".swift" (or name "")) "swift")
+                                  ((string-suffix-p ".el" (or name "")) "doc.text")
+                                  ((string-suffix-p ".md" (or name "")) "doc.plaintext")
+                                  ((string-suffix-p ".json" (or name "")) "curlybraces")
+                                  ((string-suffix-p ".html" (or name ""))
+                                   "chevron.left.forwardslash.chevron.right")
+                                  (t "doc"))))
+                      `((id . ,name)
+                        (name . ,name)
+                        (icon . ,icon)
+                        (isModified . ,(if modified t :json-false))
+                        (isTemporary . :json-false)
+                        (filePath . ,file))))
+                  tab-bufs)))
+            (hyalo-update-editor-tabs (json-encode (vconcat tab-data)))))
+        ;; Push selected tab
+        (when (fboundp 'hyalo-select-editor-tab)
+          (hyalo-select-editor-tab buf-name))
+        ;; Push buffer list for navigator
+        (when (fboundp 'hyalo-navigator-update-buffers)
+          (let ((data (mapcar
+                       (lambda (buf)
+                         `((id . ,(buffer-name buf))
+                           (name . ,(buffer-name buf))
+                           (path . ,(or (buffer-file-name buf) ""))
+                           (modified . ,(if (buffer-modified-p buf) t :json-false))
+                           (icon . ,(hyalo-sync--buffer-icon buf))))
+                       nav-bufs)))
+            (hyalo-navigator-update-buffers (json-encode data))))
+        ;; Push active buffer selection
+        (when (fboundp 'hyalo-navigator-set-active-buffer)
+          (hyalo-navigator-set-active-buffer buf-name))
+        ;; Push active file to project navigator
+        (when (and file-path (fboundp 'hyalo-navigator-set-active-file))
+          (hyalo-navigator-set-active-file file-path)))
+    (error nil))))))
+
+(defun hyalo-sync--buffer-icon (buf)
+  "Return an SF Symbol name for BUF based on its major mode."
+  (with-current-buffer buf
+    (cond
+     ((derived-mode-p 'prog-mode) "doc.text")
+     ((derived-mode-p 'text-mode) "doc.plaintext")
+     ((derived-mode-p 'dired-mode) "folder")
+     ((derived-mode-p 'term-mode) "terminal")
+     (t "doc"))))
+
+(defun hyalo-sync--push-from-hook ()
+  "Wrapper for `hyalo-sync--push' suitable for hooks with no args.
+Used by `after-save-hook' and `first-change-hook' to refresh modified flags."
+  (hyalo-sync--push))
 
 (defun hyalo-push-active-buffer-state ()
   "Push complete state for active buffer to all Swift UI components.
-Centralizes buffer/file/tab updates in one place to ensure consistency.
-Called from on-buffer-change, buffer list selection, and file navigator."
-  (let ((buf-name (buffer-name))
-        (file-path (buffer-file-name)))
-    (message "[hyalo-status] push-active-buffer-state: buf=%s file=%s" buf-name file-path)
-    ;; Update buffer list selection
-    (when (fboundp 'hyalo-navigator-set-active-buffer)
-      (message "[hyalo-status]   -> navigator-set-active-buffer %s" buf-name)
-      (hyalo-navigator-set-active-buffer buf-name))
-    ;; Update file navigator (if visiting a file)
-    (when (and file-path (fboundp 'hyalo-navigator-set-active-file))
-      (message "[hyalo-status]   -> navigator-set-active-file %s" file-path)
-      (hyalo-navigator-set-active-file file-path))
-    ;; Update editor tab bar
-    (when (fboundp 'hyalo-select-editor-tab)
-      (message "[hyalo-status]   -> select-editor-tab %s" buf-name)
-      (hyalo-select-editor-tab buf-name))))
+Delegates to `hyalo-sync--push' which is the single source of truth."
+  (hyalo-sync--push))
 
 (defun hyalo-status--on-buffer-change (_frame)
   "Handle buffer switch in FRAME.  Zero subprocess cost.
 Called from `window-buffer-change-functions'.  Performs only in-process
-state updates (navigator selection, cached project root lookup) and
+state updates (sync push, cached project root lookup) and
 schedules all git subprocess work via debounce timers.
 
-Internal buffers (space-prefixed or *...*) are skipped for navigator
-selection to avoid transient minibuf/elog noise clobbering the UI."
-  (let ((buf-name (buffer-name))
-        (file-path (buffer-file-name)))
-    (message "[hyalo-status] on-buffer-change: buf=%s file=%s" buf-name file-path)
-    ;; Skip internal buffers (space prefix or *...*) for navigator selection
-    (if (or (string-prefix-p " " buf-name)
-            (string-prefix-p "*" buf-name))
-        (message "[hyalo-status] on-buffer-change: SKIPPED (internal buffer)")
-      ;; Phase 1: Immediate — push all UI state in one place
-      (hyalo-push-active-buffer-state)
-      (setq hyalo-status--last-pushed-buffer (current-buffer)))
-    ;; Phase 2: Cached project root lookup (hash table, no filesystem walk)
-    (let ((old-root hyalo-status--last-project-root)
-          (old-git-root hyalo-status--last-git-root))
-      (hyalo-status--update-project-root-cached)
-      ;; Phase 3: Deferred — schedule git subprocess work only if inside a repo
-      (if hyalo-status--last-git-root
-          (progn
-            (hyalo-status--schedule-branch-update)
-            (hyalo-status--schedule-file-info-update))
-        ;; No git repo — clear VCS views immediately
-        (when (and old-git-root (not hyalo-status--last-git-root))
-          (hyalo-status--clear-vcs-views)))
-      ;; On project switch: push project name and root immediately (zero cost),
-      ;; then refresh navigator buffer list + source control via timers
-      (when (not (equal old-root hyalo-status--last-project-root))
-        ;; Immediate project name push — toolbar updates right away
-        (when-let* ((root hyalo-status--last-project-root)
-                    (name (file-name-nondirectory (directory-file-name root))))
-          (when (fboundp 'hyalo-set-project-name)
-            (hyalo-set-project-name name))
-          ;; Immediate project root push — file tree rebuilds right away.
-          ;; Only push when inside a git repo.  Pushing a bare directory
-          ;; (e.g. ~/) would cause the Swift file tree builder to scan
-          ;; the entire directory tree recursively, freezing the UI.
-          (when (and hyalo-status--last-git-root
-                     (fboundp 'hyalo-navigator-set-project-root))
-            (hyalo-navigator-set-project-root (expand-file-name root))))
-        ;; Invalidate branch cache for the new project root
-        (when hyalo-status--last-project-root
-          (remhash hyalo-status--last-project-root hyalo-status--branch-cache))
-        (hyalo-status--schedule-navigator-refresh)
-        (when hyalo-status--last-git-root
-          (when (fboundp 'hyalo-source-control--schedule-update)
-            (hyalo-source-control--schedule-update)))))))
+Internal buffers (space-prefixed or *...*) are skipped entirely to
+prevent feedback loops from `json-encode' temp buffers and other
+transient internal buffers."
+  (let* ((win-buf (window-buffer (selected-window)))
+         (buf-name (buffer-name win-buf)))
+    ;; Skip internal buffers (space prefix or *...*) — all phases
+    (unless (or (string-prefix-p " " buf-name)
+                (string-prefix-p "*" buf-name))
+      ;; Phase 1: Push all UI state (tabs, selection, buffer list)
+      (hyalo-sync--push)
+      (setq hyalo-status--last-pushed-buffer win-buf)
+      ;; Phase 1b: Refresh diagnostics panel for the new buffer
+      (when (fboundp 'hyalo-diagnostics--on-buffer-change)
+        (hyalo-diagnostics--on-buffer-change _frame))
+      ;; Phase 2: Cached project root lookup (hash table, no filesystem walk)
+      (let ((old-root hyalo-status--last-project-root)
+            (old-git-root hyalo-status--last-git-root))
+        (hyalo-status--update-project-root-cached)
+        ;; Phase 3: Deferred — schedule git subprocess work only if inside a repo
+        (if hyalo-status--last-git-root
+            (progn
+              (hyalo-status--schedule-branch-update)
+              (hyalo-status--schedule-file-info-update))
+          ;; No git repo — clear VCS views immediately
+          (when (and old-git-root (not hyalo-status--last-git-root))
+            (hyalo-status--clear-vcs-views)))
+        ;; On project switch: push project name and root immediately (zero cost),
+        ;; then refresh navigator + source control via timers
+        (when (not (equal old-root hyalo-status--last-project-root))
+          ;; Immediate project name push — toolbar updates right away
+          (when-let* ((root hyalo-status--last-project-root)
+                      (name (file-name-nondirectory (directory-file-name root))))
+            (when (fboundp 'hyalo-set-project-name)
+              (hyalo-set-project-name name))
+            ;; Immediate project root push — file tree rebuilds right away.
+            ;; Only push when inside a git repo.  Pushing a bare directory
+            ;; (e.g. ~/) would cause the Swift file tree builder to scan
+            ;; the entire directory tree recursively, freezing the UI.
+            (when (and hyalo-status--last-git-root
+                       (fboundp 'hyalo-navigator-set-project-root))
+              (hyalo-navigator-set-project-root (expand-file-name root))))
+          ;; Invalidate branch cache for the new project root
+          (when hyalo-status--last-project-root
+            (remhash hyalo-status--last-project-root hyalo-status--branch-cache))
+          (hyalo-status--schedule-navigator-refresh)
+          (when hyalo-status--last-git-root
+            (when (fboundp 'hyalo-source-control--schedule-update)
+              (hyalo-source-control--schedule-update))))))))
 
 (defun hyalo-status--on-window-selection-change (_frame)
   "Handle selected window change in FRAME.
 Called from `window-selection-change-functions', which fires when the
 selected window changes (windmove, mouse click into another window).
-Delegates to `hyalo-status--on-buffer-change' only when the current
+Delegates to `hyalo-status--on-buffer-change' only when the window
 buffer differs from the last pushed buffer, to avoid redundant work
 when `window-buffer-change-functions' already handled the transition."
-  (let ((buf (current-buffer)))
-    (message "[hyalo-status] window-selection-change: buf=%s last-pushed=%s eq=%s"
-             (buffer-name buf)
-             (and hyalo-status--last-pushed-buffer
-                  (buffer-name hyalo-status--last-pushed-buffer))
-             (eq buf hyalo-status--last-pushed-buffer))
+  (let ((buf (window-buffer (selected-window))))
     (unless (eq buf hyalo-status--last-pushed-buffer)
-      (message "[hyalo-status] window-selection-change: delegating to on-buffer-change")
       (hyalo-status--on-buffer-change _frame))))
 
 (defun hyalo-status--on-project-switch (&rest _)
@@ -395,43 +488,7 @@ inspector file info git fields, and inspector git history."
          (hyalo-status--modeline-rhs))
       (error nil))))
 
-(defun hyalo-status--push-editor-tabs ()
-  "Push the current buffer list as editor tabs to Swift.
-Only pushes when the tab set or active tab changes."
-  (when (fboundp 'hyalo-update-editor-tabs)
-    (condition-case nil
-        (let* ((buffers (cl-remove-if
-                         (lambda (b)
-                           (let ((name (buffer-name b)))
-                             (or (string-prefix-p " " name)
-                                 (string-prefix-p "*" name))))
-                         (buffer-list)))
-               (tab-data
-                (mapcar
-                 (lambda (b)
-                   (let* ((name (buffer-name b))
-                          (file (buffer-file-name b))
-                          (modified (buffer-modified-p b))
-                          (icon (cond
-                                 ((string-suffix-p ".swift" (or name "")) "swift")
-                                 ((string-suffix-p ".el" (or name "")) "doc.text")
-                                 ((string-suffix-p ".md" (or name "")) "doc.plaintext")
-                                 ((string-suffix-p ".json" (or name "")) "curlybraces")
-                                 ((string-suffix-p ".html" (or name ""))
-                                  "chevron.left.forwardslash.chevron.right")
-                                 (t "doc"))))
-                     `((id . ,name)
-                       (name . ,name)
-                       (icon . ,icon)
-                       (isModified . ,(if modified t :json-false))
-                       (isTemporary . :json-false)
-                       (filePath . ,file))))
-                 buffers))
-               (state-key (mapconcat (lambda (b) (buffer-name b)) buffers ",")))
-          (unless (equal state-key hyalo-status--last-tab-state)
-            (setq hyalo-status--last-tab-state state-key)
-            (hyalo-update-editor-tabs (json-encode (vconcat tab-data)))))
-      (error nil))))
+;; hyalo-status--push-editor-tabs removed — replaced by hyalo-sync--push.
 
 (defun hyalo-status--push-branch-info ()
   "Push git branch info and project name to the toolbar.

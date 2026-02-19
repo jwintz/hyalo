@@ -15,14 +15,20 @@ struct EditorTabBarView: View {
             HStack(spacing: 0) {
                 // Leading accessories: Back/Forward navigation
                 HStack(spacing: 4) {
-                    Button { viewModel.onNavigateBack?() } label: {
+                    Button {
+                        viewModel.onNavigateBack?()
+                        HyaloModule.wakeEmacs()
+                    } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 11, weight: .medium))
                     }
                     .buttonStyle(TabNavigationButtonStyle())
                     .disabled(viewModel.tabs.isEmpty)
 
-                    Button { viewModel.onNavigateForward?() } label: {
+                    Button {
+                        viewModel.onNavigateForward?()
+                        HyaloModule.wakeEmacs()
+                    } label: {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 11, weight: .medium))
                     }

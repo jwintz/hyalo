@@ -4,8 +4,13 @@
 ;; Captures key bindings and command names after each command and pushes
 ;; them to the Swift toolbar as a Liquid Glass pill.
 ;;
-;; Uses `post-command-hook' to read `this-command' and
-;; `(key-description (this-command-keys))' after each command completes.
+;; Uses `pre-command-hook' to capture and push immediately.  This
+;; ensures multi-key sequences like C-x C-f and C-c p s are displayed
+;; at the moment the command is invoked, before any minibuffer
+;; interaction can overwrite `this-command' or `this-command-keys'.
+;; Only captures at minibuffer-depth 0 to avoid displaying intermediate
+;; minibuffer commands (self-insert, completion, exit-minibuffer).
+;;
 ;; The pill auto-fades after `hyalo-keycast-fade-delay' seconds.
 ;;
 ;; Requires the Hyalo dynamic module to be loaded.
@@ -28,17 +33,21 @@
   '(self-insert-command
     mouse-set-point mouse-drag-region
     mwheel-scroll scroll-up-command scroll-down-command
-    ignore handle-switch-frame)
+    ignore handle-switch-frame
+    hyalo-keycast-mode)
   "Commands to suppress from keycast display.
 High-frequency or trivial commands that would cause excessive
 flicker in the toolbar pill.")
 
-(defun hyalo-keycast--post-command ()
+(defun hyalo-keycast--pre-command ()
   "Push the current command and key binding to the Swift toolbar.
-Added to `post-command-hook' when `hyalo-keycast-mode' is active."
-  (when (and this-command
+Runs in `pre-command-hook' — captures state before the command
+executes so minibuffer interactions cannot overwrite the real
+command.  Only captures at top level (minibuffer-depth 0)."
+  (when (and (= (minibuffer-depth) 0)
+             this-command
              (not (memq this-command hyalo-keycast--suppress-commands)))
-    (let* ((keys (this-command-keys))
+    (let* ((keys (this-command-keys-vector))
            (key-str (if (and keys (> (length keys) 0))
                         (key-description keys)
                       ""))
@@ -54,10 +63,10 @@ Added to `post-command-hook' when `hyalo-keycast-mode' is active."
   :group 'hyalo-keycast
   (if hyalo-keycast-mode
       (progn
-        (add-hook 'post-command-hook #'hyalo-keycast--post-command)
+        (add-hook 'pre-command-hook #'hyalo-keycast--pre-command)
         (when (fboundp 'hyalo-set-keycast-visible)
           (hyalo-set-keycast-visible t)))
-    (remove-hook 'post-command-hook #'hyalo-keycast--post-command)
+    (remove-hook 'pre-command-hook #'hyalo-keycast--pre-command)
     (when (fboundp 'hyalo-set-keycast-visible)
       (hyalo-set-keycast-visible nil))))
 

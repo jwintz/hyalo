@@ -9,22 +9,8 @@
 
 (require 'json)
 
-;; MARK: - Buffer List Debounce
-
-(defvar hyalo-navigator--buffer-update-timer nil
-  "Timer for debouncing buffer-list-update-hook.")
-
-(defun hyalo-navigator--on-buffer-change ()
-  "Called when buffers change to refresh the navigator buffer list.
-Debounced to 100ms to coalesce rapid buffer creation/deletion bursts."
-  (when (and (boundp 'hyalo-channels--initialized) hyalo-channels--initialized)
-    (when hyalo-navigator--buffer-update-timer
-      (cancel-timer hyalo-navigator--buffer-update-timer))
-    (setq hyalo-navigator--buffer-update-timer
-          (run-with-timer 0.1 nil
-                          (lambda ()
-                            (hyalo-navigator--update-buffers)
-                            (setq hyalo-navigator--buffer-update-timer nil))))))
+;; Buffer list updates are driven by hyalo-sync--push in hyalo-status.el
+;; via window-buffer-change-functions.  No separate debounce timer needed.
 
 (defun hyalo-navigator-refresh ()
   "Refresh all navigator data (buffers and file tree).
@@ -83,8 +69,8 @@ falling back to `default-directory'.  Scanning arbitrary directories
           (car (project-roots proj))))
       (locate-dominating-file default-directory ".git")))
 
-;; Hook to auto-refresh on buffer changes
-(add-hook 'buffer-list-update-hook #'hyalo-navigator--on-buffer-change)
+;; Buffer list updates are handled by hyalo-sync--push (hyalo-status.el)
+;; via window-buffer-change-functions.  No buffer-list-update-hook needed.
 
 (provide 'hyalo-navigator)
 ;;; hyalo-navigator.el ends here

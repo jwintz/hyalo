@@ -114,23 +114,25 @@ struct HyaloNavigationLayout: View {
             }
             .sharedBackgroundVisibility(.hidden)
 
-            // Activity viewer — centered Liquid Glass pill
+            // Activity viewer — centered in the toolbar via .principal placement.
+            // SwiftUI .toolbar does not support expandable items; .principal
+            // gives the best centered positioning (same as Xcode/CodeEdit).
             ToolbarItem(placement: .principal) {
                 ControlGroup {
                     ActivityViewerView(workspace: workspace)
                 }
             }
 
-            // Keycast pill — lowest priority trailing item, collapses first
-            // when the toolbar is too narrow
+            // Push trailing items to the right
+            ToolbarSpacer(.flexible)
+
+            // Keycast pill — trailing, compact glass capsule.
+            // ControlGroup sizes to content in Liquid Glass.
             ToolbarItem {
                 ControlGroup {
                     KeycastView(viewModel: ToolbarManager.shared.viewModel)
                 }
             }
-
-            // Push trailing items to the right
-            ToolbarSpacer(.flexible)
 
             // Package manager — its own glass group
             ToolbarItem {
