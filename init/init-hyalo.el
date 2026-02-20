@@ -38,18 +38,14 @@
 
 ;;;; Hyalo Window Controller
 
-(use-package hyalo-window
-  :ensure nil
-  :if (eq window-system 'ns)
-  :after hyalo
-  :demand t
-  :general
-  (leader-def
-    "tn" '(hyalo-toggle-navigator :wk "navigator")
-    "ti" '(hyalo-toggle-inspector :wk "inspector")
-    "tu" '(hyalo-toggle-utility-area :wk "utility area")
-    "tm" '(demap-toggle :wk "minimap"))
-  :config
+;; Keybindings: C-c t {n,i,u,m} for navigator, inspector, utility, minimap
+(when (and initial-window-system (hyalo-available-p))
+  (with-eval-after-load 'general
+    (leader-def
+      "tn" '(hyalo-toggle-navigator :wk "navigator")
+      "ti" '(hyalo-toggle-inspector :wk "inspector")
+      "tu" '(hyalo-toggle-utility-area :wk "utility area")
+      "tm" '(demap-toggle :wk "minimap")))
   ;; Setup window controller after first frame is ready
   (add-hook 'window-setup-hook #'hyalo-window-setup)
   (when (fboundp 'hyalo--boot-log)
@@ -59,22 +55,19 @@
 
 (use-package hyalo-status
   :ensure nil
-  :if (eq window-system 'ns)
-  :after hyalo)
+  :if (eq window-system 'ns))
 
 ;;;; Hyalo Navigator
 
 (use-package hyalo-navigator
   :ensure nil
-  :if (eq window-system 'ns)
-  :after hyalo)
+  :if (eq window-system 'ns))
 
 ;;;; Hyalo Source Control
 
 (use-package hyalo-source-control
   :ensure nil
-  :if (eq window-system 'ns)
-  :after hyalo)
+  :if (eq window-system 'ns))
 
 ;;;; Hyalo Menu
 
@@ -110,7 +103,6 @@
 (use-package hyalo-compile
   :ensure nil
   :if (eq window-system 'ns)
-  :after hyalo
   :config
   (hyalo-compile-setup))
 
@@ -119,7 +111,6 @@
 (use-package hyalo-package
   :ensure nil
   :if (eq window-system 'ns)
-  :after hyalo
   :config
   (hyalo-package-setup))
 
@@ -128,7 +119,6 @@
 (use-package hyalo-keycast
   :ensure nil
   :if (eq window-system 'ns)
-  :after hyalo
   :commands (hyalo-keycast-mode))
 
 ;;;; Hyalo Appearance
@@ -136,7 +126,6 @@
 (use-package hyalo-appearance
   :ensure nil
   :if (eq window-system 'ns)
-  :after hyalo
   :config
   ;; Push theme-derived settings to Swift (background color, dividers, fringe).
   ;; Opacity and material persist in UserDefaults, managed by the Swift panel.

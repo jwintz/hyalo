@@ -5,6 +5,32 @@
 
 ;;; Code:
 
+;; Guard transient-save-history at exit.  transient registers on
+;; kill-emacs-hook at load time, so the guard must run before transient
+;; is loaded (otherwise a corrupt in-memory history crashes on exit
+;; even if magit was never invoked).  with-eval-after-load fires
+;; immediately if transient is already loaded, or defers until it is.
+(with-eval-after-load 'transient
+  (advice-add 'transient-save-history :around
+              (lambda (fn &rest args)
+                (condition-case err
+                    (progn
+                      ;; Validate: drop malformed entries before save
+                      (setq transient-history
+                            (cl-remove-if-not
+                             (lambda (entry)
+                               (and (consp entry)
+                                    (symbolp (car entry))
+                                    (listp (cdr entry))))
+                             transient-history))
+                      (apply fn args))
+                  (error
+                   (message "transient: save-history failed — clearing (%s)"
+                            (error-message-string err))
+                   (setq transient-history nil)
+                   (ignore-errors (apply fn args)))))
+              '((name . hyalo-transient-save-guard))))
+
 (use-package project
   :ensure nil
   :defer t
@@ -45,9 +71,8 @@
   :config
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t)
 
-  ;; Guard against corrupt transient history: if transient-setup fails with a
-  ;; type error (e.g. after a crash clobbers history.el with plain text), wipe
-  ;; the bad entry and retry rather than crashing every invocation.
+  ;; Guard against corrupt transient history at runtime: if transient-setup
+  ;; fails with a type error, wipe the bad entry and retry.
   (advice-add 'transient-setup :around
               (lambda (fn command &rest args)
                 (condition-case err
@@ -172,7 +197,6 @@ Runs asynchronously — shows a placeholder while generating."
                                                   (truncate-string-to-width result 200))
                                         ""))))))
                      (set-marker marker nil))))))))))))
-)
 
 ;; VC gutter with enhancements (thin bars, transparent faces).
 ;; Deferred to first file open via hyalo-first-file-hook.
