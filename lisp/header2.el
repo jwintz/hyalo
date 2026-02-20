@@ -1,4 +1,4 @@
-;;; header2.el --- Support for creation and update of file headers.
+;;; header2.el --- Support for creation and update of file headers.  -*- lexical-binding: t; -*-
 ;;
 ;; Filename: header2.el
 ;; Description: Support for creation and update of file headers.
@@ -11,9 +11,9 @@
 ;; Created: Tue Aug  4 17:06:46 1987
 ;; Version: 0
 ;; Package-Requires: ()
-;; Last-Updated: Thu Jan 26 18:42:45 2023 (-0800)
-;;           By: dradams
-;;     Update #: 2038
+;; Last-Updated: Fri Feb 20 09:12:59 2026 (+0100)
+;;           By: Julien Wintz
+;;     Update #: 2039
 ;; URL: https://www.emacswiki.org/emacs/download/header2.el
 ;; Doc URL: https://emacswiki.org/emacs/AutomaticFileHeaders
 ;; Keywords: tools, docs, maint, abbrev, local
@@ -372,7 +372,7 @@
 (defvar c-style)
 (defvar explicit-shell-file-name)
 (defvar libreq-file-header)
- 
+
 ;; User Options (Variables) --------------------------------
 
 (defgroup Automatic-File-Header nil
@@ -500,7 +500,7 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>."
 (defcustom make-box-comment-region-replace-prefix-flag nil
   "Non-nil means remove any comment prefix from lines, before boxing."
   :type 'boolean :group 'Automatic-File-Header)
- 
+
 ;;; Internal variables -------------------------------------
 
 (defvar header-auto-update-enabled t
@@ -525,7 +525,7 @@ the function to call if the string is found near the start of the file.")
 
 (defvar header-prefix-string ""
   "Mode-specific comment prefix string for use in headers.")
- 
+
 ;;; Functions ----------------------------------------------
 
 (defsubst nonempty-comment-start ()

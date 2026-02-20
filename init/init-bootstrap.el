@@ -203,6 +203,8 @@ Uses elog if available, otherwise falls back to message."
     ;; Non-interactive login shell: faster startup, loads .zshenv/.zprofile only
     ;; Move PATH exports from .zshrc to .zshenv for this to work
     (setq exec-path-from-shell-arguments '("-l"))
+    (dolist (var '("SYNTHETIC_API_KEY"))
+      (add-to-list 'exec-path-from-shell-variables var))
     (exec-path-from-shell-initialize)))
 
 (provide 'init-bootstrap)

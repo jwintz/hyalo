@@ -45,6 +45,21 @@
   :config
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t)
 
+  ;; Guard against corrupt transient history: if transient-setup fails with a
+  ;; type error (e.g. after a crash clobbers history.el with plain text), wipe
+  ;; the bad entry and retry rather than crashing every invocation.
+  (advice-add 'transient-setup :around
+              (lambda (fn command &rest args)
+                (condition-case err
+                    (apply fn command args)
+                  (wrong-type-argument
+                   (message "transient: corrupt history for %s — resetting (%s)"
+                            command (error-message-string err))
+                   (setq transient-history
+                         (assq-delete-all command transient-history))
+                   (apply fn command args))))
+              '((name . hyalo-transient-history-guard)))
+
   ;; Commit message generation with AI
   (defconst magit--commit-system-message
     "You are a commit message generator. Follow these rules strictly:
@@ -92,15 +107,17 @@ Runs asynchronously — shows a placeholder while generating."
                                "```diff\n"
                                truncated-diff
                                "\n```")))
-          ;; Insert placeholder at point
-          (insert placeholder)
-          (let ((placeholder-start insert-pos)
-                (placeholder-end (+ insert-pos (length placeholder))))
+          ;; Insert placeholder using a marker so positions track edits
+          (let ((marker (point-marker)))
+            (set-marker-insertion-type marker nil)
+            (insert placeholder)
             ;; Run pi asynchronously
-            (let ((output-buf (generate-new-buffer " *magit-commit-gen*")))
+            (let ((output-buf (generate-new-buffer " *magit-commit-gen*"))
+                  (stderr-buf (generate-new-buffer " *magit-commit-gen-err*")))
               (make-process
                :name "magit-commit-gen"
                :buffer output-buf
+               :stderr stderr-buf
                :command (list "pi"
                               "--provider" magit-commit-provider
                               "--model" magit-commit-model
@@ -111,9 +128,14 @@ Runs asynchronously — shows a placeholder while generating."
                :sentinel
                (lambda (proc _event)
                  (when (memq (process-status proc) '(exit signal))
-                   (let* ((success (= (process-exit-status proc) 0))
+                   (let* ((exit-code (process-exit-status proc))
+                          (success (= exit-code 0))
                           (raw (with-current-buffer output-buf
                                  (buffer-string)))
+                          (stderr (when (buffer-live-p stderr-buf)
+                                    (string-trim
+                                     (with-current-buffer stderr-buf
+                                       (buffer-string)))))
                           ;; Strip OSC sequences (ESC ] ... BEL or ESC \) and
                           ;; CSI sequences (ESC [ ... final-byte)
                           (cleaned (replace-regexp-in-string
@@ -121,20 +143,35 @@ Runs asynchronously — shows a placeholder while generating."
                                     "" raw))
                           (result (string-trim cleaned)))
                      (kill-buffer output-buf)
+                     (when (buffer-live-p stderr-buf)
+                       (kill-buffer stderr-buf))
                      (when (buffer-live-p buf)
                        (with-current-buffer buf
                          (save-excursion
-                           ;; Remove placeholder
-                           (goto-char placeholder-start)
-                           (when (<= placeholder-end (point-max))
-                             (delete-region placeholder-start placeholder-end))
-                           ;; Insert result or show error
+                           ;; Remove placeholder using marker position
+                           (goto-char marker)
+                           (let ((ph-end (+ (marker-position marker)
+                                            (length placeholder))))
+                             (when (and (<= ph-end (point-max))
+                                        (string= (buffer-substring-no-properties
+                                                  (marker-position marker) ph-end)
+                                                 placeholder))
+                               (delete-region (marker-position marker) ph-end)))
+                           ;; Insert result or show error with details
                            (if (and success (not (string-empty-p result)))
                                (progn
-                                 (goto-char placeholder-start)
+                                 (goto-char marker)
                                  (insert result)
                                  (message "Commit message inserted"))
-                             (message "Commit message generation failed")))))))))))))))
+                             (message "Commit message generation failed (exit %d)%s%s"
+                                      exit-code
+                                      (if (and stderr (not (string-empty-p stderr)))
+                                          (format ": %s" stderr) "")
+                                      (if (and (not success) (not (string-empty-p result)))
+                                          (format " [output: %s]"
+                                                  (truncate-string-to-width result 200))
+                                        ""))))))
+                     (set-marker marker nil))))))))))))
 )
 
 ;; VC gutter with enhancements (thin bars, transparent faces).
