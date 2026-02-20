@@ -10,8 +10,7 @@
   :ensure nil
   :if (and (eq system-type 'darwin) (display-graphic-p))
   :config
-  (setq frame-resize-pixelwise t)
-  ;; frame-inhibit-implied-resize is set in early-init.el
+  ;; frame-resize-pixelwise and frame-inhibit-implied-resize are set in early-init.el
   (set-frame-parameter nil 'internal-border-width 0)
   (add-to-list 'default-frame-alist '(internal-border-width . 0))
   (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))

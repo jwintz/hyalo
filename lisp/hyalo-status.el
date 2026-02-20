@@ -308,8 +308,12 @@ transient internal buffers."
   (let* ((win-buf (window-buffer (selected-window)))
          (buf-name (buffer-name win-buf)))
     ;; Skip internal buffers (space prefix or *...*) — all phases
+    ;; Skip if the buffer hasn't changed — prevents redundant pushes when
+    ;; window-buffer-change-functions fires during resize (resize_frame_windows
+    ;; can recreate windows without changing their buffer associations).
     (unless (or (string-prefix-p " " buf-name)
-                (string-prefix-p "*" buf-name))
+                (string-prefix-p "*" buf-name)
+                (eq win-buf hyalo-status--last-pushed-buffer))
       ;; Phase 1: Push all UI state (tabs, selection, buffer list)
       (hyalo-sync--push)
       (setq hyalo-status--last-pushed-buffer win-buf)

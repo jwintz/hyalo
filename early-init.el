@@ -44,6 +44,12 @@
 
 ;; Prevent frame resizing during font setup.
 (setq frame-inhibit-implied-resize t)
+;; Allow pixel-level resize (not snapped to character cell grid).
+;; Must be set here, before the initial frame is created, so that the NS port
+;; configures contentResizeIncrements to (1,1) at window creation time.
+;; Setting this later (e.g. in :config of use-package ns-win) is too late —
+;; the NSWindow has already been configured with character-cell increments.
+(setq frame-resize-pixelwise t)
 
 ;;; ---------------------------------------------------------------------------
 ;;; Load-suffix reduction
