@@ -243,6 +243,22 @@ final class HyaloWindowController: NSWindowController {
         }
     }
 
+    /// Show utility area and select tab by 1-based index. Never hides.
+    func showUtilityAreaTab(_ index: Int) {
+        let tabs = UtilityAreaTab.allCases
+        guard index >= 1, index <= tabs.count else { return }
+        let tab = tabs[index - 1]
+
+        withAnimation(Self.panelAnimation) {
+            utilityAreaViewModel.selectedTab = tab
+            workspace.utilityAreaVisible = true
+        }
+
+        if tab == .terminal {
+            DispatchQueue.main.async { [weak self] in self?.focusTerminal() }
+        }
+    }
+
     /// Get current navigator tab index (1-based), or 0 if none.
     var navigatorTabIndex: Int {
         let vm = NavigatorManager.shared.viewModel

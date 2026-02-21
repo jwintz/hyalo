@@ -794,6 +794,22 @@ final class HyaloModule: Module {
             return false
         }
 
+        try env.defun("hyalo-utility-area-show-tab",
+            with: """
+            Show utility area and select tab by 1-based INDEX.
+            Never hides — always shows the utility area and selects the tab.
+            """
+        ) { (env: EmacsSwiftModule.Environment, index: Int) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                DispatchQueue.main.async {
+                    guard let controller = HyaloModule.activeController else { return }
+                    controller.showUtilityAreaTab(index)
+                }
+                return true
+            }
+            return false
+        }
+
         // MARK: - Status Bar
 
         try env.defun("hyalo-status-update",
@@ -1245,11 +1261,17 @@ final class HyaloModule: Module {
                     try env.funcall("hyalo-environment--copy-ssh-command")
                 }
 
+                let sshHostCallback: () -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment) in
+                    try env.funcall("hyalo-environment--ssh-to-host")
+                }
+
                 MainActor.assumeIsolated {
                     let model = EnvironmentBreadcrumbModel.shared
                     model.onEnvironmentSwitch = environmentSwitchCallback
                     model.onOpenTerminal = openTerminalCallback
                     model.onCopySSHCommand = copySSHCallback
+                    model.onSSHHost = sshHostCallback
                 }
 
                 return true

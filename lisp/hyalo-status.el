@@ -76,8 +76,14 @@ Invalidated when branch cache is invalidated (on save, magit refresh).")
 ;; MARK: - Hook-based Setup/Teardown
 
 (defun hyalo-status-setup ()
-  "Register hooks for event-driven status updates."
+  "Register hooks for event-driven status updates.
+Clear cached project roots to ensure fresh detection on startup."
   (hyalo-status-teardown)
+  ;; Clear cached project state to ensure fresh detection on startup.
+  ;; These are global variables that may persist across sessions via
+  ;; desktop-save-mode or session restore.
+  (setq hyalo-status--last-git-root nil)
+  (setq hyalo-status--last-project-root nil)
   ;; Shutdown guard — suppress sync hooks during kill-emacs to prevent
   ;; first-change-hook from corrupting buffers written by other hooks.
   (add-hook 'kill-emacs-hook
@@ -500,16 +506,22 @@ inspector file info git fields, and inspector git history."
 (defun hyalo-status--push-branch-info ()
   "Push git branch info and project name to the toolbar.
 Uses cached branch list; only refreshes current branch name.
-Requires a git root — when outside a repo, VCS views are cleared
-by `hyalo-status--clear-vcs-views' instead."
+When outside a git repo, still pushes the current directory name
+as the project name for display purposes."
   (when (fboundp 'hyalo-update-branch-info)
     (condition-case nil
         (let* ((root (or hyalo-status--last-git-root
                          hyalo-status--last-project-root
                          (hyalo-status--project-root)))
-               (project-name (when root (file-name-nondirectory
-                                         (directory-file-name root)))))
-          ;; Push project name
+               ;; For git projects: use git root folder name
+               ;; For non-git: use current directory folder name as fallback
+               (project-name (if root
+                                 (file-name-nondirectory
+                                  (directory-file-name root))
+                               (when default-directory
+                                 (file-name-nondirectory
+                                  (directory-file-name default-directory))))))
+          ;; Push project name (always, for display in branch picker)
           (when (and project-name (fboundp 'hyalo-set-project-name))
             (hyalo-set-project-name project-name))
           ;; Current branch: only when inside a git repo

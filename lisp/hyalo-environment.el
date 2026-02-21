@@ -21,10 +21,9 @@
 ;; -----------------------------------------------------------------------------
 
 (defun hyalo-environment--log (format-string &rest args)
-  "Log environment detection debug message."
+  "Log environment detection debug message using elog."
   (when (fboundp 'hyalo-log)
-    (apply #'hyalo-log 'environment format-string args))
-  (message "[hyalo-env] %s" (apply #'format format-string args)))
+    (apply #'hyalo-log 'environment format-string args)))
 
 ;; -----------------------------------------------------------------------------
 ;; User/Host Detection
@@ -292,14 +291,24 @@ Called after debounce timer fires."
   (hyalo-environment--push))
 
 (defun hyalo-environment-setup ()
-  "Set up environment detection hooks and push initial state."
+  "Set up environment detection hooks.
+Note: Initial state push is triggered by `hyalo-environment--push-initial'
+after the channel is established."
   ;; Add hooks (no polling, debounced in push)
   (add-hook 'find-file-hook #'hyalo-environment--on-find-file)
   (add-hook 'window-buffer-change-functions #'hyalo-environment--on-buffer-change)
   (add-hook 'after-save-hook #'hyalo-environment--on-save)
-  (add-hook 'project-switch-project-hook #'hyalo-environment-refresh)
-  ;; Initial push after Emacs settles
-  (run-with-idle-timer 0.5 nil #'hyalo-environment--do-push))
+  (add-hook 'project-switch-project-hook #'hyalo-environment-refresh))
+
+(defun hyalo-environment--push-initial ()
+  "Push initial environment state after channel setup.
+Called from `hyalo-channels-setup' after environment channel is ready."
+  ;; Clear caches to force fresh detection
+  (setq hyalo-environment--last-user-host nil)
+  (setq hyalo-environment--last-environments nil)
+  (setq hyalo-environment--last-had-project nil)
+  ;; Push immediately (channel is now ready)
+  (hyalo-environment--do-push))
 
 ;; -----------------------------------------------------------------------------
 ;; Cleanup
@@ -371,8 +380,27 @@ Clears all caches to force fresh detection."
   (message "Hyalo: Switch to %s environment" env-type))
 
 (defun hyalo-environment--open-terminal ()
-  "Open terminal in current project root."
+  "Open terminal in current project root.
+Shows utility area and selects terminal tab (never hides)."
+  (hyalo-utility-area-show-tab 1)
   (message "Hyalo: Open terminal in %s" default-directory))
+
+(defun hyalo-environment--copy-ssh-command ()
+  "Copy SSH command for current host to clipboard."
+  (let* ((user-host (hyalo-environment--user-host-info))
+         (hostname (alist-get 'hostname user-host))
+         (username (alist-get 'username user-host))
+         (ssh-command (format "ssh %s@%s" username hostname)))
+    (kill-new ssh-command)
+    (message "Hyalo: Copied SSH command: %s" ssh-command)))
+
+(defun hyalo-environment--ssh-to-host ()
+  "SSH into current host."
+  (let* ((user-host (hyalo-environment--user-host-info))
+         (hostname (alist-get 'hostname user-host))
+         (username (alist-get 'username user-host)))
+    (hyalo-environment--open-terminal)
+    (message "Hyalo: SSH to %s@%s" username hostname)))
 
 (provide 'hyalo-environment)
 ;;; hyalo-environment.el ends here

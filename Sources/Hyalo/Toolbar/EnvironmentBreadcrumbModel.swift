@@ -75,6 +75,7 @@ final class EnvironmentBreadcrumbModel {
     var onEnvironmentSwitch: ((String) -> Void)?
     var onOpenTerminal: (() -> Void)?
     var onCopySSHCommand: (() -> Void)?
+    var onSSHHost: (() -> Void)?
     
     // MARK: - Updates from Emacs
     

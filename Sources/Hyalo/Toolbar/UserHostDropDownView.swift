@@ -104,7 +104,7 @@ struct UserHostDropDownView: View {
         // SSH Actions
         DropdownOptionView(label: "SSH to this host", isChecked: false) {
             isPopoverPresented = false
-            model.onOpenTerminal?()
+            model.onSSHHost?()
         }
         
         DropdownOptionView(label: "Copy SSH command", isChecked: false) {
