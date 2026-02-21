@@ -3,7 +3,6 @@
 ;;; Commentary:
 ;;
 ;; Appearance management for hyalo standalone.
-;; Based on ~/Syntropment/emacs.d/lisp/hyalo-appearance.el.
 ;;
 ;; Handles:
 ;; - System appearance detection (light/dark)

@@ -17,7 +17,7 @@ macOS IDE shell around Emacs via dynamic module (`.dylib`).
 ## Test Procedure
 
 ```bash
-emacs --init-directory ~/Syntropment/hyalo
+emacs --init-directory /path/to/hyalo
 ```
 
 This launches Emacs with the modular init system:
