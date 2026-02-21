@@ -32,7 +32,7 @@ struct DevEnvironment: Codable, Identifiable, Equatable {
     var displayIcon: String {
         // Map to SF Symbols, fallback to circle.fill
         switch type {
-        case "pixi": return "shippingbox"
+        case "pixi": return "puzzlepiece.extension.fill"
         case "conda": return "c.circle.fill"
         case "npm": return "n.circle.fill"
         case "bun": return "b.circle.fill"

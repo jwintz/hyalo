@@ -139,9 +139,10 @@ struct HyaloNavigationLayout: View {
 
             // Package manager — its own glass group
             ToolbarItem {
-	    ControlGroup {
-                PackageManagerView(viewModel: ToolbarManager.shared.viewModel)
+	        ControlGroup {
+                    PackageManagerView(viewModel: ToolbarManager.shared.viewModel)
 		}
+                .fixedSize()
             }
 
             // Visual break between package manager and inspector
@@ -149,18 +150,24 @@ struct HyaloNavigationLayout: View {
 
             // Inspector toggle — its own glass group
             ToolbarItem {
-	    ControlGroup {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        workspace.inspectorVisible.toggle()
+	        ControlGroup {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            workspace.inspectorVisible.toggle()
+                        }
+                    } label: {
+                        Image(systemName: "sidebar.right")
                     }
-                } label: {
-                    Image(systemName: "sidebar.right")
                 }
+                .fixedSize()
                 .help(workspace.inspectorVisible ? "Hide Inspector" : "Show Inspector")
             }
-	    }
+
+            // Visual break between package manager and keycast
+            ToolbarSpacer(.fixed)
         }
+        
+        // Background after toolbar
         .background {
             ZStack {
                 VibrancyBackgroundView(

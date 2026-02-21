@@ -34,7 +34,7 @@ struct EnvironmentPillView: View {
 private struct BreadcrumbContent: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    @Bindable var workspace: HyaloWorkspaceState
+    var workspace: HyaloWorkspaceState
     var model: EnvironmentBreadcrumbModel
     var activityManager = ActivityManager.shared
 
@@ -53,10 +53,9 @@ private struct BreadcrumbContent: View {
                 .fixedSize()
         }
         .padding(5)
-        .padding(.trailing, 5)
         .clipShape(Capsule())
         // Dynamic width: min width for usability, hug content
-        .frame(minWidth: 120)
+        .frame(minWidth: 100)
         .fixedSize(horizontal: true, vertical: false)
     }
 }
@@ -83,7 +82,6 @@ private struct BuildStatusView: View {
             }
         }
         .animation(.easeInOut, value: displayed)
-        .padding(.horizontal, 4)
         .opacity(activeState == .inactive ? 0.4 : 1.0)
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             BuildStatusDetailView(activityManager: activityManager)
