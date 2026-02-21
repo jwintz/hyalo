@@ -1,0 +1,34 @@
+title: Lisp Modules
+icon: i-lucide-parentheses
+filters:
+  and:
+    - file.inFolder("lisp")
+    - 'file.name != "index"'
+
+formulas:
+  module_file: 'file.name + ".el"'
+
+properties:
+  title:
+    displayName: Module
+  description:
+    displayName: Description
+  formula.module_file:
+    displayName: Source File
+  file.mtime:
+    displayName: Updated
+
+views:
+  - type: table
+    name: All Modules
+    order:
+      - title
+      - description
+      - formula.module_file
+      - file.mtime
+
+  - type: cards
+    name: Gallery
+    order:
+      - title
+      - description

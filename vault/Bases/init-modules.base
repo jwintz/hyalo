@@ -1,0 +1,31 @@
+title: Init Modules
+icon: i-lucide-layers
+filters:
+  and:
+    - file.inFolder("init")
+    - 'file.name != "index"'
+
+formulas:
+  module_file: '"init-" + file.name + ".el"'
+
+properties:
+  title:
+    displayName: Module
+  description:
+    displayName: Description
+  formula.module_file:
+    displayName: Source File
+
+views:
+  - type: table
+    name: All Modules
+    order:
+      - title
+      - description
+      - formula.module_file
+
+  - type: list
+    name: Quick List
+    order:
+      - title
+      - description

@@ -1,0 +1,26 @@
+title: Swift Modules
+icon: i-lucide-layers-3
+filters:
+  and:
+    - file.inFolder("swift")
+    - 'file.name != "index"'
+
+properties:
+  title:
+    displayName: Module
+  description:
+    displayName: Description
+
+views:
+  - type: cards
+    name: Modules
+    order:
+      - title
+      - description
+
+  - type: table
+    name: Reference
+    order:
+      - title
+      - description
+      - file.mtime
