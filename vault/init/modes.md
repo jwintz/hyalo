@@ -20,10 +20,10 @@ tags:
 | Package | Source | Purpose |
 |---------|--------|---------|
 | `json-mode` | MELPA | JSON editing and syntax highlighting |
-| `yaml-mode` | MELPA | YAML editing and syntax highlighting |
-| `swift-mode` | MELPA | Swift source editing |
-| `markdown-mode` | MELPA | Markdown editing (also used by `init-markdown`) |
 | `toml-mode` | MELPA | TOML configuration file editing |
+| `swift-mode` | MELPA | Swift source editing |
+| `typescript-mode` | MELPA | TypeScript source editing |
+| `git-modes` | GNU ELPA | Git file support (gitignore, gitconfig, gitattributes) |
 
 ## Configuration Highlights
 
@@ -34,11 +34,11 @@ tags:
   :mode "\\.json\\'")
 ```
 
-### yaml-mode
+### toml-mode
 
 ```elisp
-(use-package yaml-mode
-  :mode ("\\.ya?ml\\'"))
+(use-package toml-mode
+  :mode "\\.toml\\'")
 ```
 
 ### swift-mode
@@ -48,11 +48,24 @@ tags:
   :mode "\\.swift\\'")
 ```
 
-### toml-mode
+### typescript-mode
 
 ```elisp
-(use-package toml-mode
-  :mode "\\.toml\\'")
+(use-package typescript-mode
+  :mode "\\.ts\\'")
+```
+
+### git-modes
+
+Provides `gitignore-mode`, `gitconfig-mode`, and `gitattributes-mode` with proper comment syntax (`#`) for header2.el compatibility.
+
+```elisp
+(use-package git-modes
+  :mode (("/\\.gitignore\\'" . gitignore-mode)
+         ("/\\.git/info/attributes\\'" . gitattributes-mode)
+         ("/\\.gitattributes\\'" . gitattributes-mode)
+         ("/\\.git/config\\'" . gitconfig-mode)
+         ("/\\.gitconfig\\'" . gitconfig-mode)))
 ```
 
 > **Note:** Tree-sitter is disabled. All modes use standard font-lock and indentation engines.

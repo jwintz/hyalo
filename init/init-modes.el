@@ -76,5 +76,17 @@
   :config
   (add-hook 'typescript-mode-hook #'eglot-ensure))
 
+;; ============================================================================
+;; Git Modes (gitignore, gitconfig, gitattributes)
+;; ============================================================================
+
+(use-package git-modes
+  :ensure t
+  :mode (("/\\.gitignore\\'" . gitignore-mode)
+         ("/\\.git/info/attributes\\'" . gitattributes-mode)
+         ("/\\.gitattributes\\'" . gitattributes-mode)
+         ("/\\.git/config\\'" . gitconfig-mode)
+         ("/\\.gitconfig\\'" . gitconfig-mode)))
+
 (provide 'init-modes)
 ;;; init-modes.el ends here

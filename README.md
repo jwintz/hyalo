@@ -5,8 +5,8 @@ macOS IDE shell around Emacs via dynamic module (`.dylib`).
 ## Architecture
 
 - **61 Swift source files** across 12 modules: Core, Window, Editor, Navigator, Inspector, StatusBar, UtilityArea, Toolbar, CommandPalette, Appearance, Shared
-- **14 Emacs Lisp files** in `lisp/`
-- **12 modular init files** in `init/`
+- **26 Emacs Lisp files** in `lisp/`
+- **14 modular init files** in `init/`
 - **NSSplitViewController** 3-panel layout: Navigator | Editor | Inspector
 - **NSToolbar** with tracking separators, expanding pill activity viewer, branch picker
 - **Channel architecture** for bidirectional Swift<->Emacs Lisp communication (see [Channel Architecture](#channel-architecture) below)
@@ -21,11 +21,20 @@ emacs --init-directory ~/Syntropment/hyalo
 ```
 
 This launches Emacs with the modular init system:
-1. `init.el` loads `init-bootstrap` (packages, GC, exec-path-from-shell)
-2. `init-core` (general, which-key)
-3. `init-emacs` (cursor, startup, recentf, saveplace)
-4. `init-appearance` (fonts, modus-themes, nano-themes, ef-themes, lin, iota-dimmer)
-5. `init-hyalo` (module load, window setup on hook, keybindings)
+1. `init-bootstrap` — Package archives, GC tuning, exec-path-from-shell
+2. `init-core` — diminish, general.el, which-key
+3. `init-emacs` — Cursor, startup, recentf, saveplace, autorevert
+4. `init-appearance` — Fonts, modus-themes, nano-themes, ef-themes, lin, iota-dimmer
+5. `init-editing` — Editing packages (god-mode, windmove, outline)
+6. `init-completion` — Vertico, Consult, Marginalia, Orderless
+7. `init-tools` — Dev tools (project, magit, eglot, flymake)
+8. `init-help` — Help system (helpful, elisp-refs)
+9. `init-modes` — Language modes (json, swift, toml, typescript, git-modes)
+10. `init-markdown` — Markdown and knowledge management
+11. `init-header` — File header management (header2)
+12. `init-hyalo` — Module load, window setup, panel toggles, keybindings
+13. `init-agents` — AI agents (copilot)
+14. `init-tengwar` — Tengwar script rendering (optional)
 
 ### Prerequisites
 
@@ -61,10 +70,19 @@ Theme-appearance synchronization:
 | File | Purpose |
 |------|---------|
 | `init-bootstrap.el` | Package system, GC optimization, exec-path-from-shell |
-| `init-core.el` | general.el keybinder, which-key |
+| `init-core.el` | diminish, general.el keybinder, which-key |
 | `init-emacs.el` | Cursor, startup, recentf, saveplace, autorevert |
-| `init-appearance.el` | Fonts, modus-themes, nano-themes, ef-themes, lin, iota-dimmer, line-spacing |
-| `init-hyalo.el` | Module load, ns-win, window setup, panel toggle bindings |
+| `init-appearance.el` | Fonts, modus-themes, nano-themes, ef-themes, lin, iota-dimmer |
+| `init-editing.el` | Editing packages (god-mode, windmove, outline) |
+| `init-completion.el` | Vertico, Consult, Marginalia, Orderless |
+| `init-tools.el` | Dev tools (project, magit, eglot, flymake, diff-hl) |
+| `init-help.el` | Help system (helpful, elisp-refs) |
+| `init-modes.el` | Language modes (json, swift, toml, typescript, git-modes) |
+| `init-markdown.el` | Markdown and knowledge management |
+| `init-header.el` | File header management (header2) |
+| `init-hyalo.el` | macOS integration, module load, window setup, keybindings |
+| `init-agents.el` | AI agents (copilot) |
+| `init-tengwar.el` | Tengwar script rendering (optional) |
 
 ### Lisp Files (lisp/)
 
@@ -77,11 +95,25 @@ Theme-appearance synchronization:
 | `hyalo-status.el` | Hook-driven status updates (cursor, tabs, branch, file info, navigator refresh) |
 | `hyalo-source-control.el` | Git changed files and commit history push (debounced on save) |
 | `hyalo-appearance.el` | Vibrancy, background color, divider color, frame transparency |
-| `hyalo-theme.el` | Theme switching, appearance sync, terminal palette |
+| `hyalo-themes.el` | Theme switching, appearance sync, terminal palette |
+| `hyalo-activities.el` | Activities (tab-bar) integration for breadcrumb |
+| `hyalo-compile.el` | Native compilation activity tracking |
+| `hyalo-diagnostics.el` | Flymake diagnostics panel integration |
+| `hyalo-environment.el` | Environment detection and breadcrumb push |
+| `hyalo-gutter.el` | Diff-hl gutter integration |
+| `hyalo-keycast.el` | Keycast toolbar integration |
+| `hyalo-lib.el` | Transient hooks, first-use hooks, idle package loader |
+| `hyalo-menu.el` | Menu bar integration |
+| `hyalo-minimap.el` | Minimap integration |
+| `hyalo-package.el` | Package manager toolbar integration |
+| `hyalo-splash.el` | Splash screen |
+| `hyalo-system.el` | System information panel |
 | `iota-dimmer.el` | Inactive window dimming (HSL-based face color manipulation) |
+| `iota-faces.el` | Iota face definitions |
 | `nano-themes.el` | N Λ N O theme infrastructure (built on modus-themes) |
 | `nano-light-theme.el` | N Λ N O light theme (Material Design palette) |
 | `nano-dark-theme.el` | N Λ N O dark theme (Nord palette) |
+| `header2.el` | File header creation and update (vendored) |
 
 ### Channel Architecture
 
