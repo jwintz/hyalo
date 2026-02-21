@@ -117,10 +117,11 @@ struct HyaloNavigationLayout: View {
             // Activity viewer — centered in the toolbar via .principal placement.
             // SwiftUI .toolbar does not support expandable items; .principal
             // gives the best centered positioning (same as Xcode/CodeEdit).
+            // No ControlGroup wrapper: the Capsule clip in ActivityViewerView
+            // provides its own Liquid Glass surface and sizing.
             ToolbarItem(placement: .principal) {
-                ControlGroup {
-                    ActivityViewerView(workspace: workspace)
-                }
+                ActivityViewerView(workspace: workspace)
+                    .frame(minWidth: 200, idealWidth: 500, maxWidth: 650)
             }
 
             // Push trailing items to the right

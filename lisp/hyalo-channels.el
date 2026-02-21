@@ -6,6 +6,7 @@
 ;;; Code:
 
 (require 'hyalo-source-control nil t)
+(require 'hyalo-activities nil t)
 
 (defvar hyalo-channels--initialized nil
   "Non-nil when all channels have been set up.")
@@ -34,6 +35,8 @@
           (hyalo-setup-package-channel))
         (when (fboundp 'hyalo-setup-source-control-channel)
           (hyalo-setup-source-control-channel))
+        (when (fboundp 'hyalo-setup-activities-channel)
+          (hyalo-setup-activities-channel))
         (setq hyalo-channels--initialized t)
         (message "Hyalo: All channels initialized"))
     (error (message "Hyalo: Channel setup error: %s" (error-message-string err)))))

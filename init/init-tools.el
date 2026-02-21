@@ -5,23 +5,39 @@
 
 ;;; Code:
 
-;; Guard transient-save-history at exit.  transient registers on
-;; kill-emacs-hook at load time, so the guard must run before transient
-;; is loaded (otherwise a corrupt in-memory history crashes on exit
-;; even if magit was never invoked).  with-eval-after-load fires
-;; immediately if transient is already loaded, or defers until it is.
+;; Guard transient history against corruption.
+;;
+;; Root cause: if Emacs crashes mid-save, transient-history-file can end up
+;; with a truncated sexp (e.g. bare symbol `mod`).  On next load, transient
+;; reads this as a non-list value, and every subsequent alist operation on
+;; transient-history signals wrong-type-argument.
+;;
+;; Defence in depth:
+;;   1. On load: validate the variable is a proper alist, nuke if not.
+;;   2. On save: sanitize before writing, catch errors.
+;;   3. On use: runtime guard on transient-setup (see magit :config below).
 (with-eval-after-load 'transient
+  ;; 1. Validate immediately after transient loads the history file.
+  (unless (proper-list-p transient-history)
+    (message "transient: history corrupt on load (type=%s) — resetting"
+             (type-of transient-history))
+    (setq transient-history nil))
+
+  ;; 2. Guard transient-save-history at exit.
   (advice-add 'transient-save-history :around
               (lambda (fn &rest args)
                 (condition-case err
                     (progn
-                      ;; Validate: drop malformed entries before save
+                      ;; If the variable is not a list at all, reset it.
+                      (unless (proper-list-p transient-history)
+                        (setq transient-history nil))
+                      ;; Drop malformed entries: keep only (SYMBOL . LIST).
                       (setq transient-history
                             (cl-remove-if-not
                              (lambda (entry)
                                (and (consp entry)
                                     (symbolp (car entry))
-                                    (listp (cdr entry))))
+                                    (proper-list-p (cdr entry))))
                              transient-history))
                       (apply fn args))
                   (error
@@ -72,16 +88,24 @@
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t)
 
   ;; Guard against corrupt transient history at runtime: if transient-setup
-  ;; fails with a type error, wipe the bad entry and retry.
+  ;; fails with a type error, sanitize the whole alist and retry.
+  ;; assq-delete-all itself crashes on a corrupt alist, so we rebuild
+  ;; from scratch, keeping only well-formed (SYMBOL . LIST) entries.
   (advice-add 'transient-setup :around
               (lambda (fn command &rest args)
                 (condition-case err
                     (apply fn command args)
                   (wrong-type-argument
-                   (message "transient: corrupt history for %s — resetting (%s)"
-                            command (error-message-string err))
+                   (message "transient: corrupt history — sanitizing (%s)"
+                            (error-message-string err))
                    (setq transient-history
-                         (assq-delete-all command transient-history))
+                         (cl-loop for entry in (and (proper-list-p transient-history)
+                                                    transient-history)
+                                  when (and (consp entry)
+                                            (symbolp (car entry))
+                                            (proper-list-p (cdr entry))
+                                            (not (eq (car entry) command)))
+                                  collect entry))
                    (apply fn command args))))
               '((name . hyalo-transient-history-guard)))
 

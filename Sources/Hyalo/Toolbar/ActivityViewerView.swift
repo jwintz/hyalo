@@ -1,180 +1,138 @@
-// ActivityViewerView.swift - Build/activity status in toolbar center
+// ActivityViewerView.swift - Toolbar breadcrumb: workspace | activity | build status
 // Target: macOS 26 Tahoe with Liquid Glass design
 //
-// Breadcrumb layout in a fixed-width toolbar segment:
-//   [kind icon] Activity Title  [progress/badge] [chevron ▾]
+// Three-segment layout in a Capsule pill (Tahoe):
 //
-// - The kind icon animates (e.g., gearshape rotates for native compilation)
-// - Text is clipped to the pill bounds (no overflow during transitions)
-// - Clicking the chevron opens a menu to switch between activities
-// - Clicking the pill body opens a detail popover
-// - Fixed width prevents toolbar layout shifts when text changes
+//   [WorkspaceDropDownView] [ActivityDropDownView]  [Build status + spinner]
+//     folder icon + name     tab name + chevron      notification text + ring
+//
+// Segment 1 (WorkspaceDropDownView): lists decorated Emacs frames.
+// Segment 2 (ActivityDropDownView):  lists tab-bar tabs for the current frame.
+// Segment 3:                         inline build/activity progress (existing).
+//
+// State for segments 1 and 2 is pushed from Emacs via the hyalo-activities
+// channel.  State for segment 3 is pushed via ActivityManager (unchanged).
 
 import SwiftUI
 
-// MARK: - Activity Viewer View
+// MARK: - Activity Viewer View (entry point from HyaloNavigationLayout)
 
 @available(macOS 26.0, *)
 struct ActivityViewerView: View {
     @Bindable var workspace: HyaloWorkspaceState
 
+    var model: ActivityBreadcrumbModel = ActivityBreadcrumbModel.shared
+
     var body: some View {
-        ActivityToolbarContent()
+        BreadcrumbContent(workspace: workspace, model: model)
     }
 }
 
-// MARK: - Toolbar Content
+// MARK: - Breadcrumb Content
 
 @available(macOS 26.0, *)
-private struct ActivityToolbarContent: View {
+private struct BreadcrumbContent: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    @Bindable var workspace: HyaloWorkspaceState
+    var model: ActivityBreadcrumbModel
     var activityManager = ActivityManager.shared
 
-    @Environment(\.controlActiveState)
-    private var activeState
+    var body: some View {
+        HStack(spacing: 0) {
+            // Segment 1: workspace / frame switcher
+            WorkspaceDropDownView(model: model, workspace: workspace)
 
-    @State private var isHovering = false
-    @State private var showPopover = false
+            // Segment 2: activity / tab switcher
+            ActivityDropDownView(model: model)
 
-    /// The notification currently displayed inline.
-    private var displayed: ActivityItem? {
-        activityManager.activities.first(where: { $0.isActive })
-            ?? activityManager.activities.first
+            Spacer(minLength: 0)
+
+            // Segment 3: build/activity status (existing, right-aligned)
+            BuildStatusView(activityManager: activityManager)
+                .fixedSize()
+        }
+        .padding(5)
+        .padding(.trailing, 5)
+        .clipShape(Capsule())
+        .frame(minWidth: 200)
     }
+}
+
+// MARK: - Build Status View (formerly ActivityToolbarContent's inline progress)
+
+@available(macOS 26.0, *)
+private struct BuildStatusView: View {
+    @Environment(\.controlActiveState) private var activeState
+
+    var activityManager: ActivityManager
+
+    @State private var isPresented = false
+    @State private var displayed: ActivityItem?
 
     var body: some View {
-        HStack(spacing: 6) {
-            // Activity content (breadcrumb)
-            activityBreadcrumb
-                .clipped()
-                .contentShape(Rectangle())
-                .onTapGesture { showPopover.toggle() }
-
-            // Switcher chevron (when multiple activities)
-            if activityManager.activities.count > 1 {
-                activitySwitcherMenu
-            }
-        }
-        .padding(.horizontal, 8)
-        .opacity(activeState == .inactive ? 0.4 : 1.0)
-        .onHover { isHovering = $0 }
-        .popover(isPresented: $showPopover) {
-            ActivityPopoverView()
-        }
-    }
-
-    // MARK: - Breadcrumb
-
-    @ViewBuilder
-    private var activityBreadcrumb: some View {
-        if let activity = displayed {
-            HStack(spacing: 6) {
-                // Kind icon with animation
-                kindIcon(activity)
-
-                // Title
-                Text(activity.title)
-                    .font(.subheadline)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .id("ActivityTitle-" + activity.id + activity.title)
-                    .transition(
-                        .asymmetric(
-                            insertion: .move(edge: .top),
-                            removal: .move(edge: .bottom)
-                        )
-                        .combined(with: .opacity)
-                    )
-
-                // Progress bar (determinate only)
-                if activity.isActive, let progress = activity.progress, progress > 0 {
-                    ProgressView(value: progress)
-                        .progressViewStyle(.linear)
-                        .frame(width: 40)
+        Group {
+            if let activity = displayed {
+                HStack(spacing: 6) {
+                    buildStatusText(activity)
+                    buildStatusIndicator(activity)
                 }
-
-                // Indicator
-                trailingIndicator(activity)
+                .transition(.opacity.combined(with: .move(edge: .trailing)))
             }
-            .animation(.easeInOut(duration: 0.25), value: activity.id)
-            .animation(.easeInOut(duration: 0.25), value: activity.title)
-        } else {
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                    .font(.system(size: 11))
-                Text("Ready")
-                    .font(.subheadline)
+        }
+        .animation(.easeInOut, value: displayed)
+        .padding(.horizontal, 4)
+        .opacity(activeState == .inactive ? 0.4 : 1.0)
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            BuildStatusDetailView(activityManager: activityManager)
+        }
+        .onTapGesture { isPresented.toggle() }
+        .onChange(of: activityManager.activities) { _, activities in
+            withAnimation {
+                displayed = activities.first(where: \.isActive) ?? activities.first
             }
+        }
+        .onAppear {
+            displayed = activityManager.activities.first(where: \.isActive)
+                ?? activityManager.activities.first
         }
     }
 
-    // MARK: - Kind Icon
-
     @ViewBuilder
-    private func kindIcon(_ activity: ActivityItem) -> some View {
-        Image(systemName: activity.kind.systemImage)
-            .font(.system(size: 11))
-            .foregroundStyle(activity.isActive ? .primary : .secondary)
-            .symbolEffect(.rotate, isActive: activity.isActive && activity.kind == .nativeCompilation)
-            .symbolEffect(.pulse, isActive: activity.isActive && activity.kind == .packageInstallation)
+    private func buildStatusText(_ activity: ActivityItem) -> some View {
+        Text(activity.title)
+            .font(.subheadline)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .transition(
+                .asymmetric(
+                    insertion: .move(edge: .top),
+                    removal: .move(edge: .bottom)
+                )
+                .combined(with: .opacity)
+            )
+            .id("BuildStatus-" + activity.id + activity.title)
     }
 
-    // MARK: - Trailing Indicator
-
     @ViewBuilder
-    private func trailingIndicator(_ activity: ActivityItem) -> some View {
+    private func buildStatusIndicator(_ activity: ActivityItem) -> some View {
         if activity.isActive {
             ActivityCircularProgressView(
                 progress: activity.progress,
                 taskCount: activityManager.activeCount
             )
             .frame(width: 16, height: 16)
-        } else if activity.kind == .moduleCompilation,
-                  let onReload = activityManager.onModuleReload {
-            Button {
-                onReload()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 10, weight: .semibold))
-            }
-            .buttonStyle(.plain)
-            .help("Reload Hyalo module")
+        } else if activityManager.activeCount == 0,
+                  activityManager.activities.count > 1 {
+            Text("\(activityManager.activities.count)")
+                .font(.caption)
+                .padding(4)
+                .background(Circle().foregroundStyle(.secondary.opacity(0.2)))
         }
-    }
-
-    // MARK: - Activity Switcher Menu
-
-    private var activitySwitcherMenu: some View {
-        Menu {
-            ForEach(activityManager.activities) { activity in
-                Button {
-                    // Move this activity to the front so it becomes displayed
-                    activityManager.bringToFront(id: activity.id)
-                } label: {
-                    Label {
-                        Text(activity.title)
-                    } icon: {
-                        Image(systemName: activity.isActive
-                              ? "circle.fill"
-                              : "checkmark.circle.fill")
-                    }
-                }
-            }
-        } label: {
-            Image(systemName: "chevron.down")
-                .font(.system(size: 8, weight: .semibold))
-                .foregroundStyle(.tertiary)
-                .frame(width: 16, height: 16)
-                .contentShape(Rectangle())
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .help("Switch activity")
     }
 }
 
-// MARK: - Circular Progress View
+// MARK: - Circular Progress View (indeterminate or determinate ring)
 
 @available(macOS 26.0, *)
 struct ActivityCircularProgressView: View {
@@ -194,16 +152,14 @@ struct ActivityCircularProgressView: View {
                 if let progress {
                     Circle()
                         .trim(from: 0, to: progress)
-                        .stroke(Color.accentColor, style: StrokeStyle(
-                            lineWidth: lineWidth, lineCap: .round
-                        ))
+                        .stroke(Color.accentColor,
+                                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                         .animation(.easeInOut, value: progress)
                 } else {
                     Circle()
                         .trim(from: 0, to: 0.5)
-                        .stroke(Color.accentColor, style: StrokeStyle(
-                            lineWidth: lineWidth, lineCap: .round
-                        ))
+                        .stroke(Color.accentColor,
+                                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                         .rotationEffect(
                             previousValue
                                 ? .degrees(isAnimating ? 0 : -360)
@@ -236,11 +192,11 @@ struct ActivityCircularProgressView: View {
     }
 }
 
-// MARK: - Activity Popover (detail view)
+// MARK: - Build Status Detail Popover
 
 @available(macOS 26.0, *)
-private struct ActivityPopoverView: View {
-    var activityManager = ActivityManager.shared
+private struct BuildStatusDetailView: View {
+    var activityManager: ActivityManager
 
     var body: some View {
         ScrollView {
@@ -254,7 +210,7 @@ private struct ActivityPopoverView: View {
                     }
                 } else {
                     ForEach(activityManager.activities) { activity in
-                        ActivityDetailRow(activity: activity)
+                        BuildStatusDetailRow(activity: activity, activityManager: activityManager)
                     }
                 }
             }
@@ -264,91 +220,70 @@ private struct ActivityPopoverView: View {
     }
 }
 
-// MARK: - Activity Detail Row
-
 @available(macOS 26.0, *)
-private struct ActivityDetailRow: View {
+private struct BuildStatusDetailRow: View {
     let activity: ActivityItem
-    var activityManager = ActivityManager.shared
+    var activityManager: ActivityManager
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center, spacing: 8) {
-                if activity.isActive {
-                    ActivityCircularProgressView(
-                        progress: activity.progress
-                    )
+        HStack(alignment: .center, spacing: 8) {
+            if activity.isActive {
+                ActivityCircularProgressView(progress: activity.progress)
                     .frame(width: 16, height: 16)
-                } else {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.system(size: 14))
-                }
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.system(size: 14))
+            }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack {
-                        Text(activity.kind.label)
-                            .font(.system(size: 12, weight: .semibold))
-                        Spacer()
-                        if let progress = activity.progress, activity.isActive {
-                            Text("\(Int(progress * 100))%")
-                                .font(.system(size: 11, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Text(activity.title)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-
-                    if !activity.message.isEmpty {
-                        Text(activity.message)
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-
-                if !activity.isActive && activity.kind == .moduleCompilation {
-                    if let onReload = activityManager.onModuleReload {
-                        Button {
-                            onReload()
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 11))
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .help("Reload module")
-                    }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(activity.kind.label)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(activity.title)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                if !activity.message.isEmpty {
+                    Text(activity.message)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
                 }
             }
 
-            if !activity.logLines.isEmpty {
-                Divider()
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 2) {
-                            ForEach(
-                                Array(activity.logLines.enumerated()),
-                                id: \.offset
-                            ) { index, line in
-                                Text(line)
-                                    .font(.system(size: 10, design: .monospaced))
-                                    .foregroundStyle(.secondary)
-                                    .textSelection(.enabled)
-                                    .id(index)
-                            }
+            Spacer()
+
+            if !activity.isActive && activity.kind == .moduleCompilation,
+               let onReload = activityManager.onModuleReload {
+                Button {
+                    onReload()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Reload module")
+            }
+        }
+
+        if !activity.logLines.isEmpty {
+            Divider()
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 2) {
+                        ForEach(Array(activity.logLines.enumerated()), id: \.offset) { idx, line in
+                            Text(line)
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .id(idx)
                         }
                     }
-                    .frame(maxHeight: 150)
-                    .onChange(of: activity.logLines.count) { _, count in
-                        if count > 0 {
-                            proxy.scrollTo(count - 1, anchor: .bottom)
-                        }
-                    }
+                }
+                .frame(maxHeight: 150)
+                .onChange(of: activity.logLines.count) { _, count in
+                    if count > 0 { proxy.scrollTo(count - 1, anchor: .bottom) }
                 }
             }
         }
-        .padding(8)
     }
 }

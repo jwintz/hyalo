@@ -273,7 +273,10 @@ buffers regardless of entry point."
           (hyalo-navigator-set-active-buffer buf-name))
         ;; Push active file to project navigator
         (when (and file-path (fboundp 'hyalo-navigator-set-active-file))
-          (hyalo-navigator-set-active-file file-path)))
+          (hyalo-navigator-set-active-file file-path))
+        ;; Push tab/frame state to the breadcrumb segments
+        (when (fboundp 'hyalo-activities--push-state)
+          (hyalo-activities--push-state)))
     (error nil))))))
 
 (defun hyalo-sync--buffer-icon (buf)

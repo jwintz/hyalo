@@ -1193,6 +1193,88 @@ final class HyaloModule: Module {
             return false
         }
 
+        // MARK: - Activities / Tab-Bar Bridge
+
+        try env.defun("hyalo-update-activities",
+            with: """
+            Update the activity (tab-bar) segment of the toolbar breadcrumb.
+            JSON-TABS is a JSON array of {name, isCurrent} objects.
+            """
+        ) { (env: EmacsSwiftModule.Environment, jsonTabs: String) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    ActivityBreadcrumbModel.shared.updateTabs(from: jsonTabs)
+                }
+                return true
+            }
+            return false
+        }
+
+        try env.defun("hyalo-update-frame-list",
+            with: """
+            Update the workspace (frame) segment of the toolbar breadcrumb.
+            JSON-FRAMES is a JSON array of {id, name, isCurrent} objects.
+            """
+        ) { (env: EmacsSwiftModule.Environment, jsonFrames: String) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    ActivityBreadcrumbModel.shared.updateFrames(from: jsonFrames)
+                }
+                return true
+            }
+            return false
+        }
+
+        try env.defun("hyalo-setup-activities-channel",
+            with: """
+            Open the bidirectional channel for the activities breadcrumb.
+            Wires Swift -> Emacs callbacks for tab switching, creation,
+            closing, renaming, and frame switching.
+            """
+        ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                let channel = try env.openChannel(name: "hyalo-activities")
+                HyaloModule.navigatorChannel = channel // reuse slot — no separate field needed
+
+                let tabSwitchCallback: (String) -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment, name: String) in
+                    try env.funcall("hyalo-activities--handle-tab-switch", with: name)
+                }
+
+                let tabNewCallback: () -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment) in
+                    try env.funcall("hyalo-activities--handle-tab-new")
+                }
+
+                let tabCloseCallback: (String) -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment, name: String) in
+                    try env.funcall("hyalo-activities--handle-tab-close", with: name)
+                }
+
+                let tabRenameCallback: (String, String) -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment, name: String, newName: String) in
+                    try env.funcall("hyalo-activities--handle-tab-rename", with: name, newName)
+                }
+
+                let frameSwitchCallback: (Int) -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment, frameId: Int) in
+                    try env.funcall("hyalo-activities--handle-frame-switch", with: frameId)
+                }
+
+                MainActor.assumeIsolated {
+                    let model = ActivityBreadcrumbModel.shared
+                    model.onTabSwitch = tabSwitchCallback
+                    model.onTabNew = tabNewCallback
+                    model.onTabClose = tabCloseCallback
+                    model.onTabRename = tabRenameCallback
+                    model.onFrameSwitch = frameSwitchCallback
+                }
+
+                return true
+            }
+            return false
+        }
+
         // MARK: - Module Build Watcher
 
         try env.defun("hyalo-start-build-watcher",

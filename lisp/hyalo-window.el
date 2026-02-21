@@ -100,13 +100,19 @@ subsequent steps from running.  Each step logs errors individually."
         (require 'hyalo-navigator)
         (require 'hyalo-status)
         (require 'hyalo-appearance)
-        (require 'hyalo-diagnostics))
+        (require 'hyalo-diagnostics)
+        (require 'hyalo-activities nil t))
     (error (message "Hyalo: Failed to load sub-modules: %s" (error-message-string err))))
   ;; Open all async channels
   (when (and (bound-and-true-p hyalo--needs-bootstrap) (fboundp 'hyalo-set-loading-message)) (hyalo-set-loading-message "Opening channels…") (sit-for 0.01))
   (condition-case err
       (hyalo-channels-setup)
     (error (message "Hyalo: Channel setup error: %s" (error-message-string err))))
+  ;; Initialize activities bridge (tab-bar + frame list → breadcrumb)
+  (condition-case err
+      (when (fboundp 'hyalo-activities-setup)
+        (hyalo-activities-setup))
+    (error (message "Hyalo: Activities setup error: %s" (error-message-string err))))
   ;; Push initial data to the UI
   (when (and (bound-and-true-p hyalo--needs-bootstrap) (fboundp 'hyalo-set-loading-message)) (hyalo-set-loading-message "Refreshing navigator…") (sit-for 0.01))
   (condition-case err
