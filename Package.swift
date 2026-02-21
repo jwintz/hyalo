@@ -37,9 +37,6 @@ let package = Package(
                 .product(name: "Files", package: "ProjectNavigator"),
                 .product(name: "ProjectNavigator", package: "ProjectNavigator")
             ],
-            resources: [
-                .process("Resources/Symbols.xcassets")
-            ],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ],
