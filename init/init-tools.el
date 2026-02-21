@@ -47,6 +47,55 @@
                    (ignore-errors (apply fn args)))))
               '((name . hyalo-transient-save-guard))))
 
+;; Guard project.el project list against corruption.
+;;
+;; Root cause: project--write-project-list uses pp-fill which can fail with
+;; scan-error if the project list contains malformed data or if there are
+;; encoding issues when reading/writing the file.
+(with-eval-after-load 'project
+  ;; Override project--write-project-list with a safer version.
+  ;; Falls back to prin1 if pp-to-string fails.
+  (defun hyalo--safe-project-write-list ()
+    "Safely write the project list to file.
+Falls back to prin1 if pretty-printing fails."
+    (condition-case err
+        (let ((file project-list-file))
+          (with-temp-file file
+            (insert ";;; -*- lisp-data -*-\n")
+            (condition-case nil
+                (insert (pp-to-string project--list))
+              (scan-error
+               (message "project: pp-to-string failed, using prin1")
+               (erase-buffer)
+               (insert ";;; -*- lisp-data -*-\n")
+               (prin1 project--list (current-buffer)))
+              (error
+               (message "project: pp-to-string error, using prin1")
+               (erase-buffer)
+               (insert ";;; -*- lisp-data -*-\n")
+               (prin1 project--list (current-buffer))))))
+      (error
+       (message "project: failed to write project list — %s"
+                (error-message-string err)))))
+
+  (advice-add 'project--write-project-list :override
+              #'hyalo--safe-project-write-list
+              '((name . hyalo-safe-project-write)))
+
+  ;; Guard project list reading: validate after loading.
+  (advice-add 'project--read-project-list :around
+              (lambda (fn &rest args)
+                (condition-case err
+                    (apply fn args)
+                  (scan-error
+                   (message "project: corrupt projects.eld — resetting")
+                   (setq project--list nil))
+                  (error
+                   (message "project: failed to read projects.eld — resetting (%s)"
+                            (error-message-string err))
+                   (setq project--list nil))))
+              '((name . hyalo-project-read-guard))))
+
 (use-package project
   :ensure nil
   :defer t

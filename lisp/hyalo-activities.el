@@ -4,9 +4,15 @@
 ;; Bridges Emacs tab-bar-mode (and optionally activities.el) to the
 ;; Swift breadcrumb bar in the toolbar.
 ;;
-;; The Emacs tab bar itself is hidden (tab-bar-show nil).  The SwiftUI
-;; breadcrumb segment replaces it, receiving tab state via
-;; hyalo-update-activities and frame state via hyalo-update-frame-list.
+;; The Emacs tab bar itself is NEVER shown (tab-bar-show nil).
+;; The SwiftUI breadcrumb segment replaces it entirely, receiving tab
+;; state via hyalo-update-activities and frame state via
+;; hyalo-update-frame-list.
+;;
+;; IMPORTANT: The native tab bar must never be visible because:
+;;   1. The SwiftUI toolbar provides the visual tab/activity switcher
+;;   2. Having two tab bars (native + SwiftUI) would be confusing
+;;   3. The native tab bar takes up screen real estate
 ;;
 ;; No polling.  State is pushed from:
 ;;   - tab-bar-tab-post-open-functions  (new tab created)
@@ -88,7 +94,9 @@ infrastructure.  No separate polling or timers."
   (hyalo-activities--push-tabs))
 
 (defun hyalo-activities--on-frame-created (frame)
-  "Hook for `after-make-frame-functions': push frame list."
+  "Hook for `after-make-frame-functions': hide tab bar and push frame list."
+  ;; CRITICAL: Always hide tab bar on new frames
+  (set-frame-parameter frame 'tab-bar-lines 0)
   ;; Give decorateWindow time to register the frame before pushing.
   (when (and (fboundp 'hyalo-window--decoratable-frame-p)
              (hyalo-window--decoratable-frame-p frame))
@@ -157,11 +165,18 @@ infrastructure.  No separate polling or timers."
 (defun hyalo-activities-setup ()
   "Enable tab-bar-mode and register all activity hooks.
 Called from `hyalo-channels-setup' after channels are open."
-  ;; Enable tab-bar-mode but keep the native tab bar hidden.
-  ;; The SwiftUI breadcrumb replaces it entirely.
+  ;; CRITICAL: Set tab-bar-show to nil BEFORE enabling tab-bar-mode.
+  ;; This ensures the native tab bar is never displayed.
+  (setq tab-bar-show nil)
+  (setq tab-bar-auto-width nil)
+  (setq tab-bar-auto-width-max nil)
+  ;; Enable tab-bar-mode - the tab functionality works but bar stays hidden.
   (when (fboundp 'tab-bar-mode)
-    (tab-bar-mode 1)
-    (setq tab-bar-show nil))
+    (tab-bar-mode 1))
+  ;; Force-hide tab bar on all existing frames (in case tab-bar-mode was
+  ;; already enabled or the frame was created before our setup).
+  (dolist (frame (frame-list))
+    (set-frame-parameter frame 'tab-bar-lines 0))
   ;; Rename the initial tab to the project name if available
   (when (and (boundp 'tab-bar-mode) tab-bar-mode)
     (let ((project-name (or (and (boundp 'hyalo-status--last-project-root)
@@ -179,6 +194,12 @@ Called from `hyalo-channels-setup' after channels are open."
   ;; Advice on tab-close to push state after a tab is closed
   (when (fboundp 'tab-close)
     (advice-add 'tab-close :after #'hyalo-activities--after-tab-close))
+  ;; CRITICAL: Ensure tab-bar-show remains nil - we never want native tab bar
+  ;; This guards against any code that might try to enable it
+  (advice-add 'tab-bar-mode :after
+              (lambda (&rest _)
+                (setq tab-bar-show nil))
+              '((name . hyalo-tab-bar-never-show)))
   ;; Push initial state
   (hyalo-activities--push-state)
   (message "Hyalo: Activities bridge initialized"))
