@@ -114,14 +114,16 @@ struct HyaloNavigationLayout: View {
             }
             .sharedBackgroundVisibility(.hidden)
 
-            // Activity viewer — centered in the toolbar via .principal placement.
+            // Environment pill — centered in the toolbar via .principal placement.
             // SwiftUI .toolbar does not support expandable items; .principal
             // gives the best centered positioning (same as Xcode/CodeEdit).
-            // No ControlGroup wrapper: the Capsule clip in ActivityViewerView
+            // No ControlGroup wrapper: the Capsule clip in EnvironmentPillView
             // provides its own Liquid Glass surface and sizing.
+            // Dynamic width: hug content with minimum for usability.
             ToolbarItem(placement: .principal) {
-                ActivityViewerView(workspace: workspace)
-                    .frame(minWidth: 200, idealWidth: 500, maxWidth: 650)
+                EnvironmentPillView(workspace: workspace)
+                    .frame(minWidth: 120)
+                    .fixedSize(horizontal: true, vertical: false)
             }
 
             // Push trailing items to the right

@@ -1,33 +1,28 @@
-// WorkspaceDropDownView.swift - Breadcrumb segment 1: workspace / frame switcher
+// UserHostDropDownView.swift - Breadcrumb segment 1: user/host display
 // Target: macOS 26 Tahoe
 //
-// Shows the current project name with a folder icon.
-// A dropdown lists all decorated Emacs frames so the user can switch
-// between open projects.  Matches the CodeEdit SchemeDropDownView pattern.
+// Shows user@hostname with person icon.
+// Dropdown provides SSH-related actions.
 
 import SwiftUI
 
 @available(macOS 26.0, *)
-struct WorkspaceDropDownView: View {
+struct UserHostDropDownView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.controlActiveState) private var activeState
-
-    var model: ActivityBreadcrumbModel
-    var workspace: HyaloWorkspaceState
-
+    
+    var model: EnvironmentBreadcrumbModel
+    
     @State private var isPopoverPresented = false
     @State private var isHovering = false
-
+    
     private var displayName: String {
-        if !workspace.projectName.isEmpty { return workspace.projectName }
-        if let current = model.currentFrame { return current.name }
-        return "Emacs"
+        model.userHost?.displayName ?? "user@host"
     }
-
+    
     var body: some View {
         HStack(spacing: 4) {
             label
-            // Right chevron is the breadcrumb separator; becomes down chevron on hover
             chevronSeparator
                 .opacity(isHovering || isPopoverPresented ? 0 : 1)
         }
@@ -54,16 +49,16 @@ struct WorkspaceDropDownView: View {
         .opacity(activeState == .inactive ? 0.4 : 1.0)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
-        .accessibilityLabel("Workspace")
+        .accessibilityLabel("User and Host")
         .accessibilityValue(displayName)
-        .accessibilityHint("Switch workspace")
+        .accessibilityHint("SSH actions")
     }
-
+    
     // MARK: - Label
-
+    
     @ViewBuilder private var label: some View {
         HStack(spacing: 6) {
-            Image(systemName: "folder.badge.gearshape")
+            Image(systemName: "person.crop.circle")
                 .imageScale(.medium)
             Text(displayName)
                 .font(.subheadline)
@@ -71,9 +66,9 @@ struct WorkspaceDropDownView: View {
                 .frame(minWidth: 0)
         }
     }
-
+    
     // MARK: - Chevrons
-
+    
     @ViewBuilder private var chevronSeparator: some View {
         Image(systemName: "chevron.compact.right")
             .font(.system(size: 9, weight: .medium))
@@ -81,36 +76,40 @@ struct WorkspaceDropDownView: View {
             .scaleEffect(x: 1.3, y: 1.0, anchor: .center)
             .imageScale(.large)
     }
-
+    
     @ViewBuilder private var chevronDown: some View {
         Image(systemName: "chevron.down")
             .font(.system(size: 8, weight: .semibold))
             .padding(.top, 0.5)
             .padding(.trailing, 2)
     }
-
+    
     // MARK: - Popover Content
-
+    
     @ViewBuilder private var popoverContent: some View {
-        // Frame list
-        if model.frames.isEmpty {
-            DropdownOptionView(label: displayName, isChecked: true) {}
-        } else {
-            ForEach(model.frames) { frame in
-                DropdownOptionView(
-                    label: frame.name,
-                    isChecked: frame.isCurrent
-                ) {
-                    isPopoverPresented = false
-                    model.onFrameSwitch?(frame.id)
-                }
+        // User/Host info
+        if let userHost = model.userHost {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(userHost.username)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(userHost.hostname)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
             }
+            .padding(.vertical, 4)
+            
+            Divider().padding(.vertical, 5)
         }
-        Divider().padding(.vertical, 5)
-        DropdownOptionView(label: "Open Folder…", isChecked: false) {
+        
+        // SSH Actions
+        DropdownOptionView(label: "SSH to this host", isChecked: false) {
             isPopoverPresented = false
-            // Sends to the Emacs minibuffer via standard find-file mechanism
-            NSApp.sendAction(#selector(NSDocumentController.openDocument(_:)), to: nil, from: nil)
+            model.onOpenTerminal?()
+        }
+        
+        DropdownOptionView(label: "Copy SSH command", isChecked: false) {
+            isPopoverPresented = false
+            model.onCopySSHCommand?()
         }
     }
 }

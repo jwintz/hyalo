@@ -114,13 +114,6 @@
   :config
   (hyalo-package-setup))
 
-;;;; Hyalo Activities (tab-bar / activities.el breadcrumb)
-
-(use-package init-activities
-  :ensure nil
-  :if (eq window-system 'ns)
-  :demand t)
-
 ;;;; Hyalo Keycast
 
 (use-package hyalo-keycast

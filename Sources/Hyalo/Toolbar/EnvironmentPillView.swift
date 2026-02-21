@@ -1,27 +1,27 @@
-// ActivityViewerView.swift - Toolbar breadcrumb: workspace | activity | build status
+// EnvironmentPillView.swift - Toolbar breadcrumb: user/host | environment | build status
 // Target: macOS 26 Tahoe with Liquid Glass design
 //
 // Three-segment layout in a Capsule pill (Tahoe):
 //
-//   [WorkspaceDropDownView] [ActivityDropDownView]  [Build status + spinner]
-//     folder icon + name     tab name + chevron      notification text + ring
+//   [UserHostDropDownView] [EnvironmentDropDownView]  [Build status + spinner]
+//     person icon + user@host  env icon + summary      notification text + ring
 //
-// Segment 1 (WorkspaceDropDownView): lists decorated Emacs frames.
-// Segment 2 (ActivityDropDownView):  lists tab-bar tabs for the current frame.
-// Segment 3:                         inline build/activity progress (existing).
+// Segment 1 (UserHostDropDownView): shows user@hostname with SSH actions.
+// Segment 2 (EnvironmentDropDownView): shows detected dev environments.
+// Segment 3: inline build/activity progress (existing, unchanged).
 //
-// State for segments 1 and 2 is pushed from Emacs via the hyalo-activities
-// channel.  State for segment 3 is pushed via ActivityManager (unchanged).
+// State for segments 1 and 2 is pushed from Emacs via the hyalo-environment
+// channel. State for segment 3 is pushed via ActivityManager (unchanged).
 
 import SwiftUI
 
-// MARK: - Activity Viewer View (entry point from HyaloNavigationLayout)
+// MARK: - Environment Pill View (entry point from HyaloNavigationLayout)
 
 @available(macOS 26.0, *)
-struct ActivityViewerView: View {
+struct EnvironmentPillView: View {
     @Bindable var workspace: HyaloWorkspaceState
 
-    var model: ActivityBreadcrumbModel = ActivityBreadcrumbModel.shared
+    var model: EnvironmentBreadcrumbModel = EnvironmentBreadcrumbModel.shared
 
     var body: some View {
         BreadcrumbContent(workspace: workspace, model: model)
@@ -35,16 +35,16 @@ private struct BreadcrumbContent: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @Bindable var workspace: HyaloWorkspaceState
-    var model: ActivityBreadcrumbModel
+    var model: EnvironmentBreadcrumbModel
     var activityManager = ActivityManager.shared
 
     var body: some View {
         HStack(spacing: 0) {
-            // Segment 1: workspace / frame switcher
-            WorkspaceDropDownView(model: model, workspace: workspace)
+            // Segment 1: user/host
+            UserHostDropDownView(model: model)
 
-            // Segment 2: activity / tab switcher
-            ActivityDropDownView(model: model)
+            // Segment 2: environment
+            EnvironmentDropDownView(model: model)
 
             Spacer(minLength: 0)
 
@@ -55,11 +55,13 @@ private struct BreadcrumbContent: View {
         .padding(5)
         .padding(.trailing, 5)
         .clipShape(Capsule())
-        .frame(minWidth: 200)
+        // Dynamic width: min width for usability, hug content
+        .frame(minWidth: 120)
+        .fixedSize(horizontal: true, vertical: false)
     }
 }
 
-// MARK: - Build Status View (formerly ActivityToolbarContent's inline progress)
+// MARK: - Build Status View (unchanged from ActivityViewerView)
 
 @available(macOS 26.0, *)
 private struct BuildStatusView: View {
