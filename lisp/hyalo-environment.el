@@ -231,68 +231,57 @@ of previous environment state for non-project buffers."
 (defvar hyalo-environment--last-had-project nil
   "Track whether we had a project context on last push.")
 
+(defvar hyalo-environment--push-idle-timer nil
+  "Timer for debounced push.")
+
 (defun hyalo-environment--push ()
   "Push user/host and environment state to Swift.
-When no project is detected (e.g., in *Messages* buffer), preserve
-the last known environments instead of clearing them."
+Skips temp/internal buffers. Debounces rapid calls."
+  ;; Skip temp/internal buffers entirely
+  (let ((name (buffer-name)))
+    (when (and name
+               (not (minibufferp))
+               (not (string-prefix-p " " name))
+               (not (string-match-p "temp" name))
+               (not (string-match-p "^\\*" name)))
+      ;; Cancel any pending timer and schedule new one (debounce)
+      (when hyalo-environment--push-idle-timer
+        (cancel-timer hyalo-environment--push-idle-timer))
+      (setq hyalo-environment--push-idle-timer
+            (run-with-idle-timer 0.1 nil #'hyalo-environment--do-push)))))
+
+(defun hyalo-environment--do-push ()
+  "Actually perform the push to Swift.
+Called after debounce timer fires."
   (let* ((user-host (hyalo-environment--user-host-info))
          (project-root (hyalo-status--project-root))
          (has-project (not (null project-root)))
-         ;; Track if we had a project on last push
          (had-project hyalo-environment--last-had-project)
-         ;; Only detect environments when in a valid project context
+         ;; Only detect when in project, otherwise preserve last
          (environments (if has-project
                           (hyalo-environment--detect-all)
                         hyalo-environment--last-environments)))
-    (hyalo-environment--log "push: user=%s@%s project=%s->%s envs=%d"
-                           (cdr (assoc 'username user-host))
-                           (cdr (assoc 'hostname user-host))
-                           (if had-project "yes" "no")
-                           (if has-project "yes" "no")
-                           (length (or environments '())))
-    ;; Update project state tracking
+    ;; Update state tracking
     (setq hyalo-environment--last-had-project has-project)
-    ;; Only push if changed
+    ;; Push user/host if changed
     (unless (equal user-host hyalo-environment--last-user-host)
       (setq hyalo-environment--last-user-host user-host)
-      (hyalo-environment--log "push: updating user/host")
       (when (fboundp 'hyalo-update-user-host)
         (hyalo-update-user-host (json-encode user-host))))
-    ;; Push environments if:
-    ;; 1. Environments list changed, OR
-    ;; 2. Transitioning between project/no-project state (to ensure Swift is in sync)
+    ;; Push environments if changed or project state changed
     (when (or (not (equal environments hyalo-environment--last-environments))
               (not (eq has-project had-project)))
       (setq hyalo-environment--last-environments environments)
-      (hyalo-environment--log "push: updating environments (changed or state transition)")
       (when (fboundp 'hyalo-update-environments)
-        (hyalo-update-environments (json-encode (vconcat (or environments '())))))
-      (when (and has-project (null environments))
-        (hyalo-environment--log "push: WARNING - no environments detected in project")))))
+        (hyalo-update-environments (json-encode (vconcat (or environments '()))))))))
 
 ;; -----------------------------------------------------------------------------
 ;; Hook Management
 ;; -----------------------------------------------------------------------------
 
-(defun hyalo-environment--real-buffer-p ()
-  "Return t if current buffer is a real user-facing buffer.
-Filters out temporary, internal, and special buffers."
-  (let ((name (buffer-name)))
-    (and name
-         ;; Not a minibuffer
-         (not (minibufferp))
-         ;; Not a hidden/internal buffer (starts with space)
-         (not (string-prefix-p " " name))
-         ;; Not a temp buffer (with or without leading space)
-         (not (string-match-p "temp" name))
-         ;; Not other internal/special buffers
-         (not (string-match-p "^\\*" name)))))
-
 (defun hyalo-environment--on-buffer-change (&rest _)
-  "Hook for buffer/window changes.
-Only triggers for real buffers, skipping temporary/internal ones."
-  (when (hyalo-environment--real-buffer-p)
-    (hyalo-environment--push)))
+  "Hook for buffer/window changes."
+  (hyalo-environment--push))
 
 (defun hyalo-environment--on-find-file ()
   "Hook for find-file."
@@ -304,23 +293,23 @@ Only triggers for real buffers, skipping temporary/internal ones."
 
 (defun hyalo-environment-setup ()
   "Set up environment detection hooks and push initial state."
-  ;; Add hooks (no polling)
+  ;; Add hooks (no polling, debounced in push)
   (add-hook 'find-file-hook #'hyalo-environment--on-find-file)
   (add-hook 'window-buffer-change-functions #'hyalo-environment--on-buffer-change)
   (add-hook 'after-save-hook #'hyalo-environment--on-save)
-  ;; Refresh when switching projects
   (add-hook 'project-switch-project-hook #'hyalo-environment-refresh)
-  ;; Push initial state immediately and after a short delay
-  ;; (delay ensures Emacs is fully initialized)
-  (hyalo-environment--push)
-  (run-with-timer 0.5 nil #'hyalo-environment--push))
+  ;; Initial push after Emacs settles
+  (run-with-idle-timer 0.5 nil #'hyalo-environment--do-push))
 
 ;; -----------------------------------------------------------------------------
 ;; Cleanup
 ;; -----------------------------------------------------------------------------
 
 (defun hyalo-environment-teardown ()
-  "Remove environment detection hooks."
+  "Remove environment detection hooks and cancel pending timers."
+  (when hyalo-environment--push-idle-timer
+    (cancel-timer hyalo-environment--push-idle-timer)
+    (setq hyalo-environment--push-idle-timer nil))
   (remove-hook 'find-file-hook #'hyalo-environment--on-find-file)
   (remove-hook 'window-buffer-change-functions #'hyalo-environment--on-buffer-change)
   (remove-hook 'after-save-hook #'hyalo-environment--on-save)
@@ -340,7 +329,12 @@ Clears all caches to force fresh detection."
   (setq hyalo-environment--last-had-project nil)
   (setq hyalo-environment--swift-version-cache nil)
   (setq hyalo-environment--node-version-cache nil)
-  (hyalo-environment--push)
+  ;; Cancel any pending debounced push
+  (when hyalo-environment--push-idle-timer
+    (cancel-timer hyalo-environment--push-idle-timer)
+    (setq hyalo-environment--push-idle-timer nil))
+  ;; Immediate push
+  (hyalo-environment--do-push)
   (message "Hyalo: Environment refreshed (%d envs detected)"
            (length hyalo-environment--last-environments)))
 
