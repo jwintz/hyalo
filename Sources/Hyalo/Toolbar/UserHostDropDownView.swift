@@ -21,18 +21,10 @@ struct UserHostDropDownView: View {
     }
     
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             label
-            chevronSeparator
-                .opacity(isHovering || isPopoverPresented ? 0 : 1)
-        }
-        .background {
-            if isHovering || isPopoverPresented {
-                HStack {
-                    Spacer()
-                    chevronDown
-                }
-            }
+            chevronDown
+                .opacity(isHovering || isPopoverPresented ? 1 : 0)
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 6)
@@ -67,15 +59,7 @@ struct UserHostDropDownView: View {
         }
     }
     
-    // MARK: - Chevrons
-    
-    @ViewBuilder private var chevronSeparator: some View {
-        Image(systemName: "chevron.compact.right")
-            .font(.system(size: 9, weight: .medium))
-            .foregroundStyle(.secondary)
-            .scaleEffect(x: 1.3, y: 1.0, anchor: .center)
-            .imageScale(.large)
-    }
+    // MARK: - Chevron
     
     @ViewBuilder private var chevronDown: some View {
         Image(systemName: "chevron.down")

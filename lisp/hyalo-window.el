@@ -118,34 +118,41 @@ subsequent steps from running.  Each step logs errors individually."
   (condition-case err
       (hyalo-navigator-refresh)
     (error (message "Hyalo: Navigator refresh error: %s" (error-message-string err))))
+  ;; Register hook-driven status updates (no polling)
+  ;; Must be called BEFORE seeding project root, because hyalo-status-setup
+  ;; clears cached values to handle session restore scenarios.
+  (condition-case err
+      (hyalo-status-setup)
+    (error (message "Hyalo: Status setup error: %s" (error-message-string err))))
   ;; Seed initial project root for change detection and cache.
   ;; Only directories with a git root get a project root — bare
   ;; directories (e.g. ~/) must not be pushed to the navigator,
   ;; because the Swift file tree builder would scan recursively.
   (let* ((dir (or (and buffer-file-name
-                       (file-name-directory buffer-file-name))
-                  (and default-directory
-                       (expand-file-name default-directory))))
-         (git-root (when dir (locate-dominating-file dir ".git"))))
+                        (file-name-directory buffer-file-name))
+                   (and default-directory
+                        (expand-file-name default-directory))))
+          (git-root (when dir (locate-dominating-file dir ".git"))))
     (if git-root
         (let ((expanded (expand-file-name git-root)))
           (setq hyalo-status--last-project-root expanded)
           (setq hyalo-status--last-git-root expanded)
-          (puthash dir expanded hyalo-status--project-root-cache))
+          (puthash dir expanded hyalo-status--project-root-cache)
+          ;; Push initial project root to Swift (navigator file tree)
+          (when (fboundp 'hyalo-navigator-set-project-root)
+            (hyalo-navigator-set-project-root expanded)))
       ;; No git repo — record :none so the cache prevents future walks,
       ;; but do NOT set a project root for the navigator.
       (when dir
         (setq hyalo-status--last-project-root nil)
         (setq hyalo-status--last-git-root nil)
         (puthash dir :none hyalo-status--project-root-cache))))
-  ;; Register hook-driven status updates (no polling)
+  ;; Push initial branch info and file info (one-time synchronous, at startup only)
   (condition-case err
       (progn
-        (hyalo-status-setup)
-        ;; Push initial branch info and file info (one-time synchronous, at startup only)
         (hyalo-status--push-branch-info)
         (hyalo-status--push-file-info))
-    (error (message "Hyalo: Status setup error: %s" (error-message-string err))))
+    (error (message "Hyalo: Branch/file info push error: %s" (error-message-string err))))
   ;; Push initial source control data (changed files + commit history)
   (condition-case err
       (when (fboundp 'hyalo-source-control--do-update)

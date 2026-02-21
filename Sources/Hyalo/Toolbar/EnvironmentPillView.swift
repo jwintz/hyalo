@@ -51,9 +51,10 @@ private struct BreadcrumbContent: View {
             // Segment 3: build/activity status (existing, right-aligned)
             BuildStatusView(activityManager: activityManager)
                 .fixedSize()
+                .padding(.trailing, 4)
         }
-        .padding(5)
         .clipShape(Capsule())
+        .padding(5)
         // Dynamic width: min width for usability, hug content
         .frame(minWidth: 100)
         .fixedSize(horizontal: true, vertical: false)

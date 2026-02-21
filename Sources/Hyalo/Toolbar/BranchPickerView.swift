@@ -36,32 +36,31 @@ struct BranchPickerView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .help(title)
 
-                if !viewModel.currentBranch.isEmpty {
-                    Menu {
-                        ForEach(viewModel.branches, id: \.self) { branch in
-                            Button {
-                                viewModel.onBranchSwitch?(branch)
-                            } label: {
-                                HStack {
-                                    Text(branch)
-                                    if branch == viewModel.currentBranch {
-                                        Image(systemName: "checkmark")
-                                    }
+                Menu {
+                    ForEach(viewModel.branches, id: \.self) { branch in
+                        Button {
+                            viewModel.onBranchSwitch?(branch)
+                        } label: {
+                            HStack {
+                                Text(branch)
+                                if branch == viewModel.currentBranch {
+                                    Image(systemName: "checkmark")
                                 }
                             }
                         }
-                    } label: {
-                        Text(viewModel.currentBranch)
-                            .font(.subheadline)
-                            .foregroundColor(controlActive == .inactive ? inactiveColor : .gray)
-                            .frame(height: 11)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading) // Force menu label to be leading
-                    .menuIndicator(isHovering ? .visible : .hidden)
-                    .buttonStyle(.borderless)
-                    .padding(.leading, -3)
-                    .padding(.bottom, 2)
+                } label: {
+                    Text(viewModel.currentBranch.isEmpty ? "No branch" : viewModel.currentBranch)
+                        .font(.subheadline)
+                        .foregroundColor(controlActive == .inactive ? inactiveColor : .gray)
+                        .frame(height: 11)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading) // Force menu label to be leading
+                .menuIndicator(isHovering ? .visible : .hidden)
+                .buttonStyle(.borderless)
+                .padding(.leading, -3)
+                .padding(.bottom, 2)
+                .disabled(viewModel.currentBranch.isEmpty)
             }
         }
         .onHover { isHovering = $0 }

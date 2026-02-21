@@ -20,7 +20,8 @@ let package = Package(
             branch: "main"
         ),
         .package(
-            path: "../SwiftTerm"
+            url: "https://github.com/migueldeicaza/SwiftTerm.git",
+            from: "1.11.2"
         ),
         .package(
             url: "https://github.com/mchakravarty/ProjectNavigator.git",
@@ -35,6 +36,9 @@ let package = Package(
                 .product(name: "SwiftTerm", package: "SwiftTerm"),
                 .product(name: "Files", package: "ProjectNavigator"),
                 .product(name: "ProjectNavigator", package: "ProjectNavigator")
+            ],
+            resources: [
+                .process("Resources/Symbols.xcassets")
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
