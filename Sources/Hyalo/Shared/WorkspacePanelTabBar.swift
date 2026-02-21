@@ -79,7 +79,6 @@ struct WorkspacePanelTabBar<Tab: HyaloPanelTab>: View {
 
     private func makeIcon(tab: Tab, size: CGSize) -> some View {
         Button {
-            NSLog("[Hyalo:Click] Tab bar icon CLICKED: %@", tab.title)
             selection = tab
         } label: {
             Image(systemName: tab.systemImage)

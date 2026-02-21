@@ -62,7 +62,7 @@ final class ToolbarManager {
             viewModel.currentBranch = info.currentBranch
             viewModel.branches = info.branches
         } catch {
-            NSLog("[Hyalo] updateBranchInfo decode error: %@", String(describing: error))
+            NSLog("[Hyalo] updateBranchInfo decode error: \(error)")
         }
     }
 
@@ -88,7 +88,7 @@ final class ToolbarManager {
                 viewModel.lastChecked = formatter.date(from: ts)
             }
         } catch {
-            NSLog("[Hyalo] updatePackageStatus decode error: %@", String(describing: error))
+            NSLog("[Hyalo] updatePackageStatus decode error: \(error)")
         }
     }
 }

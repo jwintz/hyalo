@@ -56,7 +56,6 @@ final class HyaloWindowController: NSWindowController {
         guard let window else { return }
         guard let emacsView else { return }
 
-        NSLog("[Hyalo:Nav] setup: window=%@ emacsView=%@", window, emacsView)
 
         // Wrap the entire view hierarchy manipulation in an autoreleasepool.
         // Replacing window.contentView autoreleases the old content view and
@@ -121,10 +120,6 @@ final class HyaloWindowController: NSWindowController {
         // matrices → segfault.
         hosting.layoutSubtreeIfNeeded()
 
-        NSLog("[Hyalo:Nav] setup: after layoutSubtreeIfNeeded — emacsView.window=%@, emacsView.superview=%@",
-              String(describing: emacsView.window),
-              String(describing: emacsView.superview))
-
         // Restore the window position.  Setting contentView and styleMask
         // can shift the origin (AppKit adjusts for toolbar height changes).
         // Keep the same top-left corner by computing from the saved frame.
@@ -139,7 +134,6 @@ final class HyaloWindowController: NSWindowController {
         // is shown instead while init.el runs.  The Emacs window is revealed
         // by hyalo-loading-done once the IDE shell is fully initialized.
 
-        NSLog("[Hyalo:Nav] hosting view installed: frame=%@", NSStringFromRect(window.frame))
 
         } // autoreleasepool — drain all temporaries from view hierarchy swap
 

@@ -351,8 +351,6 @@ final class HyaloModule: Module {
         ) { () -> Bool in
             if #available(macOS 26.0, *) {
                 MainActor.assumeIsolated {
-                    NSLog("[Hyalo:Nav] hyalo-loading-done: closing proxy, %d workspaces",
-                          HyaloModule.allWorkspaces.count)
                     // Mark all workspaces as initialized
                     for workspace in HyaloModule.allWorkspaces {
                         workspace.isLoading = false
@@ -376,7 +374,6 @@ final class HyaloModule: Module {
                             HyaloModule.loadingProxyWindow = nil
                         }
                     }
-                    NSLog("[Hyalo:Nav] hyalo-loading-done: proxy closed")
                     // Frame reveal intentionally omitted.
                     // makeKeyAndOrderFront from Swift (bypassing Emacs's
                     // ns_make_frame_visible) crashes because AppKit fires
@@ -478,11 +475,9 @@ final class HyaloModule: Module {
             if #available(macOS 26.0, *) {
                 DispatchQueue.main.async {
                     if HyaloModule.controllers[frameId] != nil {
-                        NSLog("[Hyalo:Nav] decorate-frame: frame %d already decorated", frameId)
                         return
                     }
                     guard let window = findUndecoratedEmacsWindow() else {
-                        NSLog("[Hyalo:Nav] decorate-frame: no undecorated window for frame %d", frameId)
                         return
                     }
                     HyaloModule.decorateWindow(window, frameId: frameId)
@@ -1673,19 +1668,16 @@ final class HyaloModule: Module {
         ) { (env: EmacsSwiftModule.Environment, jsonData: String) throws -> Bool in
             if #available(macOS 26.0, *) {
                 guard let data = jsonData.data(using: .utf8) else {
-                    NSLog("[Hyalo:Search] hyalo-update-search-results: failed to convert JSON to data")
                     return false
                 }
-                NSLog("[Hyalo:Search] hyalo-update-search-results: received %d bytes", data.count)
                 do {
                     let results = try JSONDecoder().decode([SearchResult].self, from: data)
-                    NSLog("[Hyalo:Search] hyalo-update-search-results: decoded %d results", results.count)
                     DispatchQueue.main.async {
                         NavigatorManager.shared.updateSearchResults(results)
                     }
                     return true
                 } catch {
-                    NSLog("[Hyalo:Search] hyalo-update-search-results: decode error: %@", error.localizedDescription)
+                    NSLog("[Hyalo:Search] decode error: \(error)")
                     return false
                 }
             }
@@ -1729,7 +1721,6 @@ final class HyaloModule: Module {
             with: "Update search status counts in the find navigator."
         ) { (env: EmacsSwiftModule.Environment, resultCount: Int, fileCount: Int) throws -> Bool in
             if #available(macOS 26.0, *) {
-                NSLog("[Hyalo:Search] hyalo-update-search-status: %d results, %d files", resultCount, fileCount)
                 DispatchQueue.main.async {
                     NavigatorManager.shared.updateSearchStatus(resultCount: resultCount, fileCount: fileCount)
                 }
@@ -1983,7 +1974,6 @@ final class HyaloModule: Module {
             1.0,  // 1s latency — quick feedback for build start
             FSEventStreamCreateFlags(kFSEventStreamCreateFlagFileEvents)
         ) else {
-            NSLog("[Hyalo:BuildWatcher] Failed to create FSEventStream for %@", buildDir)
             return
         }
 
@@ -1993,7 +1983,6 @@ final class HyaloModule: Module {
         FSEventStreamStart(stream)
         buildWatcherStream = stream
 
-        NSLog("[Hyalo:BuildWatcher] Watching %@ for build activity", buildDir)
     }
 
     /// Handle file system changes in `.build/`.
@@ -2044,8 +2033,6 @@ final class HyaloModule: Module {
             DispatchQueue.main.async {
                 ActivityManager.shared.finishModuleBuild(
                     success: true, dylibChanged: dylibChanged)
-                NSLog("[Hyalo:BuildWatcher] Build completed (dylibChanged=%d)",
-                      dylibChanged ? 1 : 0)
             }
         }
         // No external build start detection.  sourcekit-lsp and other
@@ -2165,7 +2152,6 @@ final class HyaloModule: Module {
                     HyaloModule.watchedModTimes[HyaloModule.buildDbPath] = modTime
                 }
                 HyaloModule.externalBuildInProgress = false
-                NSLog("[Hyalo:Build] swift build %@ (exit %d)", success ? "succeeded" : "failed", proc.terminationStatus)
             }
 
             HyaloModule.buildProcess = nil
@@ -2174,13 +2160,11 @@ final class HyaloModule: Module {
         do {
             try process.run()
             buildProcess = process
-            NSLog("[Hyalo:Build] Started swift build -c %@ in %@", config, baseDir)
         } catch {
             DispatchQueue.main.async {
                 mgr.appendLog(id: activityID, line: "Failed to start: \(error.localizedDescription)")
                 mgr.finishModuleBuild(success: false)
             }
-            NSLog("[Hyalo:Build] Failed to start: %@", error.localizedDescription)
         }
     }
 
@@ -2195,7 +2179,6 @@ final class HyaloModule: Module {
     @MainActor
     static func decorateWindow(_ window: NSWindow, frameId: Int) {
         guard controllers[frameId] == nil else {
-            NSLog("[Hyalo:Nav] decorateWindow: frame %d already decorated", frameId)
             return
         }
         guard let contentView = window.contentView else { return }
@@ -2250,16 +2233,9 @@ final class HyaloModule: Module {
             showLoadingProxy(matching: window)
         }
 
-        NSLog("[Hyalo:Nav] decorateWindow: frame %d (window %@) decorated (%d total)",
-              frameId, window, controllers.count)
-
         // Diagnostic: verify EmacsView is properly in the window hierarchy
         // after HyaloWindowController.setup() replaced the contentView.
         if let ev = controller.emacsView {
-            NSLog("[Hyalo:Nav] decorateWindow: emacsView.window=%@, superview=%@, frame=%@",
-                  String(describing: ev.window),
-                  String(describing: ev.superview),
-                  NSStringFromRect(ev.frame))
         }
     }
 
@@ -2314,14 +2290,12 @@ final class HyaloModule: Module {
     @available(macOS 26.0, *)
     static func undecorateWindow(_ frameId: Int) {
         guard let controller = controllers.removeValue(forKey: frameId) else {
-            NSLog("[Hyalo:Nav] undecorateWindow: frame %d not found", frameId)
             return
         }
         // Clean up reverse map
         if let window = controller.window {
             windowToFrameId.removeValue(forKey: ObjectIdentifier(window))
         }
-        NSLog("[Hyalo:Nav] undecorateWindow: frame %d removed (%d remaining)", frameId, controllers.count)
     }
 }
 

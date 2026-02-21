@@ -79,7 +79,7 @@ final class InspectorManager {
             let info = try JSONDecoder().decode(FileInfo.self, from: data)
             viewModel.fileInfo = info
         } catch {
-            NSLog("[Hyalo] updateFileInfo decode error: %@", String(describing: error))
+            NSLog("[Hyalo] updateFileInfo decode error: \(error)")
         }
     }
 
@@ -88,7 +88,7 @@ final class InspectorManager {
             let commits = try JSONDecoder().decode([Commit].self, from: data)
             viewModel.commits = commits
         } catch {
-            NSLog("[Hyalo] updateGitHistory decode error: %@", String(describing: error))
+            NSLog("[Hyalo] updateGitHistory decode error: \(error)")
             viewModel.commits = []
         }
     }

@@ -162,7 +162,6 @@ final class NavigatorManager {
     }
 
     func updateSearchResults(_ results: [SearchResult]) {
-        NSLog("[Hyalo:Search] updateSearchResults: %d results", results.count)
         viewModel.searchResults = results
         searchViewModel.results = results
     }
@@ -191,7 +190,6 @@ final class NavigatorManager {
     }
 
     func executeSearch(_ query: String) {
-        NSLog("[Hyalo:Search] executeSearch: query=%@", query)
         viewModel.findStatus = .searching
         searchViewModel.status = .searching
         onSearchExecute?(query)
@@ -214,7 +212,6 @@ final class NavigatorManager {
     }
 
     func updateSearchStatus(resultCount: Int, fileCount: Int) {
-        NSLog("[Hyalo:Search] updateSearchStatus: %d results in %d files", resultCount, fileCount)
         viewModel.searchResultCount = resultCount
         viewModel.searchFileCount = fileCount
         viewModel.findStatus = resultCount > 0 ? .found : .noResults

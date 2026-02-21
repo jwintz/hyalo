@@ -82,10 +82,6 @@ struct EmacsNSViewRepresentable: NSViewRepresentable {
         container.wantsLayer = true
         container.layer?.masksToBounds = true
 
-        NSLog("[Hyalo:EmacsView] makeNSView: emacsView.window=%@, superview=%@",
-              String(describing: emacsView.window),
-              String(describing: emacsView.superview))
-
         emacsView.removeFromSuperview()
 
         // Keep translatesAutoresizingMaskIntoConstraints = true (default).
@@ -96,10 +92,6 @@ struct EmacsNSViewRepresentable: NSViewRepresentable {
         // Emacs's glyph matrices.  EmacsContainerView.layout() handles
         // sizing once the container has valid dimensions.
         container.addSubview(emacsView)
-
-        NSLog("[Hyalo:EmacsView] makeNSView: after addSubview — emacsView.window=%@, container.bounds=%@",
-              String(describing: emacsView.window),
-              NSStringFromRect(container.bounds))
 
         // Give Emacs initial focus once the view is in a window
         DispatchQueue.main.async {

@@ -74,7 +74,6 @@ final class ProjectNavigatorViewModel {
         let normalized = (root as NSString).standardizingPath
         let home = NSHomeDirectory()
         if normalized == home || normalized == "/" {
-            NSLog("[Hyalo:Nav] setProjectRoot: rejecting '%@' (home or root directory)", root)
             return
         }
 

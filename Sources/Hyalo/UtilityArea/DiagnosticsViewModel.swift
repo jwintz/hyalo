@@ -96,10 +96,8 @@ final class DiagnosticsViewModel {
     func update(from data: Data) {
         do {
             let items = try JSONDecoder().decode([DiagnosticItem].self, from: data)
-            NSLog("[Hyalo:Diagnostics] received %d diagnostics", items.count)
             diagnostics = items
         } catch {
-            NSLog("[Hyalo:Diagnostics] decode error: %@", error.localizedDescription)
         }
     }
 }

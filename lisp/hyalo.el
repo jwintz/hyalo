@@ -96,11 +96,11 @@ It attempts to detect error/warning messages to route them appropriate."
   "Initialize hyalo logger if elog is available."
   (when (fboundp 'elog-logger)
     (setq hyalo-elog
-          (elog-logger
-           :name "hyalo"
-           :level 'trace
-           :buffer "*elog*"
-           :handlers '(buffer)))))
+           (elog-logger
+            :name "hyalo"
+            :level 'info
+            :buffer "*elog*"
+            :handlers '(buffer)))))
 
 ;; Initialize logger when elog becomes available
 (with-eval-after-load 'elog
