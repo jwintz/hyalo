@@ -1,0 +1,33 @@
+Task: Document Phase 1 Corrective Type Migration Fix
+Date: 2026-02-22
+
+## Changes Made
+
+### PLAN.md
+1. Added section "### 1.6 Phase 1 Corrective: Type Migration Fix — DONE" after section 1.5
+   - Documented problem: Phase 1 left types in HyaloMac that HyaloShared referenced
+   - Listed 9 types moved to HyaloShared
+   - Listed 4 platform-specific types with guards
+   - Documented build error reduction: 1845 → 4 (99.8%)
+
+2. Updated Critical Files Status table with 11 new entries:
+   - Sources/HyaloShared/Core/HyaloDesign.swift
+   - Sources/HyaloShared/CommandPalette/CommandItem.swift
+   - Sources/HyaloShared/CommandPalette/OpenQuicklyItem.swift
+   - Sources/HyaloShared/Shared/HyaloContentUnavailableView.swift
+   - Sources/HyaloShared/Shared/GeometrySizeTracker.swift
+   - Sources/HyaloShared/Appearance/EffectView.swift
+   - Sources/HyaloShared/Shared/InstantPopoverModifier.swift
+   - Sources/HyaloShared/Shared/DropdownItemStyle.swift
+   - Sources/HyaloShared/Shared/TerminalPalette.swift
+   - Sources/HyaloShared/UtilityArea/UtilityAreaTerminalView.swift
+   - Sources/HyaloShared/Inspector/InspectorAppearanceView.swift
+
+### CHANGELOG.md
+Added "### Fixed" section under [Unreleased] with:
+- Fix Phase 1 type migration by moving misplaced types from HyaloMac to HyaloShared
+- Add #if os(macOS) platform guards for macOS-specific types
+
+## Verification
+- grep "Phase 1 Corrective: Type Migration Fix" PLAN.md → found at line 74
+- grep "### Fixed" CHANGELOG.md → found at line 20

@@ -1,0 +1,5 @@
+- Moved DropdownItemStyle from Sources/HyaloMac/Shared/InstantPopoverModifier.swift to Sources/HyaloShared/Shared/DropdownItemStyle.swift.
+- Implemented as pure SwiftUI code; added import SwiftUI to new file.
+- Removed in-place usage in HyaloMac/Shared/InstantPopoverModifier.swift; added note that the style is now in HyaloShared.
+- Verification steps performed: confirmed DropdownItemStyleModifier exists in HyaloShared and does not appear in HyaloMac/Shared/InstantPopoverModifier.swift.
+- Next steps: run project build and run tests to ensure UI styling works across macOS/iOS as applicable.

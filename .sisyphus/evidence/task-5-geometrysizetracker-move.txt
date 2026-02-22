@@ -1,0 +1,15 @@
+Task: Move GeometrySizeTracker from HyaloMac/Core/HyaloShared.swift to HyaloShared/Shared/GeometrySizeTracker.swift
+
+Actions performed:
+- Read original block (lines 80-113) from Sources/HyaloMac/Core/HyaloShared.swift
+- Created new file: Sources/HyaloShared/Shared/GeometrySizeTracker.swift containing the COMPLETE GeometrySizeTracker struct and its nested Dimension enum, with import SwiftUI at the top
+- Removed lines 80-113 (GeometrySizeTracker block) from Sources/HyaloMac/Core/HyaloShared.swift
+- Updated HyaloShared Core file to indicate location of moved code (kept as comment removed to avoid duplication)
+
+Verification steps:
+- grep -R 'struct GeometrySizeTracker' Sources/HyaloShared -> shows 1 match (in new file)
+- grep -R 'struct GeometrySizeTracker' Sources/Hyalo/Core/HyaloShared.swift -> shows no matches
+
+Evidence:
+- New file created: Sources/HyaloShared/Shared/GeometrySizeTracker.swift
+- Original block removed from Sources/HyaloMac/Core/HyaloShared.swift (lines 80-113)

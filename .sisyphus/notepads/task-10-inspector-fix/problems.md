@@ -1,0 +1,5 @@
+- Problem: HyaloModule references cause type checking issues in HyaloShared when building alone.
+- Potential causes: HyaloModule is defined in HyaloCore/HyaloMac modules; Cross-module visibility may be restricted in the shared target.
+- Proposed fixes:
+  - Introduce #if canImport(HyaloModule) guards around HyaloModule usage in HyaloShared inspector code.
+  - Provide a safe default workspace initializer for InspectorAppearanceView to allow no-arg instantiation at call sites lacking a bound workspace.

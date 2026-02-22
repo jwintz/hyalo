@@ -1,0 +1,3 @@
+- Implemented: InspectorAppearanceView now accepts workspace parameter and defaults to a HyaloWorkspaceState to support no-arg initialization.
+- Pattern: Removed direct HyaloModule.activeWorkspace usage; guard remaining HyaloModule references with #if canImport(HyaloModule).
+- Note: InspectorTab.swift in HyaloShared now tries to instantiate InspectorAppearanceView with a HyaloWorkspaceState() when macOS is active to satisfy no-arg initializers.

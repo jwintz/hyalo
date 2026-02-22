@@ -1,0 +1,2 @@
+- Decision: Move workspace binding into InspectorAppearanceView, and pass workspace through InspectorTab and Editor layers where available.
+- Rationale: Aligns with EditorTabBarView pattern and enables consistent theme/workspace propagation across the inspector UI.

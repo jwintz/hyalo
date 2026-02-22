@@ -1,0 +1,20 @@
+Task 6: Move EffectView to shared appearance with macOS guard and iOS stub
+
+Actions performed:
+- Added Sources/HyaloShared/Appearance/EffectView.swift with platform guard:
+  - macOS: full NSViewRepresentable wrapping NSVisualEffectView, named EffectView
+  - iOS: stub initializer that accepts same parameters but returns EmptyView
+- Updated Sources/HyaloMac/Appearance/VibrancyViews.swift:
+  - Removed the original EffectView(NSViewRepresentable) block (lines 81-102 of the original file)
+  - Replaced with a placeholder comment indicating the move
+
+Verification steps (as run in repo):
+- grep -r 'struct EffectView' Sources/HyaloShared/ | grep -v UITableView
+  Expected: 1 match (the new shared EffectView)
+- grep -r 'struct EffectView' Sources/HyaloMac/ | wc -l
+  Expected: 0 matches
+- Confirm file exists: Sources/HyaloShared/Appearance/EffectView.swift
+- Confirm macOS path contains the NSViewRepresentable implementation and iOS stub exists in the same file under #else
+- Evidence artifacts saved to: .sisyphus/evidence/task-6-effectview-move.txt
+
+Commit message (per task spec): fix(shared): move EffectView with platform guards

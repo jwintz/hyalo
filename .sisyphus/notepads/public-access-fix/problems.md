@@ -1,0 +1,1 @@
+- Full repository build may fail due to unrelated module configuration (HyaloMac, HyaloKit) with platform-specific dependencies (UIKit) in the current environment. Focused HyaloShared build confirms fix works in isolation.

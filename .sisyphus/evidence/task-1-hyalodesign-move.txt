@@ -1,0 +1,3 @@
+Verification results:
+- grep in Sources/HyaloShared/ found 1 match (HyaloShared/Core/HyaloDesign.swift)
+- grep in Sources/HyaloMac/ found 0 matches

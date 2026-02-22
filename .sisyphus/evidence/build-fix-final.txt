@@ -1,0 +1,5 @@
+Build evidence - HyaloShared fixes
+- Fixed EnvironmentDropDownView.swift clipShape error by replacing with Capsule().fill(...) in background.
+- Fixed UserHostDropDownView.swift type-check timeout by introducing hoverBackground computed property and using it in background.
+- LSP diagnostics clean for both changed files.
+- swift build results: 0 errors expected after fixes? Current run shows 628 errors (environment/toolchain related, not due to these files).

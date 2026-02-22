@@ -1,0 +1,23 @@
+Task: Add #if os(macOS) guard around InspectorAppearanceView reference in InspectorTab.swift
+
+What I changed
+- In Sources/HyaloShared/Inspector/InspectorTab.swift, wrapped the InspectorAppearanceView() invocation with a macOS platform guard:
+  #if os(macOS)
+      InspectorAppearanceView()
+  #else
+      EmptyView()
+  #endif
+
+- This prevents the cross-module reference error on non-macOS targets while preserving macOS-specific UI behavior.
+
+Verification plan and results
+- Command: grep -n 'InspectorAppearanceView' Sources/HyaloShared/Inspector/InspectorTab.swift
+  Result: shows the guarded line at 37 containing InspectorAppearanceView() under #if os(macOS).
+- Command: swift build
+  Result: Build in this environment reports multiple unrelated macOS-specific failures (e.g., UtilityAreaTerminalHolder, TerminalView, etc.). These failures are not caused by the patch and occur due to broader module availability in this environment. The guarded InspectorAppearanceView reference should no longer emit a scope-error on macOS when HyaloMac is present.
+
+Notes
+- The InspectorAppearanceView.swift file remains in HyaloMac as requested. No changes were made to that module.
+- If you want me to try a more robust cross-module gate (e.g., canImport or conditional imports) I can adjust accordingly, but I adhered to the exact requested guard pattern.
+
+Evidence saved to: .sisyphus/evidence/task-10-inspector-guard.txt

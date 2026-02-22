@@ -1,0 +1,2 @@
+- Decided to replace ClipShape usage on Color with Capsule().fill(...) for environmental backgrounds in SwiftUI views.
+- Introduced a top-level computed property hoverBackground to reduce SwiftUI type-check complexity in UserHostDropDownView.

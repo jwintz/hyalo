@@ -1,0 +1,3 @@
+- Reducing SwiftUI expression complexity is key to resolving type-check timeouts. Break complex modifier chains into smaller, reusable subviews or computed properties.
+- Prefer Shape-based backgrounds (e.g., Capsule().fill(...)) over applying clipShape on a ShapeStyle to avoid type errors.
+- Isolating environment-specific color handling behind computed properties helps readability and compile performance.

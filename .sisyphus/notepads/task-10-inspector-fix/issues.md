@@ -1,0 +1,3 @@
+- Issue: InspectorAppearanceView requires a workspace parameter but some call sites lack a workspace in scope.
+- Workaround implemented: Provide a default HyaloWorkspaceState and pass a fallback in shared InspectorTab to avoid crashes.
+- Next steps: Propagate workspace through the Inspector tab plumbing (EditorTabBarView -> InspectorTab -> InspectorAppearanceView) to ensure real state is used instead of a dummy fallback.

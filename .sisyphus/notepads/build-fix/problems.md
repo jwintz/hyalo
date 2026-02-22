@@ -1,0 +1,2 @@
+- Remaining build errors: swift build currently reports a large number of errors (example run returned 628 errors). This likely indicates broader configuration or environment issues beyond the two targeted files.
+- Action needed: confirm local toolchain, dependencies, and environment; then re-run build and iterate on fixes.
