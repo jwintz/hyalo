@@ -27,7 +27,17 @@ final class HyaloManager {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            _ = self?.getSystemAppearance()
+            self?.updateWindowsForSystemAppearanceChange()
+        }
+    }
+
+    @MainActor
+    private func updateWindowsForSystemAppearanceChange() {
+        // Update all windows that are in "auto" mode
+        for controller in HyaloModule.allControllers {
+            if controller.workspace.windowAppearance == "auto" {
+                controller.window?.appearance = nil
+            }
         }
     }
 

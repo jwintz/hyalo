@@ -2117,7 +2117,7 @@ final class HyaloModule: Module {
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
-        process.arguments = ["build", "-c", config]
+        process.arguments = ["build", "--product", "Hyalo", "-c", config]
         process.currentDirectoryURL = URL(fileURLWithPath: baseDir)
 
         // Merge stdout and stderr into a single pipe for log streaming

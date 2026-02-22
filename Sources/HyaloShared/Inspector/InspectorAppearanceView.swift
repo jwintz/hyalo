@@ -101,6 +101,7 @@ private struct InspectorAppearanceContent: View {
             }
 
             Section("Presets") {
+                // Note: This section is unique to macOS version (no vibrancy in iOS)
                 Picker("Presets", selection: presetBinding) {
                     Text("Clear").tag(AppearancePreset.clear)
                     Text("Balanced").tag(AppearancePreset.balanced)

@@ -186,7 +186,7 @@ Returns non-nil on success (sync) or t immediately (async)."
           t)
       ;; Sync fallback for initial build (module not yet loaded)
       (let* ((buffer-name "*hyalo-build*")
-             (cmd (format "swift build -c %s" config))
+             (cmd (format "swift build --product Hyalo -c %s" config))
              (result (call-process-shell-command cmd nil buffer-name t)))
         (if (= result 0)
             (progn
@@ -203,7 +203,7 @@ build) because the reload must happen after the build completes."
   (interactive)
   (let* ((default-directory hyalo--base-dir)
          (buffer-name "*hyalo-build*")
-         (cmd "swift build -c debug")
+         (cmd "swift build --product Hyalo -c debug")
          (result (call-process-shell-command cmd nil buffer-name t)))
     (if (= result 0)
         (let ((dylib-path (hyalo--find-dylib)))
