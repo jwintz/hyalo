@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 // HyaloiOSModule.swift - Top-level coordinator for Hyalo on iOS
 // Connects EmacsLifecycle, ChannelBridge, and shared view models.
 
@@ -56,3 +57,5 @@ func bridgeSetMainEmacsView(_ viewPtr: UnsafeMutableRawPointer) {
         HyaloiOSModule.shared.emacsView = view
     }
 }
+
+#endif // canImport(UIKit)

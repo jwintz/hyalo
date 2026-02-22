@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 // EmacsViewsiOS.swift - UIViewRepresentable wrapper for the Emacs rendering surface
 // Hosts the UIView created by iosterm.m inside the SwiftUI view hierarchy.
 
@@ -62,3 +63,5 @@ struct EmacsUIViewRepresentable: UIViewRepresentable {
         }
     }
 }
+
+#endif // canImport(UIKit)

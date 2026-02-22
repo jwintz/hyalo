@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 // EmacsCInterop.swift - C function declarations for libemacs on iOS
 // These symbols are resolved at link time from libemacs.a
 
@@ -42,3 +43,4 @@ func ios_signal_event_available()
 
 @_silgen_name("ios_set_main_window")
 func ios_set_main_window(_ window: AnyObject)
+#endif // canImport(UIKit)

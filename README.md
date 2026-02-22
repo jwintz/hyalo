@@ -1,18 +1,28 @@
 # Hyalo
 
-macOS IDE shell around Emacs via dynamic module (`.dylib`).
+IDE shell around Emacs. macOS via dynamic module (`.dylib`), iPadOS via embedded framework with statically linked libemacs.a.
 
 ## Architecture
 
-- **61 Swift source files** across 12 modules: Core, Window, Editor, Navigator, Inspector, StatusBar, UtilityArea, Toolbar, CommandPalette, Appearance, Shared
-- **26 Emacs Lisp files** in `lisp/`
+```
+Sources/
+  HyaloShared/     Cross-platform models, view models, pure SwiftUI views
+  HyaloMac/        macOS: AppKit, EmacsSwiftModule, NSToolbar, NSSplitView
+  HyaloiOS/        iPadOS: UIKit, C FFI bridge, NavigationSplitView
+  HyaloEmacsStubs/ Simulator stubs for libemacs C entry points
+
+Products:
+  Hyalo            .dynamic macOS library loaded by Emacs (swift build)
+  HyaloKit         .dynamic iOS framework embedded in HyaloApp (xcodebuild)
+```
+
+- **HyaloShared** (56 files): models, view models, managers, pure SwiftUI views -- compiled into both Hyalo and HyaloKit
+- **HyaloMac** (17 files): AppKit, EmacsSwiftModule `env.defun()` / `env.openChannel()`, NSToolbar, NSSplitViewController, SwiftTerm terminal
+- **HyaloiOS** (6 files): UIKit, `@_cdecl` C FFI bridge to libemacs.a, NavigationSplitView, `UIViewRepresentable` for Emacs
+- **26 Emacs Lisp files** in `lisp/` (macOS: `hyalo.el` + `hyalo-channels.el`, iOS: `hyalo-ios.el` + `hyalo-channels-ios.el`)
 - **14 modular init files** in `init/`
-- **NSSplitViewController** 3-panel layout: Navigator | Editor | Inspector
-- **NSToolbar** with tracking separators, expanding pill activity viewer, branch picker
-- **Channel architecture** for bidirectional Swift<->Emacs Lisp communication (see [Channel Architecture](#channel-architecture) below)
-- **NSPanel-based** command palette (Cmd+P) and open-quickly (Cmd+O) dialogs
-- **SwiftTerm** terminal integration in inspector and utility panels
-- **ProjectNavigator** (`mchakravarty/ProjectNavigator`) for file tree navigation with `FileNavigator`, UUID-based identity, expansion/selection state, and editable labels
+- **Channel architecture** for bidirectional Swift/Emacs Lisp communication (see [Channel Architecture](#channel-architecture) below)
+- **ProjectNavigator** (`mchakravarty/ProjectNavigator`) for file tree navigation
 
 ## Test Procedure
 
@@ -38,15 +48,39 @@ This launches Emacs with the modular init system:
 
 ### Prerequisites
 
-- macOS with Xcode Command Line Tools
-- Swift 6.0 or later
-- **Emacs 30.1 or later compiled with `--with-modules`**
+- macOS 26+ with Xcode 17+
+- Swift 6.2 or later
+- **Emacs 30.1 or later compiled with `--with-modules`** (macOS)
+- Feedstock at `~/Syntropment/hyalo-feedstock-unified` (iOS)
 
 ### Build
 
+**macOS** (dynamic module for Emacs):
 ```bash
-swift build
+swift build                    # builds Hyalo.dylib + HyaloKit (empty on macOS)
+swift build --target Hyalo     # builds Hyalo.dylib only
 ```
+
+`swift build` compiles all targets. HyaloiOS files are guarded with `#if canImport(UIKit)` so HyaloKit compiles to an empty dylib on macOS. This is expected.
+
+**iPadOS** (simulator):
+```bash
+cd iOS
+./build.sh                     # copy resources + xcodegen + xcodebuild
+./build.sh --resources-only    # copy feedstock resources only
+
+# Or manually:
+swift run --package-path .. xcodegen generate
+xcodebuild -project HyaloApp.xcodeproj -scheme HyaloApp \
+  -destination 'platform=iOS Simulator,name=iPad Pro 13-inch (M5)' \
+  -derivedDataPath /tmp/hyalo-ios-build build
+
+# Install + launch in simulator:
+xcrun simctl install booted /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app
+xcrun simctl launch booted org.gnu.hyalo
+```
+
+The iOS build uses XcodeGen to generate `HyaloApp.xcodeproj` from `iOS/project.yml`. The Xcode project is not checked in -- regenerate it after any `project.yml` change.
 
 ### Theme System
 
@@ -113,6 +147,8 @@ Theme-appearance synchronization:
 | `nano-themes.el` | N Λ N O theme infrastructure (built on modus-themes) |
 | `nano-light-theme.el` | N Λ N O light theme (Material Design palette) |
 | `nano-dark-theme.el` | N Λ N O dark theme (Nord palette) |
+| `hyalo-ios.el` | iOS module loader (no dlopen, static linking) |
+| `hyalo-channels-ios.el` | iOS channel bridge via C FFI instead of dynamic module |
 | `header2.el` | File header creation and update (vendored) |
 
 ### Channel Architecture

@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 // HyaloiOSNavigationLayout.swift - iPad NavigationSplitView layout
 // Mirrors macOS HyaloNavigationLayout with iPad-appropriate toolbar and materials.
 
@@ -242,3 +243,5 @@ struct HyaloLoadingView: View {
         }
     }
 }
+
+#endif // canImport(UIKit)

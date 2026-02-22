@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 // EmacsLifecycle.swift - Emacs thread management for iOS
 // Manages the background Emacs thread and environment setup.
 
@@ -132,3 +133,5 @@ final class EmacsLifecycle {
     }
 }
 
+
+#endif // canImport(UIKit)

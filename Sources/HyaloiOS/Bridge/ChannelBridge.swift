@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 // ChannelBridge.swift - Emacs <-> Swift Communication Bridge for iOS
 // Implements bidirectional channel communication via @_cdecl C FFI.
 // Emacs calls these functions directly (linked at build time from libemacs.a).
@@ -166,3 +167,5 @@ func bridgeShowCommandPalette() {
         }
     }
 }
+
+#endif // canImport(UIKit)

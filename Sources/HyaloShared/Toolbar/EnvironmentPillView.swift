@@ -21,18 +21,15 @@ import SwiftUI
 public struct EnvironmentPillView: View {
     @Bindable public var workspace: HyaloWorkspaceState
 
-    public var model: EnvironmentBreadcrumbModel = EnvironmentBreadcrumbModel.shared
+    public var model: EnvironmentBreadcrumbModel
 
     public var body: some View {
         BreadcrumbContent(workspace: workspace, model: model)
     }
 
-    public init(
-        workspace: HyaloWorkspaceState,
-        model: EnvironmentBreadcrumbModel = EnvironmentBreadcrumbModel.shared
-    ) {
+    public init(workspace: HyaloWorkspaceState) {
         self.workspace = workspace
-        self.model = model
+        self.model = EnvironmentBreadcrumbModel.shared
     }
 }
 
