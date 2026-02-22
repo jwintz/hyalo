@@ -2,6 +2,7 @@
 // Target: macOS 26 Tahoe with Liquid Glass design
 
 import AppKit
+import HyaloShared
 import CoreServices
 import EmacsSwiftModule
 import SwiftUI
@@ -136,6 +137,7 @@ final class HyaloModule: Module {
     static var packageChannel: Any?
     static var sourceControlChannel: Any?
     static var moduleReloadChannel: Any?
+    static var environmentChannel: Any?
 
     // Window controllers keyed by Emacs frame window-id (desc_ctr)
     static var controllers: [Int: HyaloWindowController] = [:]
@@ -270,6 +272,12 @@ final class HyaloModule: Module {
     }
 
     func Init(_ env: EmacsSwiftModule.Environment) throws {
+        // Wire platform wake hook so shared wakeEmacs() calls ns_wake_emacs.
+        platformWakeEmacs = { ns_wake_emacs?() }
+        DispatchQueue.main.async {
+            InspectorAppearanceCallbackWirer.wire()
+        }
+
 
         // MARK: - Info
 
@@ -1244,7 +1252,7 @@ final class HyaloModule: Module {
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
                 let channel = try env.openChannel(name: "hyalo-environment")
-                HyaloModule.navigatorChannel = channel // reuse slot — no separate field needed
+                HyaloModule.environmentChannel = channel
 
                 let environmentSwitchCallback: (String) -> Void = channel.callback {
                     (env: EmacsSwiftModule.Environment, envType: String) in

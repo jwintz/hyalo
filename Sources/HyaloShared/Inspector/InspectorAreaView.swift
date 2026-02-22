@@ -6,22 +6,23 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct InspectorAreaView: View {
-    @Bindable var workspace: HyaloWorkspaceState
-    @Bindable var viewModel: InspectorViewModel
+public struct InspectorAreaView: View {
+    @Bindable public var workspace: HyaloWorkspaceState
+    @Bindable public var viewModel: InspectorViewModel
 
-    init(workspace: HyaloWorkspaceState, viewModel: InspectorViewModel? = nil) {
+    public init(workspace: HyaloWorkspaceState, viewModel: InspectorViewModel? = nil) {
         self.workspace = workspace
         self.viewModel = viewModel ?? InspectorManager.shared.viewModel
     }
 
-    var body: some View {
+    public var body: some View {
         HyaloPanelView(
             selectedTab: $viewModel.selectedTab,
             tabItems: $viewModel.tabItems,
             tabBarPosition: .top,
             darkDivider: true
         )
+        .environment(workspace)
         .background {
             Color(platformColor: workspace.backgroundColor)
                 .opacity(Double(workspace.backgroundAlpha))
@@ -31,3 +32,4 @@ struct InspectorAreaView: View {
         .accessibilityLabel("inspector")
     }
 }
+

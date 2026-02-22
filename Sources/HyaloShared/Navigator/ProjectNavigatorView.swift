@@ -7,14 +7,14 @@ import Files
 import ProjectNavigator
 
 @available(macOS 26.0, iOS 26.0, *)
-struct ProjectNavigatorView: View {
-    @Bindable var viewModel: ProjectNavigatorViewModel
+public struct ProjectNavigatorView: View {
+    @Bindable public var viewModel: ProjectNavigatorViewModel
 
-    init(viewModel: ProjectNavigatorViewModel? = nil) {
+    public init(viewModel: ProjectNavigatorViewModel? = nil) {
         self.viewModel = viewModel ?? NavigatorManager.shared.projectNavigatorViewModel
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 0) {
             if viewModel.projectRoot != nil {
                 HyaloProjectNavigator(

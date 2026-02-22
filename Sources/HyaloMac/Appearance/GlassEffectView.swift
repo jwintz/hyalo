@@ -3,6 +3,7 @@
 
 import AppKit
 import SwiftUI
+import HyaloShared
 
 // MARK: - Flat Glass Effect (panel backgrounds, tab bars)
 

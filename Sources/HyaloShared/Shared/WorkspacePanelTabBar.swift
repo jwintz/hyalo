@@ -224,8 +224,8 @@ struct IconButtonStyle: ButtonStyle {
         configuration.label
             .foregroundColor(
                 isActive
-                    ? Color(.controlAccentColor)
-                    : Color(.secondaryLabelColor)
+                    ? Color.accentColor
+                    : Color(platformColor: PlatformColor.secondaryLabelColor)
             )
             .frame(width: size?.width, height: size?.height, alignment: .center)
             .contentShape(Rectangle())

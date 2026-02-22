@@ -4,20 +4,20 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-enum UtilityAreaTab: String, CaseIterable, HyaloPanelTab {
+public enum UtilityAreaTab: String, CaseIterable, HyaloPanelTab {
     case terminal
     case diagnostics
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var title: String {
+    public var title: String {
         switch self {
         case .terminal: return "Terminal"
         case .diagnostics: return "Diagnostics"
         }
     }
 
-    var systemImage: String {
+    public var systemImage: String {
         switch self {
         case .terminal: return "terminal"
         case .diagnostics: return "exclamationmark.triangle"
@@ -26,7 +26,7 @@ enum UtilityAreaTab: String, CaseIterable, HyaloPanelTab {
 
     /// Default body for HyaloPanelTab conformance.
     /// Not used at runtime — UtilityAreaView.tabContent handles rendering.
-    var body: some View {
+    public var body: some View {
         EmptyView()
     }
 }

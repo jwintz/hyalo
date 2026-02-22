@@ -2,6 +2,7 @@
 // Target: macOS 26 Tahoe with Liquid Glass design
 
 import AppKit
+import HyaloShared
 
 /// Singleton manager for system-level features:
 /// - System appearance detection

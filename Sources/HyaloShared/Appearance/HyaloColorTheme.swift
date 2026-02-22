@@ -12,31 +12,31 @@ import SwiftUI
 // MARK: - Color Theme Variant
 
 /// A single-variant color set (either light or dark).
-struct HyaloColorVariant: Equatable {
+public struct HyaloColorVariant: Equatable {
     // Core surfaces
-    var background: String    // default face background
-    var backgroundDim: String // bg-dim (subtle alternate)
-    var foreground: String    // default face foreground
-    var foregroundDim: String // secondary text (shadow/comments)
+    public var background: String    // default face background
+    public var backgroundDim: String // bg-dim (subtle alternate)
+    public var foreground: String    // default face foreground
+    public var foregroundDim: String // secondary text (shadow/comments)
 
     // Accent
-    var accent: String        // keyword face — primary accent
-    var accentSecondary: String // type face — secondary accent
+    public var accent: String        // keyword face — primary accent
+    public var accentSecondary: String // type face — secondary accent
 
     // Semantic
-    var error: String         // error face
-    var warning: String       // warning face
-    var success: String       // success face
-    var link: String          // link face
+    public var error: String         // error face
+    public var warning: String       // warning face
+    public var success: String       // success face
+    public var link: String          // link face
 
     // Syntax (for terminal/code display)
-    var string: String        // string face
-    var comment: String       // comment face
-    var constant: String      // constant face
+    public var string: String        // string face
+    public var comment: String       // comment face
+    public var constant: String      // constant face
 
     // Chrome
-    var border: String        // window divider / separator
-    var selection: String     // hl-line / selection background
+    public var border: String        // window divider / separator
+    public var selection: String     // hl-line / selection background
 }
 
 // MARK: - Color Theme
@@ -47,44 +47,44 @@ struct HyaloColorVariant: Equatable {
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class HyaloColorTheme {
+public final class HyaloColorTheme {
 
     // MARK: - Variants
 
-    var light: HyaloColorVariant = HyaloColorVariant.defaultLight
-    var dark: HyaloColorVariant = HyaloColorVariant.defaultDark
+    public var light: HyaloColorVariant = HyaloColorVariant.defaultLight
+    public var dark: HyaloColorVariant = HyaloColorVariant.defaultDark
 
     // MARK: - Active Variant
 
     /// Returns the variant matching the current effective appearance.
-    var active: HyaloColorVariant {
+    public var active: HyaloColorVariant {
         let isDark = platformIsDarkMode()
         return isDark ? dark : light
     }
 
     // MARK: - SwiftUI Color Accessors
 
-    var accent: Color { Color(hex: active.accent) ?? .accentColor }
-    var accentSecondary: Color { Color(hex: active.accentSecondary) ?? .secondary }
-    var background: Color { Color(hex: active.background) ?? Color(platformColor: .systemBackground) }
-    var backgroundDim: Color { Color(hex: active.backgroundDim) ?? Color(platformColor: .secondarySystemBackground) }
-    var foreground: Color { Color(hex: active.foreground) ?? .primary }
-    var foregroundDim: Color { Color(hex: active.foregroundDim) ?? .secondary }
-    var error: Color { Color(hex: active.error) ?? .red }
-    var warning: Color { Color(hex: active.warning) ?? .orange }
-    var success: Color { Color(hex: active.success) ?? .green }
-    var link: Color { Color(hex: active.link) ?? .blue }
-    var string: Color { Color(hex: active.string) ?? .primary }
-    var comment: Color { Color(hex: active.comment) ?? .secondary }
-    var constant: Color { Color(hex: active.constant) ?? .primary }
-    var border: Color { Color(hex: active.border) ?? Color(.separatorColor) }
-    var selection: Color { Color(hex: active.selection) ?? Color(.selectedContentBackgroundColor) }
+    public var accent: Color { Color(hex: active.accent) ?? .accentColor }
+    public var accentSecondary: Color { Color(hex: active.accentSecondary) ?? .secondary }
+    public var background: Color { Color(hex: active.background) ?? Color(platformColor: .systemBackground) }
+    public var backgroundDim: Color { Color(hex: active.backgroundDim) ?? Color(platformColor: .secondarySystemBackground) }
+    public var foreground: Color { Color(hex: active.foreground) ?? .primary }
+    public var foregroundDim: Color { Color(hex: active.foregroundDim) ?? .secondary }
+    public var error: Color { Color(hex: active.error) ?? .red }
+    public var warning: Color { Color(hex: active.warning) ?? .orange }
+    public var success: Color { Color(hex: active.success) ?? .green }
+    public var link: Color { Color(hex: active.link) ?? .blue }
+    public var string: Color { Color(hex: active.string) ?? .primary }
+    public var comment: Color { Color(hex: active.comment) ?? .secondary }
+    public var constant: Color { Color(hex: active.constant) ?? .primary }
+    public var border: Color { Color(hex: active.border) ?? Color(platformColor: .separator) }
+    public var selection: Color { Color(hex: active.selection) ?? Color(platformColor: .selectedContentBackground) }
 
     // MARK: - Update from JSON
 
     /// Update a variant from a JSON dictionary.
     /// Keys match the property names of `HyaloColorVariant`.
-    func update(variant: String, from dict: [String: String]) {
+    public func update(variant: String, from dict: [String: String]) {
         let v = HyaloColorVariant(
             background: dict["background"] ?? (variant == "dark" ? "#1e1e1e" : "#ffffff"),
             backgroundDim: dict["backgroundDim"] ?? (variant == "dark" ? "#27272a" : "#fafafa"),
@@ -112,7 +112,7 @@ final class HyaloColorTheme {
 
 // MARK: - Default Variants
 
-extension HyaloColorVariant {
+public extension HyaloColorVariant {
 
     /// Default dark variant — Lithos Zinc + Violet dichromatic
     static let defaultDark = HyaloColorVariant(

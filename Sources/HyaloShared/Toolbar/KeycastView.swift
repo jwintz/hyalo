@@ -13,8 +13,8 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct KeycastView: View {
-    @Bindable var viewModel: ToolbarViewModel
+public struct KeycastView: View {
+    @Bindable public var viewModel: ToolbarViewModel
 
     @Environment(\.controlActiveState)
     private var activeState
@@ -37,7 +37,7 @@ struct KeycastView: View {
         isContentVisible && hasContent
     }
 
-    var body: some View {
+    public var body: some View {
         if viewModel.keycastVisible {
             Group {
                 if showContent {
@@ -73,6 +73,10 @@ struct KeycastView: View {
                 if hasContent { showAndScheduleFade() }
             }
         }
+    }
+
+    public init(viewModel: ToolbarViewModel) {
+        self.viewModel = viewModel
     }
 
     private func showAndScheduleFade() {

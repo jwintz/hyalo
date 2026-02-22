@@ -4,47 +4,11 @@
 
 #if os(macOS)
 import AppKit
+import HyaloShared
 import SwiftTerm
 import SwiftUI
 
-// MARK: - Terminal Color Palette
-
-/// 16 ANSI colors plus foreground/background/cursor.
-/// Updated from Elisp via `hyalo-set-terminal-palette`.
-@available(macOS 26.0, *)
-@Observable
-final class TerminalPalette {
-    static let shared = TerminalPalette()
-
-    /// 16 ANSI colors (0-7 normal, 8-15 bright) as hex strings
-    var ansiColors: [String] = TerminalPalette.defaultDarkAnsi
-    /// Foreground color hex
-    var foreground: String = "#F4F4F5"
-    /// Background color hex (terminal internal bg, not view bg)
-    var background: String = "#18181B"
-    /// Cursor color hex
-    var cursor: String = "#A58AF9"
-
-    /// Monotonically increasing version; triggers SwiftUI `updateNSView`.
-    var version: Int = 0
-
-    // Default dark ANSI palette
-    static let defaultDarkAnsi: [String] = [
-        // Normal (0-7): black, red, green, yellow, blue, magenta, cyan, white
-        "#27272A", "#EF5350", "#66BB6A", "#FFEE58",
-        "#42A5F5", "#AB47BC", "#26C6DA", "#F4F4F5",
-        // Bright (8-15)
-        "#52525B", "#F87171", "#4ADE80", "#FDE047",
-        "#60A5FA", "#C084FC", "#22D3EE", "#FFFFFF",
-    ]
-
-    private init() {}
-}
-
-// MARK: - Default Font Size
-
-/// Default terminal font size in points.
-let terminalDefaultFontSize: CGFloat = 11
+// TerminalPalette moved to HyaloShared/Shared/TerminalPalette.swift
 
 // MARK: - HyaloTerminalView (key interception)
 

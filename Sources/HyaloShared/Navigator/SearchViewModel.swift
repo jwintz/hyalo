@@ -7,10 +7,10 @@ import Foundation
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class SearchViewModel {
+public final class SearchViewModel {
     // MARK: - State
     
-    var query: String = "" {
+    public var query: String = "" {
         didSet {
             if query.isEmpty {
                 status = .none
@@ -19,31 +19,31 @@ final class SearchViewModel {
         }
     }
     
-    var results: [SearchResult] = []
-    var status: FindStatus = .none
-    var resultCount: Int = 0
-    var fileCount: Int = 0
+    public var results: [SearchResult] = []
+    public var status: FindStatus = .none
+    public var resultCount: Int = 0
+    public var fileCount: Int = 0
     
     // MARK: - Dependencies
     
-    var onSearchExecute: ((String) -> Void)?
-    var onSearchResultSelect: ((String, Int, Int) -> Void)?
+    public var onSearchExecute: ((String) -> Void)?
+    public var onSearchResultSelect: ((String, Int, Int) -> Void)?
     
     // MARK: - Actions to Emacs
     
-    func executeSearch() {
+    public func executeSearch() {
         guard !query.isEmpty else { return }
         status = .searching
         onSearchExecute?(query)
     }
     
-    func selectResult(_ result: SearchResult) {
+    public func selectResult(_ result: SearchResult) {
         onSearchResultSelect?(result.file, result.line, result.column)
     }
     
     // MARK: - Updates from Emacs
     
-    func updateResults(_ newResults: [SearchResult], resultCount: Int, fileCount: Int) {
+    public func updateResults(_ newResults: [SearchResult], resultCount: Int, fileCount: Int) {
         self.results = newResults
         self.resultCount = resultCount
         self.fileCount = fileCount

@@ -7,22 +7,22 @@ import Foundation
 // MARK: - File Info
 
 @available(macOS 26.0, iOS 26.0, *)
-struct FileInfo: Codable {
-    var name: String
-    var type: String
-    var path: String
-    var size: String
-    var created: String
-    var modified: String
-    var permissions: String
-    var encoding: String
-    var lineEndings: String
-    var indentStyle: String
-    var indentWidth: Int
-    var gitStatus: String
-    var lastCommit: String?
+public struct FileInfo: Codable {
+    public var name: String
+    public var type: String
+    public var path: String
+    public var size: String
+    public var created: String
+    public var modified: String
+    public var permissions: String
+    public var encoding: String
+    public var lineEndings: String
+    public var indentStyle: String
+    public var indentWidth: Int
+    public var gitStatus: String
+    public var lastCommit: String?
 
-    static var empty: FileInfo {
+    public static var empty: FileInfo {
         FileInfo(
             name: "—", type: "—", path: "—", size: "—",
             created: "—", modified: "—", permissions: "—",
@@ -36,16 +36,16 @@ struct FileInfo: Codable {
 // MARK: - Commit
 
 @available(macOS 26.0, iOS 26.0, *)
-struct Commit: Identifiable, Codable, Hashable {
-    var id: String { hash }
-    var hash: String
-    var fullHash: String?
-    var message: String
-    var author: String
-    var authorEmail: String?
-    var date: String
-    var refs: [String]?
-    var tag: String?
+public struct Commit: Identifiable, Codable, Hashable {
+    public var id: String { hash }
+    public var hash: String
+    public var fullHash: String?
+    public var message: String
+    public var author: String
+    public var authorEmail: String?
+    public var date: String
+    public var refs: [String]?
+    public var tag: String?
 }
 
 // MARK: - Inspector View Model
@@ -53,28 +53,29 @@ struct Commit: Identifiable, Codable, Hashable {
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class InspectorViewModel {
-    var selectedTab: InspectorTab? = .file
-    var tabItems: [InspectorTab] = [.file, .history, .appearance]
-    var fileInfo: FileInfo = .empty
-    var commits: [Commit] = []
+public final class InspectorViewModel {
+    public init() {}
+    public var selectedTab: InspectorTab? = .file
+    public var tabItems: [InspectorTab] = [.file, .history, .appearance]
+    public var fileInfo: FileInfo = .empty
+    public var commits: [Commit] = []
 }
 
 // MARK: - Inspector Manager
 
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
-final class InspectorManager {
-    static let shared = InspectorManager()
+public final class InspectorManager {
+    public static let shared = InspectorManager()
 
-    let viewModel = InspectorViewModel()
+    public let viewModel = InspectorViewModel()
 
     // Callbacks to Emacs (set by channel)
-    var onCommitSelect: ((String) -> Void)?
+    public var onCommitSelect: ((String) -> Void)?
 
     private init() {}
 
-    func updateFileInfo(from data: Data) {
+    public func updateFileInfo(from data: Data) {
         do {
             let info = try JSONDecoder().decode(FileInfo.self, from: data)
             viewModel.fileInfo = info
@@ -83,7 +84,7 @@ final class InspectorManager {
         }
     }
 
-    func updateGitHistory(from data: Data) {
+    public func updateGitHistory(from data: Data) {
         do {
             let commits = try JSONDecoder().decode([Commit].self, from: data)
             viewModel.commits = commits

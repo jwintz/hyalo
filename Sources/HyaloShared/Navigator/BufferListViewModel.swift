@@ -7,33 +7,33 @@ import Foundation
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class BufferListViewModel {
+public final class BufferListViewModel {
     // MARK: - State
 
-    var buffers: [BufferInfo] = [] {
+    public var buffers: [BufferInfo] = [] {
         didSet { updateFilteredBuffers() }
     }
 
-    var filter: String = "" {
+    public var filter: String = "" {
         didSet { updateFilteredBuffers() }
     }
 
-    var selectedBuffer: String?
-    var activeBuffer: String?
+    public var selectedBuffer: String?
+    public var activeBuffer: String?
 
     // MARK: - Cached Output
 
-    private(set) var filteredBuffers: [BufferInfo] = []
+    public private(set) var filteredBuffers: [BufferInfo] = []
 
     // MARK: - Dependencies
 
-    var onBufferSelect: ((String) -> Void)?
-    var onBufferClose: ((String) -> Void)?
-    var onBufferSave: ((String) -> Void)?
+    public var onBufferSelect: ((String) -> Void)?
+    public var onBufferClose: ((String) -> Void)?
+    public var onBufferSave: ((String) -> Void)?
 
     // MARK: - Initialization
 
-    init(buffers: [BufferInfo] = []) {
+    public init(buffers: [BufferInfo] = []) {
         self.buffers = buffers
         updateFilteredBuffers()
     }
@@ -53,7 +53,7 @@ final class BufferListViewModel {
 
     // MARK: - Updates from Emacs
 
-    func updateBuffers(_ newBuffers: [BufferInfo]) {
+    public func updateBuffers(_ newBuffers: [BufferInfo]) {
         let incoming = Dictionary(uniqueKeysWithValues: newBuffers.map { ($0.id, $0) })
 
         // Keep existing items in their current order, updating data
@@ -75,15 +75,15 @@ final class BufferListViewModel {
     // The callback tells Emacs to switch; Emacs pushes the new state back
     // via hyalo-sync--push within ~20ms (requires wakeEmacs).
 
-    func selectBuffer(_ name: String) {
+    public func selectBuffer(_ name: String) {
         onBufferSelect?(name)
     }
 
-    func closeBuffer(_ name: String) {
+    public func closeBuffer(_ name: String) {
         onBufferClose?(name)
     }
 
-    func saveBuffer(_ name: String) {
+    public func saveBuffer(_ name: String) {
         onBufferSave?(name)
     }
 
@@ -92,7 +92,7 @@ final class BufferListViewModel {
     /// Called from Emacs when the active buffer changes.
     /// No guard needed — window-buffer-change-functions fires AFTER the
     /// buffer switch is complete, so stale echoes cannot arrive.
-    func setActiveBuffer(_ name: String) {
+    public func setActiveBuffer(_ name: String) {
         activeBuffer = name
         selectedBuffer = name
     }

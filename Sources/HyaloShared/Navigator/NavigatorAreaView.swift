@@ -6,16 +6,16 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct NavigatorAreaView: View {
-    @Bindable var workspace: HyaloWorkspaceState
-    @Bindable var viewModel: NavigatorViewModel
+public struct NavigatorAreaView: View {
+    @Bindable public var workspace: HyaloWorkspaceState
+    @Bindable public var viewModel: NavigatorViewModel
 
-    init(workspace: HyaloWorkspaceState, viewModel: NavigatorViewModel? = nil) {
+    public init(workspace: HyaloWorkspaceState, viewModel: NavigatorViewModel? = nil) {
         self.workspace = workspace
         self.viewModel = viewModel ?? NavigatorManager.shared.viewModel
     }
 
-    var body: some View {
+    public var body: some View {
         HyaloPanelView(
             selectedTab: $viewModel.selectedTab,
             tabItems: $viewModel.tabItems,

@@ -6,12 +6,20 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct CommandPaletteView: View {
-    @Bindable var viewModel: CommandPaletteViewModel
-    let onClose: () -> Void
-    let executeCommand: (CommandItem) -> Void
+public struct CommandPaletteView: View {
+    @Bindable public var viewModel: CommandPaletteViewModel
+    public let onClose: () -> Void
+    public let executeCommand: (CommandItem) -> Void
 
     @FocusState private var isSearchFocused: Bool
+
+    @ViewBuilder private var paletteBackground: some View {
+#if os(macOS)
+        EffectView(.sidebar, blendingMode: .behindWindow)
+#else
+        EffectView()
+#endif
+    }
 
     private var selectionBinding: Binding<CommandItem?> {
         Binding(
@@ -20,7 +28,17 @@ struct CommandPaletteView: View {
         )
     }
 
-    var body: some View {
+    public init(
+        viewModel: CommandPaletteViewModel,
+        onClose: @escaping () -> Void,
+        executeCommand: @escaping (CommandItem) -> Void
+    ) {
+        self.viewModel = viewModel
+        self.onClose = onClose
+        self.executeCommand = executeCommand
+    }
+
+    public var body: some View {
         VStack(spacing: 0) {
             // Search field with M-x prefix
             HStack(alignment: .center, spacing: 0) {
@@ -60,7 +78,7 @@ struct CommandPaletteView: View {
                 .environment(\.defaultMinListRowHeight, 36)
             }
         }
-        .background(EffectView(.sidebar, blendingMode: .behindWindow))
+        .background(paletteBackground)
         .edgesIgnoringSafeArea(.vertical)
         .frame(minWidth: 680, minHeight: 400, maxHeight: .infinity)
         .onChange(of: viewModel.searchText) { _, _ in
@@ -73,7 +91,7 @@ struct CommandPaletteView: View {
         }
     }
 
-    func commitCommand(_ command: CommandItem) {
+    public func commitCommand(_ command: CommandItem) {
         executeCommand(command)
         viewModel.searchText = ""
         onClose()

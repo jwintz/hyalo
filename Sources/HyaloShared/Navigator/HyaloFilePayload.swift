@@ -7,27 +7,27 @@
 import Foundation
 import Files
 
-struct HyaloFilePayload: FileContents, Sendable, Equatable {
-    let path: String
+public struct HyaloFilePayload: FileContents, Sendable, Equatable {
+    public let path: String
 
-    init(name: String, data: Data) throws {
+    public init(name: String, data: Data) throws {
         // Called by Files library when constructing from FileWrapper.
         // We don't use FileWrapper-based construction — this is a fallback.
         self.path = name
     }
 
-    init(path: String) {
+    public init(path: String) {
         self.path = path
     }
 
-    func data() throws -> Data {
+    public func data() throws -> Data {
         // Navigator does not serialize file contents
         Data()
     }
 
-    mutating func flush() throws {
+    public mutating func flush() throws {
         // No-op: contents are on disk, managed by Emacs
     }
 
-    var text: String? { nil }
+    public var text: String? { nil }
 }

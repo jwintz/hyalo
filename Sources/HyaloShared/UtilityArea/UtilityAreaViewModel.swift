@@ -6,15 +6,13 @@ import Foundation
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class UtilityAreaViewModel {
-    var isVisible: Bool = false
-    var isMaximized: Bool = false
-    var height: CGFloat = 260
-    var selectedTab: UtilityAreaTab? = .terminal
+public final class UtilityAreaViewModel {
+    public var isVisible: Bool = false
+    public var isMaximized: Bool = false
+    public var height: CGFloat = 260
+    public var selectedTab: UtilityAreaTab? = .terminal
 
-    let diagnosticsViewModel = DiagnosticsViewModel()
+    public let diagnosticsViewModel = DiagnosticsViewModel()
 
-    /// Per-frame terminal holder.  Each window controller gets its own
-    /// UtilityAreaViewModel and therefore its own terminal instance.
-    let terminalHolder = UtilityAreaTerminalHolder()
+    public init() {}
 }

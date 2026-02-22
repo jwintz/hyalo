@@ -17,14 +17,14 @@ import SwiftUI
 // MARK: - Activity Kind
 
 @available(macOS 26.0, iOS 26.0, *)
-enum ActivityKind: String, Identifiable, CaseIterable {
+public enum ActivityKind: String, Identifiable, CaseIterable {
     case nativeCompilation = "native-compilation"
     case moduleCompilation = "module-compilation"
     case packageInstallation = "package-installation"
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var label: String {
+    public var label: String {
         switch self {
         case .nativeCompilation: return "Native Compilation"
         case .moduleCompilation: return "Module Build"
@@ -32,7 +32,7 @@ enum ActivityKind: String, Identifiable, CaseIterable {
         }
     }
 
-    var systemImage: String {
+    public var systemImage: String {
         switch self {
         case .nativeCompilation: return "gearshape.2"
         case .moduleCompilation: return "hammer"
@@ -44,16 +44,16 @@ enum ActivityKind: String, Identifiable, CaseIterable {
 // MARK: - Activity Item
 
 @available(macOS 26.0, iOS 26.0, *)
-struct ActivityItem: Identifiable, Equatable {
-    let id: String
-    let kind: ActivityKind
-    var title: String
-    var message: String
-    var progress: Double?     // nil = indeterminate, 0.0–1.0 = determinate
-    var isActive: Bool
-    var logLines: [String]
+public struct ActivityItem: Identifiable, Equatable {
+    public let id: String
+    public let kind: ActivityKind
+    public var title: String
+    public var message: String
+    public var progress: Double?     // nil = indeterminate, 0.0–1.0 = determinate
+    public var isActive: Bool
+    public var logLines: [String]
 
-    static func == (lhs: ActivityItem, rhs: ActivityItem) -> Bool {
+    public static func == (lhs: ActivityItem, rhs: ActivityItem) -> Bool {
         lhs.id == rhs.id
             && lhs.title == rhs.title
             && lhs.message == rhs.message
@@ -68,25 +68,25 @@ struct ActivityItem: Identifiable, Equatable {
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class ActivityManager {
-    static let shared = ActivityManager()
+public final class ActivityManager {
+    public static let shared = ActivityManager()
 
     /// All current activities, most recent first.
-    var activities: [ActivityItem] = []
+    public var activities: [ActivityItem] = []
 
     /// Number of active (in-progress) activities.
-    var activeCount: Int {
+    public var activeCount: Int {
         activities.filter(\.isActive).count
     }
 
     /// True if any activity is in progress.
-    var hasActiveWork: Bool {
+    public var hasActiveWork: Bool {
         activeCount > 0
     }
 
     // MARK: - Mutations
 
-    func upsert(id: String, kind: ActivityKind, title: String, message: String = "",
+    public func upsert(id: String, kind: ActivityKind, title: String, message: String = "",
                 progress: Double? = nil, isActive: Bool = true) {
         if let idx = activities.firstIndex(where: { $0.id == id }) {
             activities[idx].title = title
@@ -103,7 +103,7 @@ final class ActivityManager {
         }
     }
 
-    func appendLog(id: String, line: String) {
+    public func appendLog(id: String, line: String) {
         guard let idx = activities.firstIndex(where: { $0.id == id }) else { return }
         activities[idx].logLines.append(line)
         // Keep last 200 lines
@@ -112,12 +112,12 @@ final class ActivityManager {
         }
     }
 
-    func clearLog(id: String) {
+    public func clearLog(id: String) {
         guard let idx = activities.firstIndex(where: { $0.id == id }) else { return }
         activities[idx].logLines.removeAll()
     }
 
-    func finish(id: String, message: String = "") {
+    public func finish(id: String, message: String = "") {
         guard let idx = activities.firstIndex(where: { $0.id == id }) else { return }
         activities[idx].isActive = false
         activities[idx].progress = nil
@@ -126,19 +126,19 @@ final class ActivityManager {
         }
     }
 
-    func remove(id: String) {
+    public func remove(id: String) {
         activities.removeAll { $0.id == id }
     }
 
     /// Move an activity to the front of the list so it becomes
     /// the displayed notification in the toolbar.
-    func bringToFront(id: String) {
+    public func bringToFront(id: String) {
         guard let idx = activities.firstIndex(where: { $0.id == id }), idx != 0 else { return }
         let item = activities.remove(at: idx)
         activities.insert(item, at: 0)
     }
 
-    func removeAfterDelay(id: String, delay: TimeInterval = 5.0) {
+    public func removeAfterDelay(id: String, delay: TimeInterval = 5.0) {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             self?.remove(id: id)
         }
@@ -147,9 +147,9 @@ final class ActivityManager {
     // MARK: - Convenience: Native Compilation
 
     /// Stable ID for the native compilation activity.
-    static let nativeCompilationID = "native-compilation"
+    public static let nativeCompilationID = "native-compilation"
 
-    func startNativeCompilation(total: Int) {
+    public func startNativeCompilation(total: Int) {
         upsert(
             id: Self.nativeCompilationID,
             kind: .nativeCompilation,
@@ -158,7 +158,7 @@ final class ActivityManager {
         )
     }
 
-    func updateNativeCompilation(done: Int, total: Int) {
+    public func updateNativeCompilation(done: Int, total: Int) {
         let progress = total > 0 ? Double(done) / Double(total) : 0.0
         let remaining = total - done
         upsert(
@@ -169,7 +169,7 @@ final class ActivityManager {
         )
     }
 
-    func finishNativeCompilation(compiled: Int) {
+    public func finishNativeCompilation(compiled: Int) {
         finish(
             id: Self.nativeCompilationID,
             message: compiled > 0
@@ -182,12 +182,12 @@ final class ActivityManager {
     // MARK: - Convenience: Module Build
 
     /// Stable ID for the module build activity.
-    static let moduleBuildID = "module-build"
+    public static let moduleBuildID = "module-build"
 
     /// Callback for reload action. Set by Module.swift channel setup.
-    var onModuleReload: (() -> Void)?
+    public var onModuleReload: (() -> Void)?
 
-    func startModuleBuild() {
+    public func startModuleBuild() {
         upsert(
             id: Self.moduleBuildID,
             kind: .moduleCompilation,
@@ -195,7 +195,7 @@ final class ActivityManager {
         )
     }
 
-    func updateModuleBuild(message: String) {
+    public func updateModuleBuild(message: String) {
         upsert(
             id: Self.moduleBuildID,
             kind: .moduleCompilation,
@@ -204,7 +204,7 @@ final class ActivityManager {
         )
     }
 
-    func finishModuleBuild(success: Bool, dylibChanged: Bool = false) {
+    public func finishModuleBuild(success: Bool, dylibChanged: Bool = false) {
         let msg: String
         if success {
             msg = dylibChanged ? "Build succeeded — reload available" : "Build succeeded"
@@ -234,9 +234,9 @@ final class ActivityManager {
     // MARK: - Convenience: Package Installation
 
     /// Stable ID for the package installation activity.
-    static let packageInstallationID = "package-installation"
+    public static let packageInstallationID = "package-installation"
 
-    func startPackageInstallation(name: String) {
+    public func startPackageInstallation(name: String) {
         upsert(
             id: Self.packageInstallationID,
             kind: .packageInstallation,
@@ -244,7 +244,7 @@ final class ActivityManager {
         )
     }
 
-    func updatePackageInstallation(message: String) {
+    public func updatePackageInstallation(message: String) {
         upsert(
             id: Self.packageInstallationID,
             kind: .packageInstallation,
@@ -252,7 +252,7 @@ final class ActivityManager {
         )
     }
 
-    func finishPackageInstallation(message: String = "Packages up to date") {
+    public func finishPackageInstallation(message: String = "Packages up to date") {
         finish(id: Self.packageInstallationID, message: message)
         removeAfterDelay(id: Self.packageInstallationID, delay: 5.0)
     }

@@ -4,6 +4,7 @@
 
 import AppKit
 import SwiftUI
+import HyaloShared
 
 @available(macOS 26.0, *)
 final class SearchPanel: NSPanel, NSWindowDelegate {

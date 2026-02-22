@@ -31,3 +31,14 @@ func ios_report_load_progress(_ filename: UnsafePointer<CChar>)
 /// Report that bootstrap is complete.
 @_silgen_name("ios_report_bootstrap_complete")
 func ios_report_bootstrap_complete()
+// MARK: - Event Loop
+
+/// Signal to Emacs that an event is available, waking the event loop.
+@_silgen_name("ios_signal_event_available")
+func ios_signal_event_available()
+
+// MARK: - UIWindow Setup
+
+
+@_silgen_name("ios_set_main_window")
+func ios_set_main_window(_ window: AnyObject)

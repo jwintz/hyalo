@@ -5,13 +5,13 @@ import Foundation
 
 // MARK: - Editor Tab Model
 
-struct EditorTab: Codable, Identifiable, Hashable {
-    let id: String
-    let name: String
-    let icon: String?
-    let isModified: Bool
-    let isTemporary: Bool
-    let filePath: String?
+public struct EditorTab: Codable, Identifiable, Hashable {
+    public let id: String
+    public let name: String
+    public let icon: String?
+    public let isModified: Bool
+    public let isTemporary: Bool
+    public let filePath: String?
 }
 
 // MARK: - View Model
@@ -19,17 +19,18 @@ struct EditorTab: Codable, Identifiable, Hashable {
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class EditorTabViewModel {
-    var tabs: [EditorTab] = []
-    var selectedTabId: String?
+public final class EditorTabViewModel {
+    public init() {}
+    public var tabs: [EditorTab] = []
+    public var selectedTabId: String?
 
     // Callbacks (set by channel)
-    var onTabSelect: ((String) -> Void)?
-    var onTabClose: ((String) -> Void)?
-    var onNavigateBack: (() -> Void)?
-    var onNavigateForward: (() -> Void)?
+    public var onTabSelect: ((String) -> Void)?
+    public var onTabClose: ((String) -> Void)?
+    public var onNavigateBack: (() -> Void)?
+    public var onNavigateForward: (() -> Void)?
 
-    var selectedTab: EditorTab? {
+    public var selectedTab: EditorTab? {
         tabs.first { $0.id == selectedTabId }
     }
 
@@ -38,19 +39,19 @@ final class EditorTabViewModel {
     // The callback tells Emacs to switch; Emacs pushes the new state back
     // via hyalo-sync--push within ~20ms (requires wakeEmacs).
 
-    func selectTab(_ tab: EditorTab) {
+    public func selectTab(_ tab: EditorTab) {
         onTabSelect?(tab.id)
         wakeEmacs()
     }
 
-    func closeTab(_ tab: EditorTab) {
+    public func closeTab(_ tab: EditorTab) {
         onTabClose?(tab.id)
         wakeEmacs()
     }
 
     // MARK: - Updates from Emacs (callbacks)
 
-    func updateTabs(_ newTabs: [EditorTab]) {
+    public func updateTabs(_ newTabs: [EditorTab]) {
         let incoming = Dictionary(uniqueKeysWithValues: newTabs.map { ($0.id, $0) })
         var result = tabs.compactMap { existing -> EditorTab? in
             incoming[existing.id]
@@ -64,12 +65,12 @@ final class EditorTabViewModel {
 
     /// Called from Emacs via hyalo-select-editor-tab when a buffer becomes active.
     /// Emacs is the single source of truth — always accept.
-    func onTabSelected(_ id: String) {
+    public func onTabSelected(_ id: String) {
         selectedTabId = id
     }
 
     /// Direct tab selection without logging (for internal use).
-    func selectTabById(_ id: String) {
+    public func selectTabById(_ id: String) {
         selectedTabId = id
     }
 }

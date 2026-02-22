@@ -3,113 +3,98 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0D2A7DFB582A8C94C8F15A84 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = D1F91803B9DA2405D28CC043 /* Fonts */; };
-		32961D509602D284E067F0EE /* EmacsAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 0D72976EFE475ED1C94EEB6D /* EmacsAppDelegate.m */; };
-		40BE4168F8020A8DB1862520 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 605444BD7434FF941D87D7B0 /* Assets.xcassets */; };
-		4CDB6F63F55AE8449E6AA04D /* EmacsSceneDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 20B2DC631DF5C64A93663550 /* EmacsSceneDelegate.m */; };
-		85F52907368D5C385D2BE614 /* temacs.data in Resources */ = {isa = PBXBuildFile; fileRef = 6AA19FE16EE35E75BE2D4D65 /* temacs.data */; };
-		99A8CC724099D2B7E24C65E7 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = C72B989E0C0C09A7CA59606D /* main.m */; };
-		A15DE72B8A0A40B38788B43E /* lisp in Resources */ = {isa = PBXBuildFile; fileRef = 43AD01DF1EC578A07DCD9397 /* lisp */; };
-		C4C255F7B02835A3C00471C6 /* BootstrapViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E115566484A9D371735544BB /* BootstrapViewController.m */; };
-		C4CACD9FD9EC985226D749C4 /* info in Resources */ = {isa = PBXBuildFile; fileRef = F1A3D7790828003010000758 /* info */; };
-		D94628AFC927EC428BA353CC /* etc in Resources */ = {isa = PBXBuildFile; fileRef = 57DB5B3639B6946F32D49B2D /* etc */; };
-		F4FC7DEEBE31E3E328AAD0F4 /* bootstrap-emacs.pdmp in Resources */ = {isa = PBXBuildFile; fileRef = 97F6D448417338C6EDE98F4C /* bootstrap-emacs.pdmp */; };
-		LAUNCHSCREEN001 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = LAUNCHSCREEN002 /* LaunchScreen.storyboard */; };
+		A6389E2B0859F432D9B048D6 /* HyaloKit in Frameworks */ = {isa = PBXBuildFile; productRef = D1D459F35B16D1151E3B124D /* HyaloKit */; };
+		DCD97F73784BC6436C7EAB7C /* HyaloApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A2E9FB4F9014FAE1BBC012 /* HyaloApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0D72976EFE475ED1C94EEB6D /* EmacsAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EmacsAppDelegate.m; sourceTree = "<group>"; };
-		20B2DC631DF5C64A93663550 /* EmacsSceneDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EmacsSceneDelegate.m; sourceTree = "<group>"; };
-		43AD01DF1EC578A07DCD9397 /* lisp */ = {isa = PBXFileReference; lastKnownFileType = folder; name = lisp; path = Resources/lisp; sourceTree = SOURCE_ROOT; };
-		481960E8DFD98FF9504B8E47 /* BootstrapViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BootstrapViewController.h; sourceTree = "<group>"; };
-		57DB5B3639B6946F32D49B2D /* etc */ = {isa = PBXFileReference; lastKnownFileType = folder; name = etc; path = Resources/etc; sourceTree = SOURCE_ROOT; };
-		605444BD7434FF941D87D7B0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		6AA19FE16EE35E75BE2D4D65 /* temacs.data */ = {isa = PBXFileReference; path = temacs.data; sourceTree = "<group>"; };
-		97F6D448417338C6EDE98F4C /* bootstrap-emacs.pdmp */ = {isa = PBXFileReference; path = "bootstrap-emacs.pdmp"; sourceTree = "<group>"; };
-		C4BC929B4414F447D20E39CE /* EmacsApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EmacsApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C72B989E0C0C09A7CA59606D /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		D1F91803B9DA2405D28CC043 /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fonts; path = Resources/Fonts; sourceTree = SOURCE_ROOT; };
-		E115566484A9D371735544BB /* BootstrapViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BootstrapViewController.m; sourceTree = "<group>"; };
-		F1A3D7790828003010000758 /* info */ = {isa = PBXFileReference; lastKnownFileType = folder; name = info; path = Resources/info; sourceTree = SOURCE_ROOT; };
-		LAUNCHSCREEN002 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		08A2E9FB4F9014FAE1BBC012 /* HyaloApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyaloApp.swift; sourceTree = "<group>"; };
+		1AF444CA187066AD1EEC63EF /* HyaloApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HyaloApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		281EE1BFED60AB1CC3E2C14A /* hyalo-unified */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "hyalo-unified"; path = ..; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		AEBA2FDF2156842BF3049AB8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6389E2B0859F432D9B048D6 /* HyaloKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXGroup section */
-		94A2379BABCD92F2FC839859 /* Products */ = {
+		73EA0001359E110F129C2F58 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C4BC929B4414F447D20E39CE /* EmacsApp.app */,
+				1AF444CA187066AD1EEC63EF /* HyaloApp.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		B8D2B2C9B2B8F0AE8CB190AE = {
+		8086B43D7B28E292D837986A /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				481960E8DFD98FF9504B8E47 /* BootstrapViewController.h */,
-				E115566484A9D371735544BB /* BootstrapViewController.m */,
-				0D72976EFE475ED1C94EEB6D /* EmacsAppDelegate.m */,
-				20B2DC631DF5C64A93663550 /* EmacsSceneDelegate.m */,
-				57DB5B3639B6946F32D49B2D /* etc */,
-				D1F91803B9DA2405D28CC043 /* Fonts */,
-				F1A3D7790828003010000758 /* info */,
-				LAUNCHSCREEN002 /* LaunchScreen.storyboard */,
-				43AD01DF1EC578A07DCD9397 /* lisp */,
-				C72B989E0C0C09A7CA59606D /* main.m */,
-				C88E2A506173397549C0AF87 /* Resources */,
-				94A2379BABCD92F2FC839859 /* Products */,
+				08A2E9FB4F9014FAE1BBC012 /* HyaloApp.swift */,
+			);
+			name = Sources;
+			path = HyaloApp/Sources;
+			sourceTree = "<group>";
+		};
+		84D678ED44E446DD6F64D546 = {
+			isa = PBXGroup;
+			children = (
+				87F947BC019B78B01B092184 /* Packages */,
+				8086B43D7B28E292D837986A /* Sources */,
+				73EA0001359E110F129C2F58 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		C88E2A506173397549C0AF87 /* Resources */ = {
+		87F947BC019B78B01B092184 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				605444BD7434FF941D87D7B0 /* Assets.xcassets */,
-				97F6D448417338C6EDE98F4C /* bootstrap-emacs.pdmp */,
-				6AA19FE16EE35E75BE2D4D65 /* temacs.data */,
+				281EE1BFED60AB1CC3E2C14A /* hyalo-unified */,
 			);
-			path = Resources;
+			name = Packages;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		23BEA9208B0E16D9DB1A9FD7 /* EmacsApp */ = {
+		38CDD1BCC2273F3FD0E41046 /* HyaloApp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CCA48CDF5A3422F2ACD1B287 /* Build configuration list for PBXNativeTarget "EmacsApp" */;
+			buildConfigurationList = C9BCCB2E087C203A10FF7B16 /* Build configuration list for PBXNativeTarget "HyaloApp" */;
 			buildPhases = (
-				B43887A00DAF70E1811881F3 /* Sources */,
-				C051F0C014C12CA8604CEFCB /* Resources */,
+				625E929F79AAF34E643C9979 /* Sources */,
+				AEBA2FDF2156842BF3049AB8 /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = EmacsApp;
-			productName = EmacsApp;
-			productReference = C4BC929B4414F447D20E39CE /* EmacsApp.app */;
+			name = HyaloApp;
+			packageProductDependencies = (
+				D1D459F35B16D1151E3B124D /* HyaloKit */,
+			);
+			productName = HyaloApp;
+			productReference = 1AF444CA187066AD1EEC63EF /* HyaloApp.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		B45226309F5649DBBB3C157B /* Project object */ = {
+		7E01AA106C21D7A2D6C77205 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1600;
-				TargetAttributes = {
-					23BEA9208B0E16D9DB1A9FD7 = {
-						DevelopmentTeam = H4T77W7K9A;
-						ProvisioningStyle = Automatic;
-					};
-				};
+				LastUpgradeCheck = 1430;
 			};
-			buildConfigurationList = 0BB06438721F89CFC9C14E81 /* Build configuration list for PBXProject "EmacsApp" */;
+			buildConfigurationList = 2194D8DE6162D91AF1913742 /* Build configuration list for PBXProject "HyaloApp" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -117,63 +102,41 @@
 				Base,
 				en,
 			);
-			mainGroup = B8D2B2C9B2B8F0AE8CB190AE;
+			mainGroup = 84D678ED44E446DD6F64D546;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4C63E7AD39945E23CB552ED7 /* XCLocalSwiftPackageReference ".." */,
+			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				23BEA9208B0E16D9DB1A9FD7 /* EmacsApp */,
+				38CDD1BCC2273F3FD0E41046 /* HyaloApp */,
 			);
 		};
 /* End PBXProject section */
 
-/* Begin PBXResourcesBuildPhase section */
-		C051F0C014C12CA8604CEFCB /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				40BE4168F8020A8DB1862520 /* Assets.xcassets in Resources */,
-				0D2A7DFB582A8C94C8F15A84 /* Fonts in Resources */,
-				LAUNCHSCREEN001 /* LaunchScreen.storyboard in Resources */,
-				F4FC7DEEBE31E3E328AAD0F4 /* bootstrap-emacs.pdmp in Resources */,
-				D94628AFC927EC428BA353CC /* etc in Resources */,
-				C4CACD9FD9EC985226D749C4 /* info in Resources */,
-				A15DE72B8A0A40B38788B43E /* lisp in Resources */,
-				85F52907368D5C385D2BE614 /* temacs.data in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
-		B43887A00DAF70E1811881F3 /* Sources */ = {
+		625E929F79AAF34E643C9979 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C4C255F7B02835A3C00471C6 /* BootstrapViewController.m in Sources */,
-				32961D509602D284E067F0EE /* EmacsAppDelegate.m in Sources */,
-				4CDB6F63F55AE8449E6AA04D /* EmacsSceneDelegate.m in Sources */,
-				99A8CC724099D2B7E24C65E7 /* main.m in Sources */,
+				DCD97F73784BC6436C7EAB7C /* HyaloApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		2D67B1974BF263234322DF2F /* Release */ = {
+		2125CB82619316E8443EC19E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ENABLE_MODULES = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				ENABLE_BITCODE = NO;
-				"HEADER_SEARCH_PATHS[sdk=iphoneos*]" = (
+				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../ios-deps/include",
-				);
-				"HEADER_SEARCH_PATHS[sdk=iphonesimulator*]" = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/../../ios-sim-deps/include",
+					"$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src",
+					"$(SRCROOT)/../../hyalo-feedstock-unified/ios",
 				);
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -182,213 +145,41 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../emacs/src",
-					"$(PROJECT_DIR)/../../emacs/lib",
-				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/../../ios-deps/lib",
-					"$(PROJECT_DIR)/../../emacs/src",
-					"$(PROJECT_DIR)/../../emacs/lib",
-				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/../../ios-sim-deps/lib",
-					"$(PROJECT_DIR)/../../emacs/src",
-					"$(PROJECT_DIR)/../../emacs/lib",
+					"$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src",
+					"$(SRCROOT)/../../hyalo-feedstock-unified/ios-sim-deps/lib",
 				);
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
-					"-lemacs-device",
-					"-lgnu",
-					"-lgnutls",
-					"-lhogweed",
-					"-lnettle",
-					"-lgmp",
-					"-ltasn1",
+					"-force_load",
+					"$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src/libemacs.a",
 					"-lxml2",
 					"-ljansson",
+					"-lgmp",
+					"-lgnutls",
+					"-lnettle",
+					"-ltasn1",
 					"-lz",
-					"-lcompression",
-					"-lsqlite3",
+					"-liconv",
 					"-framework UIKit",
 					"-framework CoreGraphics",
 					"-framework CoreText",
 					"-framework QuartzCore",
-					"-framework Foundation",
 				);
 				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = (
-					"-lemacs",
-					"-lgnu",
-					"-lgnutls",
-					"-lhogweed",
-					"-lnettle",
-					"-lgmp",
-					"-ltasn1",
-					"-lxml2",
-					"-ljansson",
-					"-lz",
-					"-lcompression",
-					"-lsqlite3",
 					"-framework UIKit",
 					"-framework CoreGraphics",
 					"-framework CoreText",
 					"-framework QuartzCore",
-					"-framework Foundation",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.gnu.emacs;
-				PRODUCT_NAME = Emacs;
+				PRODUCT_BUNDLE_IDENTIFIER = org.gnu.hyalo;
+				PRODUCT_NAME = Hyalo;
 				SDKROOT = iphoneos;
-				SWIFT_VERSION = "";
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALID_ARCHS = arm64;
-			};
-			name = Release;
-		};
-		4032DFFC342816F2DB8F8DE9 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_ENTITLEMENTS = EmacsApp.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = H4T77W7K9A;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_OBJC_BRIDGING_HEADER = HyaloApp/BridgingHeader.h;
 				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		ACA3EA5151F123E21796F17D /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ENABLE_MODULES = NO;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				ENABLE_BITCODE = NO;
-				"HEADER_SEARCH_PATHS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/../../ios-deps/include",
-				);
-				"HEADER_SEARCH_PATHS[sdk=iphonesimulator*]" = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/../../ios-sim-deps/include",
-				);
-				INFOPLIST_FILE = Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/../../emacs/src",
-					"$(PROJECT_DIR)/../../emacs/lib",
-				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/../../ios-deps/lib",
-					"$(PROJECT_DIR)/../../emacs/src",
-					"$(PROJECT_DIR)/../../emacs/lib",
-				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/../../ios-sim-deps/lib",
-					"$(PROJECT_DIR)/../../emacs/src",
-					"$(PROJECT_DIR)/../../emacs/lib",
-				);
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
-					"-lemacs-device",
-					"-lgnu",
-					"-lgnutls",
-					"-lhogweed",
-					"-lnettle",
-					"-lgmp",
-					"-ltasn1",
-					"-lxml2",
-					"-ljansson",
-					"-lz",
-					"-lcompression",
-					"-lsqlite3",
-					"-framework UIKit",
-					"-framework CoreGraphics",
-					"-framework CoreText",
-					"-framework QuartzCore",
-					"-framework Foundation",
-				);
-				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = (
-					"-lemacs",
-					"-lgnu",
-					"-lgnutls",
-					"-lhogweed",
-					"-lnettle",
-					"-lgmp",
-					"-ltasn1",
-					"-lxml2",
-					"-ljansson",
-					"-lz",
-					"-lcompression",
-					"-lsqlite3",
-					"-framework UIKit",
-					"-framework CoreGraphics",
-					"-framework CoreText",
-					"-framework QuartzCore",
-					"-framework Foundation",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.gnu.emacs;
-				PRODUCT_NAME = Emacs;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = "";
 				TARGETED_DEVICE_FAMILY = "1,2";
-				VALID_ARCHS = arm64;
 			};
 			name = Debug;
 		};
-		FC6DFC956138D80E3F23F303 /* Debug */ = {
+		BEC2297275CDC605A44D5404 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -421,11 +212,8 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_ENTITLEMENTS = EmacsApp.entitlements;
-				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = H4T77W7K9A;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -442,7 +230,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -454,28 +242,149 @@
 			};
 			name = Debug;
 		};
+		F36FBA266349D0E0A8F9B59D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		FA8A906B99F3EB704165A2E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src",
+					"$(SRCROOT)/../../hyalo-feedstock-unified/ios",
+				);
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src",
+					"$(SRCROOT)/../../hyalo-feedstock-unified/ios-sim-deps/lib",
+				);
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
+					"-force_load",
+					"$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src/libemacs.a",
+					"-lxml2",
+					"-ljansson",
+					"-lgmp",
+					"-lgnutls",
+					"-lnettle",
+					"-ltasn1",
+					"-lz",
+					"-liconv",
+					"-framework UIKit",
+					"-framework CoreGraphics",
+					"-framework CoreText",
+					"-framework QuartzCore",
+				);
+				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = (
+					"-framework UIKit",
+					"-framework CoreGraphics",
+					"-framework CoreText",
+					"-framework QuartzCore",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.gnu.hyalo;
+				PRODUCT_NAME = Hyalo;
+				SDKROOT = iphoneos;
+				SWIFT_OBJC_BRIDGING_HEADER = HyaloApp/BridgingHeader.h;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0BB06438721F89CFC9C14E81 /* Build configuration list for PBXProject "EmacsApp" */ = {
+		2194D8DE6162D91AF1913742 /* Build configuration list for PBXProject "HyaloApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				FC6DFC956138D80E3F23F303 /* Debug */,
-				4032DFFC342816F2DB8F8DE9 /* Release */,
+				BEC2297275CDC605A44D5404 /* Debug */,
+				F36FBA266349D0E0A8F9B59D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		CCA48CDF5A3422F2ACD1B287 /* Build configuration list for PBXNativeTarget "EmacsApp" */ = {
+		C9BCCB2E087C203A10FF7B16 /* Build configuration list for PBXNativeTarget "HyaloApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				ACA3EA5151F123E21796F17D /* Debug */,
-				2D67B1974BF263234322DF2F /* Release */,
+				2125CB82619316E8443EC19E /* Debug */,
+				FA8A906B99F3EB704165A2E1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		4C63E7AD39945E23CB552ED7 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D1D459F35B16D1151E3B124D /* HyaloKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HyaloKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = B45226309F5649DBBB3C157B /* Project object */;
+	rootObject = 7E01AA106C21D7A2D6C77205 /* Project object */;
 }

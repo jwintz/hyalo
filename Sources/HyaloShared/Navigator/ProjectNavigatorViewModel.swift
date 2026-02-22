@@ -14,7 +14,7 @@ import OrderedCollections
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class ProjectNavigatorViewModel {
+public final class ProjectNavigatorViewModel {
     // MARK: - File Tree State
 
     /// The FileNavigatorViewState from the ProjectNavigator package.
@@ -22,44 +22,44 @@ final class ProjectNavigatorViewModel {
     var viewState: FileNavigatorViewState<HyaloFilePayload>
 
     /// Git status map: absolute path -> status code ("M", "A", "D", "?", "R")
-    var gitStatus: [String: String] = [:]
+    public var gitStatus: [String: String] = [:]
 
     /// Aggregate git status for folders: folder UUID -> highest-priority status
     /// among all descendant files. Computed once per tree rebuild.
-    var folderGitStatus: [UUID: String] = [:]
+    public var folderGitStatus: [UUID: String] = [:]
 
     // MARK: - Filter State
 
-    var filterText: String = "" {
+    public var filterText: String = "" {
         didSet { applyFilters() }
     }
 
-    var sortFoldersOnTop: Bool = true {
+    public var sortFoldersOnTop: Bool = true {
         didSet { rebuildFileTree() } // Re-scan to apply sort order if needed, or re-apply
     }
 
-    var sourceControlFilter: Bool = false {
+    public var sourceControlFilter: Bool = false {
         didSet { applyFilters() }
     }
 
     // MARK: - Project State
 
     /// Current project root directory.
-    private(set) var projectRoot: String?
+    public private(set) var projectRoot: String?
 
     /// The master root item (unfiltered, non-proxy)
     private var masterRootItem: FullFileOrFolder<HyaloFilePayload>?
 
     /// The active file path (set by Emacs on buffer switch).
-    var activeFilePath: String?
+    public var activeFilePath: String?
 
     // MARK: - Callbacks
 
-    var onFileSelect: ((String) -> Void)?
+    public var onFileSelect: ((String) -> Void)?
 
     // MARK: - Initialization
 
-    init() {
+    public init() {
         self.viewState = FileNavigatorViewState<HyaloFilePayload>()
     }
 
@@ -68,7 +68,7 @@ final class ProjectNavigatorViewModel {
     /// Set the project root and rebuild the file tree from the filesystem.
     /// Rejects the user home directory and filesystem root as project roots
     /// because scanning them recursively would freeze the UI.
-    func setProjectRoot(_ root: String) {
+    public func setProjectRoot(_ root: String) {
         guard root != projectRoot else { return }
 
         let normalized = (root as NSString).standardizingPath
@@ -83,7 +83,7 @@ final class ProjectNavigatorViewModel {
 
     /// Rebuild the file tree from the current project root.
     /// Also refreshes git status.
-    func rebuildFileTree() {
+    public func rebuildFileTree() {
         guard let root = projectRoot else { return }
 
         // Build git status map (single subprocess call)
@@ -188,7 +188,7 @@ final class ProjectNavigatorViewModel {
 
     /// Set the active file and update selection to match.
     /// Expands all ancestor directories so the file is visible in the tree.
-    func setActiveFile(_ path: String) {
+    public func setActiveFile(_ path: String) {
         let oldActive = activeFilePath
         let oldSelection = viewState.selection
         activeFilePath = path
@@ -238,7 +238,7 @@ final class ProjectNavigatorViewModel {
     // MARK: - Actions
     // Swift does NOT modify local state.  Emacs is the single source of truth.
 
-    func selectFile(_ path: String) {
+    public func selectFile(_ path: String) {
         onFileSelect?(path)
     }
 

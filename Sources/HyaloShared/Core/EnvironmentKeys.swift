@@ -33,7 +33,7 @@ private struct ColorThemeKey: @preconcurrency EnvironmentKey {
 
 // MARK: - Environment Values Extensions
 
-extension EnvironmentValues {
+public extension EnvironmentValues {
     var projectNavigatorViewModel: ProjectNavigatorViewModel? {
         get { self[ProjectNavigatorViewModelKey.self] }
         set { self[ProjectNavigatorViewModelKey.self] = newValue }

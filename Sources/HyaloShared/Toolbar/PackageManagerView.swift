@@ -10,43 +10,43 @@ import SwiftUI
 // MARK: - Package Status Model
 
 @available(macOS 26.0, iOS 26.0, *)
-enum PackageOperation: String, Codable {
+public enum PackageOperation: String, Codable {
     case idle
     case refreshing
     case upgrading
 }
 
 @available(macOS 26.0, iOS 26.0, *)
-struct UpgradablePackage: Codable, Identifiable {
-    let name: String
-    let installed: String
-    let available: String
-    let archive: String
+public struct UpgradablePackage: Codable, Identifiable {
+    public let name: String
+    public let installed: String
+    public let available: String
+    public let archive: String
 
-    var id: String { name }
+    public var id: String { name }
 }
 
 @available(macOS 26.0, iOS 26.0, *)
-struct VCPackage: Codable, Identifiable {
-    let name: String
-    let version: String
+public struct VCPackage: Codable, Identifiable {
+    public let name: String
+    public let version: String
 
-    var id: String { name }
+    public var id: String { name }
 }
 
 @available(macOS 26.0, iOS 26.0, *)
-struct PackageStatusPayload: Codable {
-    let status: String
-    let upgradable: [UpgradablePackage]
-    let vcPackages: [VCPackage]
-    let lastChecked: String?
+public struct PackageStatusPayload: Codable {
+    public let status: String
+    public let upgradable: [UpgradablePackage]
+    public let vcPackages: [VCPackage]
+    public let lastChecked: String?
 }
 
 // MARK: - Package Manager View
 
 @available(macOS 26.0, iOS 26.0, *)
-struct PackageManagerView: View {
-    @Bindable var viewModel: ToolbarViewModel
+public struct PackageManagerView: View {
+    @Bindable public var viewModel: ToolbarViewModel
 
     @Environment(\.controlActiveState)
     private var activeState
@@ -63,7 +63,7 @@ struct PackageManagerView: View {
         viewModel.packageOperation != .idle
     }
 
-    var body: some View {
+    public var body: some View {
         Button {
             showPopover.toggle()
         } label: {
@@ -99,6 +99,10 @@ struct PackageManagerView: View {
         .popover(isPresented: $showPopover, arrowEdge: .bottom) {
             PackagePopoverContent(viewModel: viewModel)
         }
+    }
+
+    public init(viewModel: ToolbarViewModel) {
+        self.viewModel = viewModel
     }
 
     private var helpText: String {

@@ -12,6 +12,9 @@ struct HyaloiOSNavigationLayout: View {
     var editorTabViewModel: EditorTabViewModel?
     var utilityAreaViewModel: UtilityAreaViewModel?
 
+    @Binding var showCommandPalette: Bool
+    @Binding var showOpenQuickly: Bool
+
     @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
     @State private var didAppear = false
 
@@ -20,7 +23,6 @@ struct HyaloiOSNavigationLayout: View {
             NavigatorAreaView(workspace: workspace)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 280, max: 400)
         } detail: {
-            // Editor area with Emacs view
             VStack(spacing: 0) {
                 if let editorTabViewModel {
                     EditorTabBarView(
@@ -63,6 +65,20 @@ struct HyaloiOSNavigationLayout: View {
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
+                    showOpenQuickly = true
+                } label: {
+                    Image(systemName: "doc.text.magnifyingglass")
+                }
+                .keyboardShortcut("o", modifiers: .command)
+
+                Button {
+                    showCommandPalette = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .keyboardShortcut("p", modifiers: .command)
+
+                Button {
                     withAnimation(.easeInOut(duration: 0.15)) {
                         workspace.inspectorVisible.toggle()
                     }
@@ -78,6 +94,29 @@ struct HyaloiOSNavigationLayout: View {
                     Image(systemName: "square.bottomthird.inset.filled")
                 }
             }
+        }
+        .sheet(isPresented: $showOpenQuickly) {
+            OpenQuicklyView(
+                viewModel: HyaloiOSModule.shared.openQuicklyViewModel,
+                onClose: { showOpenQuickly = false },
+                openFile: { item in
+                    NavigatorManager.shared.setActiveFile(item.path)
+                    HyaloiOSModule.shared.onOpenFile?(item.path)
+                    showOpenQuickly = false
+                }
+            )
+            .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showCommandPalette) {
+            CommandPaletteView(
+                viewModel: HyaloiOSModule.shared.commandPaletteViewModel,
+                onClose: { showCommandPalette = false },
+                executeCommand: { command in
+                    HyaloiOSModule.shared.onExecuteCommand?(command.name)
+                    showCommandPalette = false
+                }
+            )
+            .presentationDetents([.medium, .large])
         }
         .background(.regularMaterial)
         .onAppear {
@@ -116,11 +155,10 @@ struct HyaloiOSNavigationLayout: View {
 
 // MARK: - Root View
 
-/// Root view for the Hyalo iOS app.
-/// Shows a loading screen until Emacs is ready, then the full IDE layout.
 @available(iOS 26.0, *)
 public struct HyaloRootView: View {
     @State private var module = HyaloiOSModule.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     public init() {}
 
@@ -132,7 +170,10 @@ public struct HyaloRootView: View {
             case .running:
                 HyaloiOSNavigationLayout(
                     workspace: module.workspace,
-                    emacsView: nil // TODO: Receive from iosterm.m
+                    emacsView: module.emacsView,
+                    editorTabViewModel: module.editorTabViewModel,
+                    showCommandPalette: $module.showCommandPalette,
+                    showOpenQuickly: $module.showOpenQuickly
                 )
             case .failed(let message):
                 VStack(spacing: 12) {
@@ -150,6 +191,26 @@ public struct HyaloRootView: View {
         .onAppear {
             module.start()
         }
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .active:
+                module.lifecycle.resume()
+            case .background:
+                module.lifecycle.suspend()
+                module.workspace.saveAppearance()
+            case .inactive:
+                break
+            @unknown default:
+                break
+            }
+        }
+        .preferredColorScheme({
+            switch module.workspace.windowAppearance {
+            case "light": return .light
+            case "dark": return .dark
+            default: return nil
+            }
+        }())
     }
 }
 

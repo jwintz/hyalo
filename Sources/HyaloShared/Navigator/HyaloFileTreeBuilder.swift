@@ -10,7 +10,7 @@ import Files
 
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
-enum HyaloFileTreeBuilder {
+public enum HyaloFileTreeBuilder {
 
     /// Directories to exclude from the file tree.
     private static let excludedDirectories: Set<String> = [
@@ -24,7 +24,7 @@ enum HyaloFileTreeBuilder {
     ///   - root: Absolute path to the project root directory.
     ///   - maxDepth: Maximum recursion depth (default 10).
     /// - Returns: A populated FileTree, or nil if the directory is unreadable.
-    static func buildFileTree(
+    public static func buildFileTree(
         root: String,
         maxDepth: Int = 10,
         foldersOnTop: Bool = true
@@ -36,7 +36,7 @@ enum HyaloFileTreeBuilder {
     }
 
     /// Build a root FileOrFolder item from a filesystem directory.
-    static func buildFullFileTree(
+    public static func buildFullFileTree(
         root: String,
         maxDepth: Int = 10,
         foldersOnTop: Bool = true
@@ -54,33 +54,28 @@ enum HyaloFileTreeBuilder {
     ///
     /// - Parameter root: Absolute path to the project root directory.
     /// - Returns: Dictionary mapping absolute file paths to status codes ("M", "A", "D", "?", "R").
-    static func gitStatusMap(root: String) -> [String: String] {
+    public static func gitStatusMap(root: String) -> [String: String] {
+#if os(macOS)
         // Verify .git directory exists before spawning a subprocess
         let gitDir = (root as NSString).appendingPathComponent(".git")
         guard FileManager.default.fileExists(atPath: gitDir) else { return [:] }
-
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
         process.arguments = ["status", "--porcelain"]
         process.currentDirectoryURL = URL(fileURLWithPath: root)
-
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
-
         do {
             try process.run()
             process.waitUntilExit()
         } catch {
             return [:]
         }
-
         // Non-zero exit (e.g., corrupt repo) — return empty
         guard process.terminationStatus == 0 else { return [:] }
-
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         guard let output = String(data: data, encoding: .utf8) else { return [:] }
-
         var result: [String: String] = [:]
         for line in output.components(separatedBy: "\n") where line.count >= 4 {
             let code = String(line.prefix(2))
@@ -103,6 +98,11 @@ enum HyaloFileTreeBuilder {
             }
         }
         return result
+#else
+        // Process (subprocess spawning) is not available on iOS.
+        // Git status is a macOS-only feature.
+        return [:]
+#endif
     }
 
     // MARK: - Private

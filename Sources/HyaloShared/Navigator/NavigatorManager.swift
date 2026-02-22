@@ -6,48 +6,48 @@ import Foundation
 
 // MARK: - Data Models
 
-struct BufferInfo: Codable, Identifiable, Hashable {
-    let id: String
-    let name: String
-    let path: String?
-    let modified: Bool
-    let icon: String?
+public struct BufferInfo: Codable, Identifiable, Hashable {
+    public let id: String
+    public let name: String
+    public let path: String?
+    public let modified: Bool
+    public let icon: String?
 }
 
-struct SearchResult: Codable, Identifiable, Hashable {
-    let id: String
-    let file: String
-    let line: Int
-    let column: Int
-    let text: String
-    let matchRange: String?
+public struct SearchResult: Codable, Identifiable, Hashable {
+    public let id: String
+    public let file: String
+    public let line: Int
+    public let column: Int
+    public let text: String
+    public let matchRange: String?
 }
 
 // MARK: - Source Control Models
 
-struct GitChangedFile: Codable, Identifiable, Hashable {
-    let id: String
-    let fileName: String
-    let filePath: String
-    let status: String      // "M", "A", "D", "?", "R"
-    let isStaged: Bool
+public struct GitChangedFile: Codable, Identifiable, Hashable {
+    public let id: String
+    public let fileName: String
+    public let filePath: String
+    public let status: String      // "M", "A", "D", "?", "R"
+    public let isStaged: Bool
 }
 
-struct GitCommitEntry: Codable, Identifiable, Hashable {
-    let id: String
-    let hash: String
-    let fullHash: String
-    let message: String
-    let author: String
-    let authorEmail: String
-    let date: String
-    let refs: [String]
-    let tag: String
+public struct GitCommitEntry: Codable, Identifiable, Hashable {
+    public let id: String
+    public let hash: String
+    public let fullHash: String
+    public let message: String
+    public let author: String
+    public let authorEmail: String
+    public let date: String
+    public let refs: [String]
+    public let tag: String
 }
 
 // MARK: - Find Status
 
-enum FindStatus {
+public enum FindStatus {
     case none
     case searching
     case found
@@ -59,53 +59,55 @@ enum FindStatus {
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class NavigatorViewModel {
-    var selectedTab: NavigatorTab? = .project
-    var tabItems: [NavigatorTab] = NavigatorTab.allCases
+public final class NavigatorViewModel {
+    public var selectedTab: NavigatorTab? = .project
+    public var tabItems: [NavigatorTab] = NavigatorTab.allCases
 
     // DEPRECATED: Use BufferListViewModel instead
-    var bufferFilter: String = ""
-    var bufferList: [BufferInfo] = []
-    var selectedBuffer: String?
-    var activeBuffer: String?
+    public var bufferFilter: String = ""
+    public var bufferList: [BufferInfo] = []
+    public var selectedBuffer: String?
+    public var activeBuffer: String?
 
     // DEPRECATED: Use SearchViewModel instead
-    var searchQuery: String = ""
-    var searchResults: [SearchResult] = []
-    var findStatus: FindStatus = .none
-    var searchResultCount: Int = 0
-    var searchFileCount: Int = 0
+    public var searchQuery: String = ""
+    public var searchResults: [SearchResult] = []
+    public var findStatus: FindStatus = .none
+    public var searchResultCount: Int = 0
+    public var searchFileCount: Int = 0
 
     // DEPRECATED: Use SourceControlViewModel instead
-    var changedFiles: [GitChangedFile] = []
-    var commitHistory: [GitCommitEntry] = []
+    public var changedFiles: [GitChangedFile] = []
+    public var commitHistory: [GitCommitEntry] = []
+
+    public init() {}
 }
 
 // MARK: - Navigator Manager
 
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
-final class NavigatorManager {
-    static let shared = NavigatorManager()
+public final class NavigatorManager {
+    public static let shared = NavigatorManager()
 
     // Legacy view model (transitioning to focused view models)
-    let viewModel = NavigatorViewModel()
+    public let viewModel = NavigatorViewModel()
 
     // Focused view models
-    let projectNavigatorViewModel = ProjectNavigatorViewModel()
-    let bufferListViewModel = BufferListViewModel()
-    let searchViewModel = SearchViewModel()
-    let sourceControlViewModel = SourceControlViewModel()
+    public let projectNavigatorViewModel = ProjectNavigatorViewModel()
+    public let bufferListViewModel = BufferListViewModel()
+    public let searchViewModel = SearchViewModel()
+    public let sourceControlViewModel = SourceControlViewModel()
 
     // Callbacks to Emacs (set by channel)
-    var onBufferSelect: ((String) -> Void)?
-    var onBufferClose: ((String) -> Void)?
-    var onBufferSave: ((String) -> Void)?
-    var onFileSelect: ((String) -> Void)?
-    var onSearchExecute: ((String) -> Void)?
-    var onSearchResultSelect: ((String, Int, Int) -> Void)?
-    var onCommitSelect: ((String) -> Void)?
-    var onChangedFileSelect: ((String) -> Void)?
+    public var onBufferSelect: ((String) -> Void)?
+    public var onBufferClose: ((String) -> Void)?
+    public var onBufferSave: ((String) -> Void)?
+    public var onFileSelect: ((String) -> Void)?
+    public var onSearchExecute: ((String) -> Void)?
+    public var onSearchResultSelect: ((String, Int, Int) -> Void)?
+    public var onCommitSelect: ((String) -> Void)?
+    public var onChangedFileSelect: ((String) -> Void)?
 
     private init() {
         // Wire up focused view model callbacks
@@ -133,7 +135,7 @@ final class NavigatorManager {
 
     // MARK: - Updates from Emacs
 
-    func updateBufferList(_ buffers: [BufferInfo]) {
+    public func updateBufferList(_ buffers: [BufferInfo]) {
         // Update both legacy and focused view models during transition
         let incoming = Dictionary(uniqueKeysWithValues: buffers.map { ($0.id, $0) })
         var result = viewModel.bufferList.compactMap { existing -> BufferInfo? in
@@ -151,67 +153,67 @@ final class NavigatorManager {
 
     /// Set the project root directory and rebuild the file tree in Swift.
     /// Called from Emacs when the project root changes.
-    func setProjectRoot(_ root: String) {
+    public func setProjectRoot(_ root: String) {
         projectNavigatorViewModel.setProjectRoot(root)
     }
 
     /// Refresh the file tree from the current project root.
     /// Called from Emacs on navigator-refresh.
-    func refreshFileTree() {
+    public func refreshFileTree() {
         projectNavigatorViewModel.rebuildFileTree()
     }
 
-    func updateSearchResults(_ results: [SearchResult]) {
+    public func updateSearchResults(_ results: [SearchResult]) {
         viewModel.searchResults = results
         searchViewModel.results = results
     }
 
-    func setActiveBuffer(_ name: String) {
+    public func setActiveBuffer(_ name: String) {
         viewModel.selectedBuffer = name
         bufferListViewModel.setActiveBuffer(name)
     }
 
-    func setActiveFile(_ path: String) {
+    public func setActiveFile(_ path: String) {
         projectNavigatorViewModel.setActiveFile(path)
     }
 
     // MARK: - Actions to Emacs
 
-    func selectBuffer(_ bufferName: String) {
+    public func selectBuffer(_ bufferName: String) {
         onBufferSelect?(bufferName)
     }
 
-    func closeBuffer(_ bufferName: String) {
+    public func closeBuffer(_ bufferName: String) {
         onBufferClose?(bufferName)
     }
 
-    func selectFile(_ filePath: String) {
+    public func selectFile(_ filePath: String) {
         onFileSelect?(filePath)
     }
 
-    func executeSearch(_ query: String) {
+    public func executeSearch(_ query: String) {
         viewModel.findStatus = .searching
         searchViewModel.status = .searching
         onSearchExecute?(query)
     }
 
-    func saveBuffer(_ bufferName: String) {
+    public func saveBuffer(_ bufferName: String) {
         onBufferSave?(bufferName)
     }
 
     // MARK: - Source Control Updates
 
-    func updateChangedFiles(_ files: [GitChangedFile]) {
+    public func updateChangedFiles(_ files: [GitChangedFile]) {
         viewModel.changedFiles = files
         sourceControlViewModel.updateChangedFiles(files)
     }
 
-    func updateCommitHistory(_ commits: [GitCommitEntry]) {
+    public func updateCommitHistory(_ commits: [GitCommitEntry]) {
         viewModel.commitHistory = commits
         sourceControlViewModel.updateCommitHistory(commits)
     }
 
-    func updateSearchStatus(resultCount: Int, fileCount: Int) {
+    public func updateSearchStatus(resultCount: Int, fileCount: Int) {
         viewModel.searchResultCount = resultCount
         viewModel.searchFileCount = fileCount
         viewModel.findStatus = resultCount > 0 ? .found : .noResults

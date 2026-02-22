@@ -1,25 +1,25 @@
 #!/bin/bash
 set -e
 
-echo "=== Building Hyalo for iOS Simulator ==="
+FEEDSTOCK="$HOME/Syntropment/hyalo-feedstock-unified"
+IOS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD_DIR="$IOS_DIR/build-ios"
 
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FEEDSTOCK_DIR="$PROJECT_DIR/../hyalo-feedstock-unified"
-BUILD_DIR="$PROJECT_DIR/build"
+mkdir -p "$IOS_DIR/HyaloApp/Resources"
 
-echo "Project dir: $PROJECT_DIR"
-echo "Build dir: $BUILD_DIR"
+cp -R "$FEEDSTOCK/ios/Resources/lisp" "$IOS_DIR/HyaloApp/Resources/"
+cp -R "$FEEDSTOCK/ios/Resources/etc" "$IOS_DIR/HyaloApp/Resources/"
+cp "$FEEDSTOCK/ios/Resources/bootstrap-emacs.pdmp" "$IOS_DIR/HyaloApp/Resources/"
+cp -R "$IOS_DIR/../init" "$IOS_DIR/HyaloApp/Resources/"
+cp "$IOS_DIR/../lisp/hyalo-ios.el" "$IOS_DIR/HyaloApp/Resources/lisp/"
+cp "$IOS_DIR/../lisp/hyalo-channels-ios.el" "$IOS_DIR/HyaloApp/Resources/lisp/"
 
-# Create build directory
-mkdir -p "$BUILD_DIR"
+xcodegen generate
 
-# Build with xcodebuild directly
 xcodebuild \
-    -project "$PROJECT_DIR/HyaloApp.xcodeproj" \
+    -project HyaloApp.xcodeproj \
     -scheme HyaloApp \
     -configuration Debug \
     -destination "platform=iOS Simulator,name=iPad Pro 13-inch (M5)" \
     -derivedDataPath "$BUILD_DIR/DerivedData" \
-    build 2>&1 | tee "$BUILD_DIR/build.log"
-
-echo "=== Build complete ==="
+    build

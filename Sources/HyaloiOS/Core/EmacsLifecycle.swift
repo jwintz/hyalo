@@ -2,6 +2,7 @@
 // Manages the background Emacs thread and environment setup.
 
 import Foundation
+import UIKit
 import SwiftUI
 
 /// Emacs lifecycle state machine.
@@ -49,6 +50,12 @@ final class EmacsLifecycle {
         state = .starting
 
         setupEnvironment()
+        // ios_connect_frame_to_window crashes if ios_main_window is nil.
+        // start() is @MainActor so we can safely access the window scene here.
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = scene.windows.first {
+            ios_set_main_window(window)
+        }
 
         let bundlePath = Bundle.main.bundlePath
         let docsPath = NSSearchPathForDirectoriesInDomains(
@@ -107,4 +114,21 @@ final class EmacsLifecycle {
         emacsThread?.name = "emacs-main"
         emacsThread?.start()
     }
+
+    // MARK: - Scene Lifecycle
+
+    /// Called when the scene becomes active.
+    /// Wakes the Emacs event loop so it can process pending input.
+    func resume() {
+        guard case .running = state else { return }
+        ios_signal_event_available()
+    }
+
+    /// Called when the scene enters the background.
+    /// Saves workspace appearance; a future feedstock hook will suspend timers.
+    func suspend() {
+        // No-op until feedstock exposes ios_suspend().
+        // workspace.saveAppearance() is called from HyaloRootView.onChange.
+    }
 }
+

@@ -11,6 +11,7 @@
 // The HyaloToolbar subclass is kept for explicit installation as a named stub.
 
 import AppKit
+import HyaloShared
 
 @available(macOS 26.0, *)
 final class HyaloToolbar: NSToolbar {

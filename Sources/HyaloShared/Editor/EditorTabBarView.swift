@@ -5,11 +5,16 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct EditorTabBarView: View {
-    @Bindable var viewModel: EditorTabViewModel
-    @Bindable var workspace: HyaloWorkspaceState
+public struct EditorTabBarView: View {
+    @Bindable public var viewModel: EditorTabViewModel
+    @Bindable public var workspace: HyaloWorkspaceState
 
-    var body: some View {
+    public init(viewModel: EditorTabViewModel, workspace: HyaloWorkspaceState) {
+        self.viewModel = viewModel
+        self.workspace = workspace
+    }
+
+    public var body: some View {
         VStack(spacing: 0) {
             Divider()
             HStack(spacing: 0) {

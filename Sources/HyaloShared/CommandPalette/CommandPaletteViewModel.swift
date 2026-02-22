@@ -7,24 +7,25 @@ import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
 @Observable
-final class CommandPaletteViewModel {
-    var searchText: String = ""
-    var selectedCommand: CommandItem?
-    var commands: [CommandItem] = []
-    var filteredCommands: [CommandItem] = []
-    var recentCommands: [CommandItem] = []
+public final class CommandPaletteViewModel {
+    public init() { }
+    public var searchText: String = ""
+    public var selectedCommand: CommandItem?
+    public var commands: [CommandItem] = []
+    public var filteredCommands: [CommandItem] = []
+    public var recentCommands: [CommandItem] = []
 
-    var onExecute: ((CommandItem) -> Void)?
-    var onClose: (() -> Void)?
+    public var onExecute: ((CommandItem) -> Void)?
+    public var onClose: (() -> Void)?
 
     // MARK: - Data Updates
 
-    func updateCommands(_ newCommands: [CommandItem]) {
+    public func updateCommands(_ newCommands: [CommandItem]) {
         commands = newCommands
         filterCommands()
     }
 
-    func updateCommands(from jsonData: Data) {
+    public func updateCommands(from jsonData: Data) {
         do {
             let decoded = try JSONDecoder().decode([CommandItem].self, from: jsonData)
             updateCommands(decoded)
@@ -35,7 +36,7 @@ final class CommandPaletteViewModel {
 
     // MARK: - Filtering
 
-    func filterCommands() {
+    public func filterCommands() {
         if searchText.isEmpty {
             filteredCommands = recentCommands + commands.filter { cmd in
                 !recentCommands.contains(where: { $0.name == cmd.name })
@@ -49,7 +50,7 @@ final class CommandPaletteViewModel {
 
     // MARK: - Execution
 
-    func executeCommand(_ command: CommandItem) {
+    public func executeCommand(_ command: CommandItem) {
         if !recentCommands.contains(where: { $0.name == command.name }) {
             recentCommands.insert(command, at: 0)
             if recentCommands.count > 10 {
@@ -59,7 +60,7 @@ final class CommandPaletteViewModel {
         onExecute?(command)
     }
 
-    func executeCurrent() {
+    public func executeCurrent() {
         if let cmd = selectedCommand {
             executeCommand(cmd)
         } else if let first = filteredCommands.first {
@@ -69,7 +70,7 @@ final class CommandPaletteViewModel {
 
     // MARK: - Navigation
 
-    func selectNext() {
+    public func selectNext() {
         guard let current = selectedCommand,
               let index = filteredCommands.firstIndex(where: { $0.id == current.id }),
               index < filteredCommands.count - 1 else {
@@ -79,7 +80,7 @@ final class CommandPaletteViewModel {
         selectedCommand = filteredCommands[index + 1]
     }
 
-    func selectPrevious() {
+    public func selectPrevious() {
         guard let current = selectedCommand,
               let index = filteredCommands.firstIndex(where: { $0.id == current.id }),
               index > 0 else {

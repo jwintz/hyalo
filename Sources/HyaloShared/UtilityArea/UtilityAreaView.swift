@@ -5,13 +5,24 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct UtilityAreaView: View {
-    @Bindable var viewModel: UtilityAreaViewModel
-    @Bindable var workspace: HyaloWorkspaceState
+public struct UtilityAreaView: View {
+    @Bindable public var viewModel: UtilityAreaViewModel
+    @Bindable public var workspace: HyaloWorkspaceState
+    private let terminalContent: () -> AnyView
+
+    public init(
+        viewModel: UtilityAreaViewModel,
+        workspace: HyaloWorkspaceState,
+        terminalContent: @escaping () -> AnyView = { AnyView(EmptyView()) }
+    ) {
+        self.viewModel = viewModel
+        self.workspace = workspace
+        self.terminalContent = terminalContent
+    }
     @State private var tabItems: [UtilityAreaTab] = UtilityAreaTab.allCases
     @Environment(\.colorTheme) private var theme
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 0) {
             PanelDivider()
 
@@ -68,10 +79,7 @@ struct UtilityAreaView: View {
     private func tabContent(for tab: UtilityAreaTab) -> some View {
         switch tab {
         case .terminal:
-            // Read palette version in the view body so SwiftUI tracks it
-            // and re-creates UtilityAreaTerminalView when the palette changes.
-            let _ = TerminalPalette.shared.version
-            UtilityAreaTerminalView(holder: viewModel.terminalHolder)
+            terminalContent()
         case .diagnostics:
             DiagnosticsView(viewModel: viewModel.diagnosticsViewModel)
         }

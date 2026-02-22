@@ -9,6 +9,7 @@
 
 import AppKit
 import SwiftUI
+import HyaloShared
 
 @available(macOS 26.0, *)
 final class HyaloWindowController: NSWindowController {
@@ -310,5 +311,4 @@ extension HyaloWindowController: NSWindowDelegate {
         observers.removeAll()
     }
 }
-
 

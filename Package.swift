@@ -34,6 +34,10 @@ let package = Package(
         .package(
             url: "https://github.com/mchakravarty/ProjectNavigator.git",
             from: "1.0.0"
+        ),
+        .package(
+            url: "https://github.com/yonaskolb/XcodeGen.git",
+            from: "2.44.1"
         )
     ],
     targets: [
@@ -71,12 +75,19 @@ let package = Package(
         .target(
             name: "HyaloKit",
             dependencies: [
-                "HyaloShared"
+                "HyaloShared",
+                .target(name: "HyaloEmacsStubs")
             ],
             path: "Sources/HyaloiOS",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]
+        ),
+
+        .target(
+            name: "HyaloEmacsStubs",
+            path: "Sources/HyaloEmacsStubs",
+            publicHeadersPath: ""
         )
     ]
 )

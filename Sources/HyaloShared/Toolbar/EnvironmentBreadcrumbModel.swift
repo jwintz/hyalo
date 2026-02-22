@@ -12,24 +12,24 @@ import SwiftUI
 
 // MARK: - Codable payloads (matching JSON from hyalo-environment.el)
 
-struct UserHostInfo: Codable, Identifiable, Equatable {
-    var username: String
-    var hostname: String
+public struct UserHostInfo: Codable, Identifiable, Equatable {
+    public var username: String
+    public var hostname: String
     
-    var id: String { "\(username)@\(hostname)" }
-    var displayName: String { "\(username)@\(hostname)" }
+    public var id: String { "\(username)@\(hostname)" }
+    public var displayName: String { "\(username)@\(hostname)" }
 }
 
-struct DevEnvironment: Codable, Identifiable, Equatable {
-    var type: String
-    var name: String
-    var icon: String
-    var isActive: Bool?
-    var path: String?
+public struct DevEnvironment: Codable, Identifiable, Equatable {
+    public var type: String
+    public var name: String
+    public var icon: String
+    public var isActive: Bool?
+    public var path: String?
     
-    var id: String { type }
+    public var id: String { type }
     
-    var displayIcon: String {
+    public var displayIcon: String {
         // Map to SF Symbols, fallback to circle.fill
         switch type {
         case "pixi": return "puzzlepiece.extension.fill"
@@ -50,43 +50,43 @@ struct DevEnvironment: Codable, Identifiable, Equatable {
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class EnvironmentBreadcrumbModel {
-    static let shared = EnvironmentBreadcrumbModel()
+public final class EnvironmentBreadcrumbModel {
+    public static let shared = EnvironmentBreadcrumbModel()
     
     // Segment 1: User/Host
-    var userHost: UserHostInfo?
+    public var userHost: UserHostInfo?
     
     // Segment 2: Environments
-    var environments: [DevEnvironment] = []
+    public var environments: [DevEnvironment] = []
     
-    var primaryEnvironment: DevEnvironment? {
+    public var primaryEnvironment: DevEnvironment? {
         environments.first(where: { $0.isActive == true }) ?? environments.first
     }
     
-    var activeEnvironments: [DevEnvironment] {
+    public var activeEnvironments: [DevEnvironment] {
         environments.filter { $0.isActive == true }
     }
     
-    var inactiveEnvironments: [DevEnvironment] {
+    public var inactiveEnvironments: [DevEnvironment] {
         environments.filter { $0.isActive != true }
     }
     
     // Callbacks wired by channel setup in Module.swift
-    var onEnvironmentSwitch: ((String) -> Void)?
-    var onOpenTerminal: (() -> Void)?
-    var onCopySSHCommand: (() -> Void)?
-    var onSSHHost: (() -> Void)?
+    public var onEnvironmentSwitch: ((String) -> Void)?
+    public var onOpenTerminal: (() -> Void)?
+    public var onCopySSHCommand: (() -> Void)?
+    public var onSSHHost: (() -> Void)?
     
     // MARK: - Updates from Emacs
     
-    func updateUserHost(from json: String) {
+    public func updateUserHost(from json: String) {
         guard let data = json.data(using: .utf8),
               let decoded = try? JSONDecoder().decode(UserHostInfo.self, from: data)
         else { return }
         userHost = decoded
     }
     
-    func updateEnvironments(from json: String) {
+    public func updateEnvironments(from json: String) {
         guard let data = json.data(using: .utf8),
               let decoded = try? JSONDecoder().decode([DevEnvironment].self, from: data)
         else { return }

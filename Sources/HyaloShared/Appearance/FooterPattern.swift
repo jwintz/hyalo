@@ -5,7 +5,7 @@ import SwiftUI
 
 // MARK: - Footer Pattern
 
-enum FooterPattern: String, CaseIterable {
+public enum FooterPattern: String, CaseIterable {
     case none = "none"
     case hideout = "hideout"
     case topography = "topography"
@@ -13,11 +13,11 @@ enum FooterPattern: String, CaseIterable {
 }
 
 @available(macOS 26.0, iOS 26.0, *)
-struct FooterPatternView: View {
-    let pattern: FooterPattern
-    let alpha: CGFloat
+public struct FooterPatternView: View {
+    public let pattern: FooterPattern
+    public let alpha: CGFloat
 
-    var body: some View {
+    public var body: some View {
         if pattern != .none {
             Canvas { context, size in
                 drawPattern(context: context, size: size)

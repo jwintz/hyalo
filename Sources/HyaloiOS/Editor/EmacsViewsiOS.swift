@@ -7,7 +7,7 @@ import UIKit
 /// Container UIView that clips and manages the Emacs rendering view.
 class EmacsContainerViewiOS: UIView {
     weak var emacsView: UIView?
-
+    override var canBecomeFirstResponder: Bool { true }
     override func layoutSubviews() {
         super.layoutSubviews()
         // Defer resize to avoid glyph matrix corruption during animation
@@ -16,11 +16,19 @@ class EmacsContainerViewiOS: UIView {
             self?.emacsView?.frame = targetFrame
         }
     }
-
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         // Ensure touches reach the Emacs view
         guard bounds.contains(point) else { return nil }
         return emacsView ?? super.hitTest(point, with: event)
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        // Once embedded in a window, make the Emacs view first responder
+        // so hardware keyboard events (pressesBegan/pressesEnded) are routed to it.
+        if window != nil {
+            emacsView?.becomeFirstResponder()
+        }
     }
 }
 
@@ -47,7 +55,10 @@ struct EmacsUIViewRepresentable: UIViewRepresentable {
             emacsView.removeFromSuperview()
             uiView.addSubview(emacsView)
             uiView.emacsView = emacsView
+
             uiView.setNeedsLayout()
+            // Re-assert first responder after re-parenting
+            emacsView.becomeFirstResponder()
         }
     }
 }

@@ -5,6 +5,7 @@
 import AppKit
 import SwiftTerm
 import SwiftUI
+import HyaloShared
 
 /// Holds a persistent TerminalContainerView for a single frame's utility area.
 /// Each window controller owns its own holder via UtilityAreaViewModel,

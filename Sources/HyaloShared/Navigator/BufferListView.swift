@@ -6,13 +6,13 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct BufferListView: View {
+public struct BufferListView: View {
     @State private var viewModel = NavigatorManager.shared.bufferListViewModel
     @State private var selection: String?
     @State private var hoveredBufferId: String?
     @Environment(\.colorTheme) private var theme
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 0) {
             if viewModel.filteredBuffers.isEmpty {
                 HyaloContentUnavailableView(

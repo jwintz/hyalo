@@ -9,14 +9,14 @@ import Files
 import ProjectNavigator
 
 @available(macOS 26.0, iOS 26.0, *)
-struct HyaloProjectNavigator: View {
-    @Bindable var viewState: FileNavigatorViewState<HyaloFilePayload>
-    let gitStatus: [String: String]
-    let folderGitStatus: [UUID: String]
-    let onFileSelect: (String) -> Void
-    var filter: (String) -> Bool = { _ in true }
+public struct HyaloProjectNavigator: View {
+    @Bindable public var viewState: FileNavigatorViewState<HyaloFilePayload>
+    public let gitStatus: [String: String]
+    public let folderGitStatus: [UUID: String]
+    public let onFileSelect: (String) -> Void
+    public var filter: (String) -> Bool = { _ in true }
 
-    var body: some View {
+    public var body: some View {
         List(selection: $viewState.selection) {
             FileNavigator(
                 name: nil as String?,

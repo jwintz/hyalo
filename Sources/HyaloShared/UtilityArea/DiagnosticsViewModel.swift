@@ -6,12 +6,12 @@ import Foundation
 
 // MARK: - Diagnostic Severity
 
-enum DiagnosticSeverity: String, Codable, Comparable {
+public enum DiagnosticSeverity: String, Codable, Comparable {
     case error = "error"
     case warning = "warning"
     case note = "note"
 
-    var sortOrder: Int {
+    public var sortOrder: Int {
         switch self {
         case .error: return 0
         case .warning: return 1
@@ -19,7 +19,7 @@ enum DiagnosticSeverity: String, Codable, Comparable {
         }
     }
 
-    var systemImage: String {
+    public var systemImage: String {
         switch self {
         case .error: return "xmark.circle.fill"
         case .warning: return "exclamationmark.triangle.fill"
@@ -27,29 +27,29 @@ enum DiagnosticSeverity: String, Codable, Comparable {
         }
     }
 
-    static func < (lhs: DiagnosticSeverity, rhs: DiagnosticSeverity) -> Bool {
+    public static func < (lhs: DiagnosticSeverity, rhs: DiagnosticSeverity) -> Bool {
         lhs.sortOrder < rhs.sortOrder
     }
 }
 
 // MARK: - Diagnostic Item
 
-struct DiagnosticItem: Codable, Identifiable, Hashable {
-    let id: String
-    let file: String
-    let line: Int
-    let column: Int
-    let severity: DiagnosticSeverity
-    let message: String
-    let source: String
+public struct DiagnosticItem: Codable, Identifiable, Hashable {
+    public let id: String
+    public let file: String
+    public let line: Int
+    public let column: Int
+    public let severity: DiagnosticSeverity
+    public let message: String
+    public let source: String
 
     /// Short file name for display
-    var fileName: String {
+    public var fileName: String {
         (file as NSString).lastPathComponent
     }
 
     /// Location string for display: "line:column"
-    var location: String {
+    public var location: String {
         "\(line):\(column)"
     }
 }
@@ -59,23 +59,23 @@ struct DiagnosticItem: Codable, Identifiable, Hashable {
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class DiagnosticsViewModel {
-    var diagnostics: [DiagnosticItem] = []
+public final class DiagnosticsViewModel {
+    public var diagnostics: [DiagnosticItem] = []
 
-    var errorCount: Int {
+    public var errorCount: Int {
         diagnostics.filter { $0.severity == .error }.count
     }
 
-    var warningCount: Int {
+    public var warningCount: Int {
         diagnostics.filter { $0.severity == .warning }.count
     }
 
-    var noteCount: Int {
+    public var noteCount: Int {
         diagnostics.filter { $0.severity == .note }.count
     }
 
     /// Diagnostics grouped by file, sorted by severity then line
-    var groupedByFile: [(file: String, items: [DiagnosticItem])] {
+    public var groupedByFile: [(file: String, items: [DiagnosticItem])] {
         let dict = Dictionary(grouping: diagnostics, by: \.file)
         return dict.map { (file: $0.key, items: $0.value.sorted { a, b in
             if a.severity != b.severity { return a.severity < b.severity }
@@ -91,9 +91,9 @@ final class DiagnosticsViewModel {
     }
 
     /// Navigation callback: file, line, column
-    var onNavigate: ((String, Int, Int) -> Void)?
+    public var onNavigate: ((String, Int, Int) -> Void)?
 
-    func update(from data: Data) {
+    public func update(from data: Data) {
         do {
             let items = try JSONDecoder().decode([DiagnosticItem].self, from: data)
             diagnostics = items

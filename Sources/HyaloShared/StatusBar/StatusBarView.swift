@@ -6,9 +6,9 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct StatusBarView: View {
-    @Bindable var viewModel: StatusBarViewModel
-    @Bindable var workspace: HyaloWorkspaceState
+public struct StatusBarView: View {
+    @Bindable public var viewModel: StatusBarViewModel
+    @Bindable public var workspace: HyaloWorkspaceState
 
     @Environment(\.controlActiveState)
     private var controlActive
@@ -18,9 +18,9 @@ struct StatusBarView: View {
 
     private let statusFont = Font.system(size: HyaloDesign.FontSize.body)
 
-    static let height: CGFloat = HyaloDesign.Height.statusBar
+    public static let height: CGFloat = HyaloDesign.Height.statusBar
 
-    var body: some View {
+    public var body: some View {
         ViewThatFits(in: .horizontal) {
             // Full: all segments visible
             statusBarFull
@@ -33,6 +33,11 @@ struct StatusBarView: View {
         .overlay(alignment: .top) { topDivider }
         .disabled(controlActive == .inactive)
         // No opaque background — inherits parent EffectView vibrancy
+    }
+
+    public init(viewModel: StatusBarViewModel, workspace: HyaloWorkspaceState) {
+        self.viewModel = viewModel
+        self.workspace = workspace
     }
 
     // MARK: - Full Layout (all segments)

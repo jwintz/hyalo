@@ -7,11 +7,11 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct EnvironmentDropDownView: View {
+public struct EnvironmentDropDownView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.controlActiveState) private var activeState
     
-    var model: EnvironmentBreadcrumbModel
+    public var model: EnvironmentBreadcrumbModel
     
     @State private var isPopoverPresented = false
     @State private var isHovering = false
@@ -33,7 +33,7 @@ struct EnvironmentDropDownView: View {
         model.primaryEnvironment?.displayIcon ?? "cube"
     }
     
-    var body: some View {
+    public var body: some View {
         HStack(spacing: 4) {
             label
             chevronDown
@@ -41,11 +41,11 @@ struct EnvironmentDropDownView: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 6)
-        .background {
-            colorScheme == .dark ? Color.white : Color.black
+        .background(
+            Capsule()
+                .fill(colorScheme == .dark ? Color.white : Color.black)
                 .opacity(isHovering || isPopoverPresented ? 0.05 : 0)
-                .clipShape(Capsule())
-        }
+        )
         .onHover { isHovering = $0 }
         .instantPopover(isPresented: $isPopoverPresented, arrowEdge: .bottom) {
             popoverContent
@@ -57,6 +57,10 @@ struct EnvironmentDropDownView: View {
         .accessibilityLabel("Development Environment")
         .accessibilityValue(summaryText)
         .accessibilityHint("View environments")
+    }
+
+    public init(model: EnvironmentBreadcrumbModel) {
+        self.model = model
     }
     
     // MARK: - Label
@@ -146,12 +150,12 @@ struct EnvironmentDropDownView: View {
 // MARK: - Environment Option View
 
 @available(macOS 26.0, iOS 26.0, *)
-struct EnvironmentOptionView: View {
-    let environment: DevEnvironment
-    let isChecked: Bool
-    let action: () -> Void
+public struct EnvironmentOptionView: View {
+    public let environment: DevEnvironment
+    public let isChecked: Bool
+    public let action: () -> Void
     
-    var body: some View {
+    public var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: environment.displayIcon)

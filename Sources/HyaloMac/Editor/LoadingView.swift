@@ -10,6 +10,7 @@
 
 import AppKit
 import SwiftUI
+import HyaloShared
 
 // MARK: - Observable Loading State
 

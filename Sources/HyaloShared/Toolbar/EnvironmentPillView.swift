@@ -18,13 +18,21 @@ import SwiftUI
 // MARK: - Environment Pill View (entry point from HyaloNavigationLayout)
 
 @available(macOS 26.0, iOS 26.0, *)
-struct EnvironmentPillView: View {
-    @Bindable var workspace: HyaloWorkspaceState
+public struct EnvironmentPillView: View {
+    @Bindable public var workspace: HyaloWorkspaceState
 
-    var model: EnvironmentBreadcrumbModel = EnvironmentBreadcrumbModel.shared
+    public var model: EnvironmentBreadcrumbModel = EnvironmentBreadcrumbModel.shared
 
-    var body: some View {
+    public var body: some View {
         BreadcrumbContent(workspace: workspace, model: model)
+    }
+
+    public init(
+        workspace: HyaloWorkspaceState,
+        model: EnvironmentBreadcrumbModel = EnvironmentBreadcrumbModel.shared
+    ) {
+        self.workspace = workspace
+        self.model = model
     }
 }
 

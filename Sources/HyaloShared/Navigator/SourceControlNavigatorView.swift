@@ -4,11 +4,11 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct SourceControlNavigatorView: View {
+public struct SourceControlNavigatorView: View {
     @State private var selectedSegment: Int = 0
     private var viewModel: NavigatorViewModel { NavigatorManager.shared.viewModel }
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $selectedSegment) {
                 Text("Changes").tag(0)
@@ -138,8 +138,8 @@ private struct SourceControlHistoryView: View {
 // MARK: - Commit History Row
 
 @available(macOS 26.0, iOS 26.0, *)
-struct CommitHistoryRow: View {
-    let commit: GitCommitEntry
+public struct CommitHistoryRow: View {
+    public let commit: GitCommitEntry
     @Environment(\.colorTheme) private var theme
 
     /// Deterministic color from author email hash
@@ -153,7 +153,7 @@ struct CommitHistoryRow: View {
         return colors[hash % colors.count]
     }
 
-    var body: some View {
+    public var body: some View {
         HStack(alignment: .top, spacing: 8) {
             // Avatar
             Image(systemName: "person.crop.circle.fill")

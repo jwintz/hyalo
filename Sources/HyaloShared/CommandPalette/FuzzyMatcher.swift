@@ -6,16 +6,16 @@ import Foundation
 
 // MARK: - Fuzzy Matchable Protocol
 
-protocol FuzzyMatchable {
+public protocol FuzzyMatchable {
     var fuzzyMatchText: String { get }
 }
 
 // MARK: - Fuzzy Matcher
 
-enum FuzzyMatcher {
+public enum FuzzyMatcher {
 
     /// Returns true if all characters in query appear in text in order.
-    static func matches(query: String, text: String) -> Bool {
+    public static func matches(query: String, text: String) -> Bool {
         let queryLower = query.lowercased()
         let textLower = text.lowercased()
 
@@ -43,7 +43,7 @@ enum FuzzyMatcher {
     ///   - Word boundary bonus: +30 (char after `-`, `_`, `/`, space, or start)
     ///   - Case match bonus: +5 (exact case)
     ///   - Early position bonus: +10 * (1 - position / textLength)
-    static func score(query: String, text: String) -> Double {
+    public static func score(query: String, text: String) -> Double {
         if query.isEmpty { return 1.0 }
 
         let queryChars = Array(query.lowercased())
@@ -141,7 +141,7 @@ enum FuzzyMatcher {
     }
 
     /// Filter and sort items using fuzzy matching.
-    static func filter<T: FuzzyMatchable>(query: String, items: [T]) -> [T] {
+    public static func filter<T: FuzzyMatchable>(query: String, items: [T]) -> [T] {
         if query.isEmpty { return items }
 
         let scored = items.compactMap { item -> (T, Double)? in

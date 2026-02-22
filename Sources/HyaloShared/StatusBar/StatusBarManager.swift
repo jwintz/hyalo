@@ -5,13 +5,13 @@ import Foundation
 
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
-final class StatusBarManager {
-    static let shared = StatusBarManager()
-    let viewModel = StatusBarViewModel()
+public final class StatusBarManager {
+    public static let shared = StatusBarManager()
+    public let viewModel = StatusBarViewModel()
 
     private init() {}
 
-    func updateStatus(
+    public func updateStatus(
         line: Int,
         column: Int,
         mode: String,

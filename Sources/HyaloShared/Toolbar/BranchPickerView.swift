@@ -5,15 +5,18 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct BranchPickerView: View {
-    @Bindable var viewModel: ToolbarViewModel
+public struct BranchPickerView: View {
+    @Bindable public var viewModel: ToolbarViewModel
 
+    public init(viewModel: ToolbarViewModel) {
+        self.viewModel = viewModel
+    }
     @Environment(\.controlActiveState)
     private var controlActive
 
     @State private var isHovering = false
 
-    var body: some View {
+    public var body: some View {
         HStack(alignment: .center, spacing: 7) {
             Group {
                 if !viewModel.currentBranch.isEmpty {

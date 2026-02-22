@@ -4,15 +4,15 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-enum NavigatorTab: String, CaseIterable, HyaloPanelTab {
+public enum NavigatorTab: String, CaseIterable, HyaloPanelTab {
     case project
     case buffers
     case sourceControl
     case search
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var title: String {
+    public var title: String {
         switch self {
         case .project: return "Project"
         case .buffers: return "Buffers"
@@ -21,7 +21,7 @@ enum NavigatorTab: String, CaseIterable, HyaloPanelTab {
         }
     }
 
-    var systemImage: String {
+    public var systemImage: String {
         switch self {
         case .project: return "folder"
         case .buffers: return "doc.on.doc"
@@ -30,7 +30,7 @@ enum NavigatorTab: String, CaseIterable, HyaloPanelTab {
         }
     }
 
-    var body: some View {
+    public var body: some View {
         switch self {
         case .project: ProjectNavigatorView()
         case .buffers: BufferListView()

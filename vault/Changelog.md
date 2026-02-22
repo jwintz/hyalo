@@ -29,3 +29,7 @@ All notable changes to Hyalo are documented here. The format follows [Keep a Cha
 - Update README.md init files table to include all 14 modules with accurate descriptions.
 - Update README.md Lisp files table: rename `hyalo-theme.el` to `hyalo-themes.el`, add missing modules (activities, compile, diagnostics, environment, gutter, keycast, lib, menu, minimap, package, splash, system).
 - Update vault `init/modes.md` documentation to include `git-modes` package.
+
+### Fixed
+
+- Make HyaloShared view models and UI types public for HyaloMac access.

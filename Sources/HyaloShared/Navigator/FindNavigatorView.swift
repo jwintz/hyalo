@@ -5,7 +5,7 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct FindNavigatorView: View {
+public struct FindNavigatorView: View {
     @State private var searchQuery: String = ""
     @State private var replaceText: String = ""
     @State private var showReplace: Bool = false
@@ -18,7 +18,7 @@ struct FindNavigatorView: View {
             .sorted { $0.file < $1.file }
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 0) {
             // Search form
             VStack(spacing: HyaloDesign.Spacing.tight) {

@@ -12,6 +12,7 @@
 
 import AppKit
 import SwiftUI
+import HyaloShared
 
 // MARK: - Preference Keys for Width Tracking (AUDIT.md #2)
 

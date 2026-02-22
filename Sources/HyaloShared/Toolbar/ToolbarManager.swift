@@ -15,9 +15,9 @@ import UIKit
 // MARK: - Branch Info
 
 @available(macOS 26.0, iOS 26.0, *)
-struct BranchInfo: Codable {
-    var currentBranch: String
-    var branches: [String]
+public struct BranchInfo: Codable {
+    public var currentBranch: String
+    public var branches: [String]
 }
 
 // MARK: - Toolbar View Model
@@ -25,43 +25,44 @@ struct BranchInfo: Codable {
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class ToolbarViewModel {
-    var projectName: String = ""
-    var currentBranch: String = ""
-    var branches: [String] = []
-    var statusMessage: String = ""
+public final class ToolbarViewModel {
+    public init() {}
+    public var projectName: String = ""
+    public var currentBranch: String = ""
+    public var branches: [String] = []
+    public var statusMessage: String = ""
 
     // Package management
-    var packageOperation: PackageOperation = .idle
-    var upgradablePackages: [UpgradablePackage] = []
-    var vcPackages: [VCPackage] = []
-    var lastChecked: Date? = nil
+    public var packageOperation: PackageOperation = .idle
+    public var upgradablePackages: [UpgradablePackage] = []
+    public var vcPackages: [VCPackage] = []
+    public var lastChecked: Date? = nil
 
     // Keycast
-    var keycastVisible: Bool = false
-    var keycastKey: String = ""
-    var keycastCommand: String = ""
+    public var keycastVisible: Bool = false
+    public var keycastKey: String = ""
+    public var keycastCommand: String = ""
 
     // Callbacks (set by Module.swift channel setup)
-    var onBranchSwitch: ((String) -> Void)?
-    var onPackageRefresh: (() -> Void)?
-    var onPackageUpgradeAll: (() -> Void)?
-    var onPackageUpgradeSingle: ((String) -> Void)?
-    var onPackageList: (() -> Void)?
+    public var onBranchSwitch: ((String) -> Void)?
+    public var onPackageRefresh: (() -> Void)?
+    public var onPackageUpgradeAll: (() -> Void)?
+    public var onPackageUpgradeSingle: ((String) -> Void)?
+    public var onPackageList: (() -> Void)?
 }
 
 // MARK: - Toolbar Manager
 
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
-final class ToolbarManager {
-    static let shared = ToolbarManager()
+public final class ToolbarManager {
+    public static let shared = ToolbarManager()
 
-    let viewModel = ToolbarViewModel()
+    public let viewModel = ToolbarViewModel()
 
     private init() {}
 
-    func updateBranchInfo(from data: Data) {
+    public func updateBranchInfo(from data: Data) {
         do {
             let info = try JSONDecoder().decode(BranchInfo.self, from: data)
             viewModel.currentBranch = info.currentBranch
@@ -71,11 +72,11 @@ final class ToolbarManager {
         }
     }
 
-    func updateStatusMessage(_ message: String) {
+    public func updateStatusMessage(_ message: String) {
         viewModel.statusMessage = message
     }
 
-    func updatePackageStatus(from data: Data) {
+    public func updatePackageStatus(from data: Data) {
         do {
             let payload = try JSONDecoder().decode(PackageStatusPayload.self, from: data)
             if let op = PackageOperation(rawValue: payload.status) {

@@ -9,11 +9,11 @@ import SwiftUI
 // MARK: - Git Status Badge
 
 @available(macOS 26.0, iOS 26.0, *)
-struct GitStatusBadge: View {
+public struct GitStatusBadge: View {
     let status: String
     @Environment(\.colorTheme) private var theme
 
-    var body: some View {
+    public var body: some View {
         let displayStatus = status == "?" ? "A" : status
         Text(displayStatus)
             .font(.system(size: 11, weight: .bold))
@@ -35,13 +35,13 @@ struct GitStatusBadge: View {
 // MARK: - Highlighted Text Component
 
 @available(macOS 26.0, iOS 26.0, *)
-struct HighlightedText: View {
+public struct HighlightedText: View {
     let text: String
     let highlight: String
     let isActive: Bool
     @Environment(\.colorTheme) private var theme
 
-    var body: some View {
+    public var body: some View {
         if highlight.isEmpty {
             Text(text)
                 .foregroundColor(isActive ? theme.accent : .primary)
@@ -80,10 +80,10 @@ struct HighlightedText: View {
 // MARK: - File Icon Mapping (monochrome SF Symbols)
 
 /// Maps file extensions to monochrome SF Symbol names.
-enum FileTreeIcons {
-    static let rootIcon = "folder.fill.badge.gearshape"
+public enum FileTreeIcons {
+    public static let rootIcon = "folder.fill.badge.gearshape"
 
-    static func icon(for fileName: String) -> String {
+    public static func icon(for fileName: String) -> String {
         let ext = (fileName as NSString).pathExtension.lowercased()
         switch ext {
         case "swift":           return "swift"

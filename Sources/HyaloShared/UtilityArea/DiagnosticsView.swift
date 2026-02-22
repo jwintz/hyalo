@@ -9,10 +9,10 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct DiagnosticsView: View {
-    @Bindable var viewModel: DiagnosticsViewModel
+public struct DiagnosticsView: View {
+    @Bindable public var viewModel: DiagnosticsViewModel
 
-    var body: some View {
+    public var body: some View {
         if viewModel.diagnostics.isEmpty {
             HyaloContentUnavailableView(
                 "No Issues",

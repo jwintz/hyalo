@@ -1,17 +1,17 @@
 import Foundation
 
-struct CommandItem: Identifiable, Hashable, Codable {
-    var id: String { name }  // Stable: command names are unique
-    var name: String
-    var description: String
-    var icon: String
-    var keybinding: String?
-    var category: String?
+public struct CommandItem: Identifiable, Hashable, Codable {
+    public var id: String { name }  // Stable: command names are unique
+    public var name: String
+    public var description: String
+    public var icon: String
+    public var keybinding: String?
+    public var category: String?
 }
 
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 extension CommandItem: FuzzyMatchable {
-    var fuzzyMatchText: String {
+    public var fuzzyMatchText: String {
         name + " " + description
     }
 }

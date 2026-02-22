@@ -7,11 +7,11 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct UserHostDropDownView: View {
+public struct UserHostDropDownView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.controlActiveState) private var activeState
     
-    var model: EnvironmentBreadcrumbModel
+    public var model: EnvironmentBreadcrumbModel
     
     @State private var isPopoverPresented = false
     @State private var isHovering = false
@@ -19,8 +19,15 @@ struct UserHostDropDownView: View {
     private var displayName: String {
         model.userHost?.displayName ?? "user@host"
     }
+
+    // Lightweight hover background to reduce type complexity in body (moved up for visibility)
+    private var hoverBackground: some View {
+        Capsule()
+            .fill(colorScheme == .dark ? Color.white : Color.black)
+            .opacity(isHovering || isPopoverPresented ? 0.05 : 0)
+    }
     
-    var body: some View {
+    public var body: some View {
         HStack(spacing: 4) {
             label
             chevronSeparator
@@ -36,11 +43,7 @@ struct UserHostDropDownView: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 6)
-        .background {
-            colorScheme == .dark ? Color.white : Color.black
-                .opacity(isHovering || isPopoverPresented ? 0.05 : 0)
-                .clipShape(Capsule())
-        }
+        .background( hoverBackground )
         .onHover { isHovering = $0 }
         .instantPopover(isPresented: $isPopoverPresented, arrowEdge: .bottom) {
             popoverContent
@@ -52,6 +55,10 @@ struct UserHostDropDownView: View {
         .accessibilityLabel("User and Host")
         .accessibilityValue(displayName)
         .accessibilityHint("SSH actions")
+    }
+
+    public init(model: EnvironmentBreadcrumbModel) {
+        self.model = model
     }
     
     // MARK: - Label
@@ -112,4 +119,6 @@ struct UserHostDropDownView: View {
             model.onCopySSHCommand?()
         }
     }
+
+    
 }

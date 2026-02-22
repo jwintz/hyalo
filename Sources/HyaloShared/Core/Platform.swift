@@ -52,6 +52,19 @@ extension NSColor {
     /// macOS equivalent of UIColor.secondarySystemBackground
     static var secondarySystemBackground: NSColor { .controlBackgroundColor }
 }
+
+extension NSColor {
+    /// Unified name for NSColor.selectedContentBackgroundColor
+    static var selectedContentBackground: NSColor { .selectedContentBackgroundColor }
+}
+#else
+extension UIColor {
+    /// iOS equivalent of NSColor.secondaryLabelColor
+    static var secondaryLabelColor: UIColor { .secondaryLabel }
+
+    /// iOS equivalent of NSColor.selectedContentBackgroundColor
+    static var selectedContentBackground: UIColor { .systemFill }
+}
 #endif
 
 // MARK: - Cross-Platform Control Active State
@@ -61,8 +74,6 @@ extension NSColor {
 // a stub enum and environment key that always returns .key.
 
 #if !os(macOS)
-import enum SwiftUI.EnvironmentValues
-
 /// Stub to match AppKit's ControlActiveState on iOS.
 enum ControlActiveState: Sendable {
     case key, active, inactive
@@ -123,7 +134,7 @@ func platformRevealInFinder(_ paths: [String]) {
 /// Set by each platform at startup:
 /// - macOS: calls ns_wake_emacs() via dlsym
 /// - iOS: posts an event to the iOS terminal
-nonisolated(unsafe) var platformWakeEmacs: (() -> Void)?
+public nonisolated(unsafe) var platformWakeEmacs: (() -> Void)?
 
 /// Convenience wrapper used throughout shared code.
 func wakeEmacs() {

@@ -7,19 +7,19 @@ import Foundation
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-final class SourceControlViewModel {
+public final class SourceControlViewModel {
     // MARK: - State
     
-    var changedFiles: [GitChangedFile] = []
-    var commitHistory: [GitCommitEntry] = []
+    public var changedFiles: [GitChangedFile] = []
+    public var commitHistory: [GitCommitEntry] = []
     
     // MARK: - Updates from Emacs
     
-    func updateChangedFiles(_ files: [GitChangedFile]) {
+    public func updateChangedFiles(_ files: [GitChangedFile]) {
         changedFiles = files
     }
     
-    func updateCommitHistory(_ commits: [GitCommitEntry]) {
+    public func updateCommitHistory(_ commits: [GitCommitEntry]) {
         commitHistory = commits
     }
 }

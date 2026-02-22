@@ -54,7 +54,11 @@ struct HyaloPaneTextField<LeadingAccessories: View, TrailingAccessories: View>: 
     func selectionBackground(_ isFocused: Bool = false) -> some View {
         if controlActive != .inactive || !text.isEmpty || hasValue {
             if isFocused || !text.isEmpty || hasValue {
+                #if os(macOS)
                 Color(.textBackgroundColor)
+                #else
+                Color(UIColor.secondarySystemBackground)
+                #endif
             } else {
                 if colorScheme == .light {
                     Color.black.opacity(0.06)

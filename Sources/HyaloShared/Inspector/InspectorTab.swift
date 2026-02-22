@@ -5,14 +5,14 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-enum InspectorTab: String, CaseIterable, HyaloPanelTab {
+public enum InspectorTab: String, CaseIterable, HyaloPanelTab {
     case file
     case history
     case appearance
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var title: String {
+    public var title: String {
         switch self {
         case .file: return "File"
         case .history: return "History"
@@ -20,7 +20,7 @@ enum InspectorTab: String, CaseIterable, HyaloPanelTab {
         }
     }
 
-    var systemImage: String {
+    public var systemImage: String {
         switch self {
         case .file: return "doc"
         case .history: return "clock.arrow.circlepath"
@@ -28,11 +28,16 @@ enum InspectorTab: String, CaseIterable, HyaloPanelTab {
         }
     }
 
-    var body: some View {
+    public var body: some View {
         switch self {
         case .file: FileInspectorView(viewModel: InspectorManager.shared.viewModel)
         case .history: HistoryInspectorView(viewModel: InspectorManager.shared.viewModel)
-        case .appearance: InspectorAppearanceView()
+        case .appearance:
+#if os(macOS)
+            InspectorAppearanceView()
+#else
+            EmptyView()
+#endif
         }
     }
 }

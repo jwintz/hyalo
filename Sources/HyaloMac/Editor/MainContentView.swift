@@ -11,6 +11,7 @@
 
 import AppKit
 import SwiftUI
+import HyaloShared
 
 // MARK: - Semantic Opacity Constants (AUDIT.md #8)
 
@@ -78,7 +79,13 @@ struct MainContentView: View {
             }
 
             if workspace.utilityAreaVisible {
-                UtilityAreaView(viewModel: effectiveUtilityViewModel, workspace: workspace)
+                UtilityAreaView(
+                    viewModel: effectiveUtilityViewModel,
+                    workspace: workspace,
+                    terminalContent: {
+                        AnyView(UtilityAreaTerminalView(holder: effectiveUtilityViewModel.terminalHolder))
+                    }
+                )
                     .background {
                         // Utility area: slightly denser tint (AUDIT.md #8)
                         Color(nsColor: workspace.backgroundColor)

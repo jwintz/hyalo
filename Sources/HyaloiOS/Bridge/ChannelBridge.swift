@@ -50,7 +50,7 @@ func bridgeNavigatorSetActiveBuffer(_ bufferName: UnsafePointer<CChar>) {
     let name = String(cString: bufferName)
     DispatchQueue.main.async {
         if #available(iOS 26.0, *) {
-            NavigatorManager.shared.bufferListViewModel.selectedBufferName = name
+            NavigatorManager.shared.setActiveBuffer(name)
         }
     }
 }
@@ -60,7 +60,7 @@ func bridgeNavigatorSetActiveFile(_ filePath: UnsafePointer<CChar>) {
     let path = String(cString: filePath)
     DispatchQueue.main.async {
         if #available(iOS 26.0, *) {
-            NavigatorManager.shared.activeFilePath = path
+            NavigatorManager.shared.setActiveFile(path)
         }
     }
 }
@@ -75,8 +75,7 @@ func bridgeEditorUpdateTabs(_ jsonCString: UnsafePointer<CChar>) {
         if #available(iOS 26.0, *) {
             do {
                 let tabs = try JSONDecoder().decode([EditorTab].self, from: data)
-                // TODO: Wire to EditorTabViewModel
-                _ = tabs
+                HyaloiOSModule.shared.editorTabViewModel.updateTabs(tabs)
             } catch {
                 print("[HyaloKit] editor tabs decode error: \(error)")
             }
@@ -89,8 +88,7 @@ func bridgeEditorSelectTab(_ bufferName: UnsafePointer<CChar>) {
     let name = String(cString: bufferName)
     DispatchQueue.main.async {
         if #available(iOS 26.0, *) {
-            // TODO: Wire to EditorTabViewModel
-            _ = name
+            HyaloiOSModule.shared.editorTabViewModel.onTabSelected(name)
         }
     }
 }
@@ -101,14 +99,16 @@ func bridgeEditorSelectTab(_ bufferName: UnsafePointer<CChar>) {
 func bridgeStatusUpdate(_ jsonCString: UnsafePointer<CChar>) {
     let json = String(cString: jsonCString)
     DispatchQueue.main.async {
-        guard let data = json.data(using: .utf8) else { return }
+        guard let data = json.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
         if #available(iOS 26.0, *) {
-            do {
-                let status = try JSONDecoder().decode(StatusBarViewModel.StatusPayload.self, from: data)
-                StatusBarManager.shared.viewModel.update(from: status)
-            } catch {
-                print("[HyaloKit] status decode error: \(error)")
-            }
+            if let line = obj["line"] as? Int { StatusBarManager.shared.viewModel.line = line }
+            if let col = obj["column"] as? Int { StatusBarManager.shared.viewModel.column = col }
+            if let mode = obj["mode"] as? String { StatusBarManager.shared.viewModel.mode = mode }
+            if let enc = obj["encoding"] as? String { StatusBarManager.shared.viewModel.encoding = enc }
+            if let le = obj["lineEnding"] as? String { StatusBarManager.shared.viewModel.lineEnding = le }
+            if let lhs = obj["modelineLHS"] as? String { StatusBarManager.shared.viewModel.modelineLHS = lhs }
+            if let rhs = obj["modelineRHS"] as? String { StatusBarManager.shared.viewModel.modelineRHS = rhs }
         }
     }
 }
@@ -121,6 +121,48 @@ func bridgeAppearanceSetMode(_ modeCString: UnsafePointer<CChar>) {
     DispatchQueue.main.async {
         if #available(iOS 26.0, *) {
             HyaloiOSModule.shared.workspace.windowAppearance = mode
+        }
+    }
+}
+
+// MARK: - Command Palette Channel
+
+@_cdecl("hyalo_ios_update_open_quickly_items")
+func bridgeUpdateOpenQuicklyItems(_ jsonCString: UnsafePointer<CChar>) {
+    let json = String(cString: jsonCString)
+    DispatchQueue.main.async {
+        guard let data = json.data(using: .utf8) else { return }
+        if #available(iOS 26.0, *) {
+            HyaloiOSModule.shared.openQuicklyViewModel.updateItems(from: data)
+        }
+    }
+}
+
+@_cdecl("hyalo_ios_update_command_list")
+func bridgeUpdateCommandList(_ jsonCString: UnsafePointer<CChar>) {
+    let json = String(cString: jsonCString)
+    DispatchQueue.main.async {
+        guard let data = json.data(using: .utf8) else { return }
+        if #available(iOS 26.0, *) {
+            HyaloiOSModule.shared.commandPaletteViewModel.updateCommands(from: data)
+        }
+    }
+}
+
+@_cdecl("hyalo_ios_show_open_quickly")
+func bridgeShowOpenQuickly() {
+    DispatchQueue.main.async {
+        if #available(iOS 26.0, *) {
+            HyaloiOSModule.shared.showOpenQuickly = true
+        }
+    }
+}
+
+@_cdecl("hyalo_ios_show_command_palette")
+func bridgeShowCommandPalette() {
+    DispatchQueue.main.async {
+        if #available(iOS 26.0, *) {
+            HyaloiOSModule.shared.showCommandPalette = true
         }
     }
 }

@@ -9,25 +9,14 @@
 // WARNING: Views inside this popover MUST be dismissed by negating the
 // isPresented binding.  Using SwiftUI's dismiss environment value causes
 // a crash (FB16221871 / rdar://FB16221871).
+//
+ 
 
+#if os(macOS)
 import AppKit
 import SwiftUI
-import HyaloShared
 
 // MARK: - Modifier
-
-struct InstantPopoverContainer<ContentView: View>: View {
-    let content: () -> ContentView
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content()
-        }
-        .font(.subheadline)
-        .padding(13)
-        .frame(minWidth: 215)
-    }
-}
 
 struct InstantPopoverModifier<PopoverContent: View>: ViewModifier {
     @Binding var isPresented: Bool
@@ -152,3 +141,35 @@ extension View {
         )
     }
 }
+
+// MARK: - Container (Tahoe-aware padding + shape)
+
+struct InstantPopoverContainer<ContentView: View>: View {
+    let content: () -> ContentView
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .font(.subheadline)
+        .padding(13)
+        .frame(minWidth: 215)
+    }
+}
+
+// MARK: - View extension for macOS-only dropdown item style (not moved here)
+#else
+// iOS fallback: use native SwiftUI popover
+import SwiftUI
+
+extension View {
+    func instantPopover<Content: View>(
+        isPresented: Binding<Bool>,
+        arrowEdge: Edge,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        let builtContent = content()
+        return self.popover(isPresented: isPresented, arrowEdge: arrowEdge) { builtContent }
+    }
+}
+#endif

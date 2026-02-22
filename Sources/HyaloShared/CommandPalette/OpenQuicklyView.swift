@@ -6,12 +6,20 @@
 import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
-struct OpenQuicklyView: View {
-    @Bindable var viewModel: OpenQuicklyViewModel
-    let onClose: () -> Void
-    let openFile: (OpenQuicklyItem) -> Void
+public struct OpenQuicklyView: View {
+    @Bindable public var viewModel: OpenQuicklyViewModel
+    public let onClose: () -> Void
+    public let openFile: (OpenQuicklyItem) -> Void
 
     @FocusState private var isSearchFocused: Bool
+
+    @ViewBuilder private var paletteBackground: some View {
+#if os(macOS)
+        EffectView(.sidebar, blendingMode: .behindWindow)
+#else
+        EffectView()
+#endif
+    }
 
     private var selectionBinding: Binding<OpenQuicklyItem?> {
         Binding(
@@ -20,7 +28,17 @@ struct OpenQuicklyView: View {
         )
     }
 
-    var body: some View {
+    public init(
+        viewModel: OpenQuicklyViewModel,
+        onClose: @escaping () -> Void,
+        openFile: @escaping (OpenQuicklyItem) -> Void
+    ) {
+        self.viewModel = viewModel
+        self.onClose = onClose
+        self.openFile = openFile
+    }
+
+    public var body: some View {
         VStack(spacing: 0) {
             // Search field
             HStack(alignment: .center, spacing: 0) {
@@ -62,7 +80,7 @@ struct OpenQuicklyView: View {
                 .environment(\.defaultMinListRowHeight, 40)
             }
         }
-        .background(EffectView(.sidebar, blendingMode: .behindWindow))
+        .background(paletteBackground)
         .edgesIgnoringSafeArea(.vertical)
         .frame(minWidth: 680, minHeight: 400, maxHeight: .infinity)
         .onChange(of: viewModel.searchText) { _, _ in
@@ -75,7 +93,7 @@ struct OpenQuicklyView: View {
         }
     }
 
-    private func commitSelection(_ item: OpenQuicklyItem) {
+    public func commitSelection(_ item: OpenQuicklyItem) {
         openFile(item)
         viewModel.searchText = ""
         onClose()
