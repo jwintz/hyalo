@@ -19,6 +19,7 @@ targets:
     dependencies:
       - package: Hyalo
         product: HyaloKit
+        embed: true
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: org.gnu.hyalo
       PRODUCT_NAME: Hyalo

@@ -7,9 +7,24 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4577A028FB67BA9E9E126B77 /* HyaloKit in Embed Frameworks */ = {isa = PBXBuildFile; productRef = D1D459F35B16D1151E3B124D /* HyaloKit */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A6389E2B0859F432D9B048D6 /* HyaloKit in Frameworks */ = {isa = PBXBuildFile; productRef = D1D459F35B16D1151E3B124D /* HyaloKit */; };
 		DCD97F73784BC6436C7EAB7C /* HyaloApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A2E9FB4F9014FAE1BBC012 /* HyaloApp.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6D0CC27FC85D03BC47871E36 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				4577A028FB67BA9E9E126B77 /* HyaloKit in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		08A2E9FB4F9014FAE1BBC012 /* HyaloApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HyaloApp.swift; sourceTree = "<group>"; };
@@ -72,6 +87,7 @@
 			buildPhases = (
 				625E929F79AAF34E643C9979 /* Sources */,
 				AEBA2FDF2156842BF3049AB8 /* Frameworks */,
+				6D0CC27FC85D03BC47871E36 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
