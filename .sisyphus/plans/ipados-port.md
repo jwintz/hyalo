@@ -46,7 +46,7 @@ Feedstock changes must be:
 ### Metis Review
 **Identified Gaps** (addressed):
 - Cross-repo state synchronization: solved via explicit build-artifact verification commands in each task
-- Visual verification limitations: solved via `axe describe-ui` structured output + screenshot evidence
+ Visual verification limitations: solved via `xcrun simctl ui` accessibility dump + screenshot evidence
 - Device testing gate: Phase 6 marked conditional (requires physical iPad + Apple Developer cert)
 - Feedstock patch management: each feedstock task documents exact changes and verification
 - pdmp fingerprint mismatch: explicit fallback to bootstrap-from-source documented
@@ -109,13 +109,13 @@ Make Emacs boot and render inside the iPadOS SwiftUI shell, with bidirectional c
 
 > **ZERO HUMAN INTERVENTION** — ALL verification is agent-executed. No exceptions.
 > Acceptance criteria requiring "user manually tests/confirms" are FORBIDDEN.
-> Visual verification uses `axe describe-ui` for structured output + screenshots as evidence.
+> Visual verification uses `xcrun simctl ui $UDID dump-state` for accessibility hierarchy + screenshots as evidence.
 
 ### Test Decision
 - **Infrastructure exists**: NO (no test framework configured)
 - **Automated tests**: None — this is a build/integration/bridge project
 - **Framework**: N/A
-- **Verification method**: Build commands, simctl launch, console log inspection, axe describe-ui, screenshots
+ **Verification method**: Build commands, simctl launch, console log inspection, simctl ui dump-state, screenshots
 
 ### QA Policy
 Every task MUST include agent-executed QA scenarios.
@@ -123,7 +123,7 @@ Evidence saved to `.sisyphus/evidence/task-{N}-{scenario-slug}.{ext}`.
 
 - **Build tasks**: Use Bash — run build command, check exit code, verify output artifacts with `file`, `otool -l`, `lipo -archs`
 - **Simulator tasks**: Use Bash — `xcrun simctl install/launch`, capture console logs, take screenshots
-- **UI verification**: Use Bash — `axe describe-ui --udid $UDID | jq` for structured element checks + `xcrun simctl io screenshot`
+ **UI verification**: Use Bash — `xcrun simctl ui $UDID dump-state | jq` for structured element checks + `xcrun simctl io screenshot`
 - **Lisp evaluation**: Use Bash — `xcrun simctl launch --console` and check for specific log patterns
 - **Feedstock patches**: Use Bash — `grep` for expected code in patched files, rebuild, verify no errors
 
@@ -370,7 +370,7 @@ Max Concurrent: 4 (Wave 1)
       1. Build and install: xcodebuild + simctl install + simctl launch
       2. Wait 3 seconds for SwiftUI to render
       3. Run: xcrun simctl io $UDID screenshot .sisyphus/evidence/task-2-mock-data.png
-      4. Run: axe describe-ui --udid $UDID | jq '[.[] | select(.label != null)] | length'
+      4. Run: xcrun simctl ui $UDID dump-state | python3 -c "import sys,json; d=json.load(sys.stdin); print(len([e for e in d.get('elements',[]) if e.get('label')]))"
          Expected: >= 5 (at least navigator items + tabs + status elements)
     Expected Result: Screenshot shows populated sidebar, tab bar, and status bar
     Failure Indicators: Blank sidebar, empty tab bar, "0" from jq (no labeled UI elements)
@@ -1436,11 +1436,11 @@ Max Concurrent: 4 (Wave 1)
   **References**:
 
   **Pattern References**:
-  - `Sources/HyaloShared/Managers/HyaloWorkspaceState.swift` — `appearanceMode` property, used by macOS to set window appearance. iOS should read this same property.
-  - `Sources/HyaloMac/Window/HyaloNSSplitViewController.swift` — macOS `platformIsDarkMode()` implementation using `NSApp.effectiveAppearance`. iOS equivalent uses `UITraitCollection`.
+  - `Sources/HyaloShared/Core/HyaloWorkspaceState.swift` — `appearanceMode` property, used by macOS to set window appearance. iOS should read this same property.
+  - `Sources/HyaloShared/Core/Platform.swift` — Contains `platformIsDarkMode()` using `NSApp.effectiveAppearance` on macOS. iOS equivalent uses `UITraitCollection`.
 
   **API/Type References**:
-  - `Sources/HyaloShared/Managers/HyaloWorkspaceState.swift:AppearanceMode` — enum with `.light`, `.dark`, `.system` cases
+  - `Sources/HyaloShared/Core/HyaloWorkspaceState.swift:AppearanceMode` — enum with `.light`, `.dark`, `.system` cases
 
   **External References**:
   - Apple: `UITraitCollection.current.userInterfaceStyle` — `.dark` or `.light`
@@ -1448,7 +1448,7 @@ Max Concurrent: 4 (Wave 1)
 
   **WHY Each Reference Matters**:
   - HyaloWorkspaceState.swift contains the shared appearance state — iOS must read the same `appearanceMode` to stay consistent with the macOS code path
-  - The macOS split view controller shows the pattern for platform-specific dark mode detection — iOS mirrors it with UIKit API
+  - Platform.swift contains the cross-platform `platformIsDarkMode()` — iOS mirrors the macOS pattern with UIKit API
 
   **Acceptance Criteria**:
   - [ ] `platformIsDarkMode()` returns correct value on iOS (true in dark, false in light)
@@ -1501,7 +1501,7 @@ Max Concurrent: 4 (Wave 1)
   - Verify status bar remains at bottom in all configurations
   - Verify toolbar items do not overflow in compact widths
   - Check `NavigationSplitView` column widths for both iPad Pro 11" (2388x1668) and 13" (2732x2048)
-  - Use `axe describe-ui` to inspect accessibility tree and confirm layout structure
+  - Use `xcrun simctl ui $UDID dump-state` to inspect accessibility hierarchy and confirm layout structure
 
   **Must NOT do**:
   - Do NOT modify layout code unless a critical bug is found (this is a testing task)
@@ -1534,7 +1534,7 @@ Max Concurrent: 4 (Wave 1)
 
   **External References**:
   - `xcrun simctl io $UDID screenshot` — Screenshot capture
-  - `axe describe-ui --udid $UDID` — UI accessibility tree inspection
+  - `xcrun simctl ui $UDID dump-state` — UI accessibility hierarchy inspection
 
   **WHY Each Reference Matters**:
   - HyaloiOSNavigationLayout.swift is the root layout — all multitasking behavior depends on how NavigationSplitView is configured there
@@ -1554,7 +1554,7 @@ Max Concurrent: 4 (Wave 1)
     Preconditions: App running in iPad Pro 13-inch simulator, landscape orientation
     Steps:
       1. xcrun simctl io $UDID screenshot /tmp/multitask-landscape.png
-      2. axe describe-ui --udid $UDID | jq '.[] | select(.type == "NavigationSplitView" or .identifier != null)' > /tmp/multitask-landscape-tree.json
+      2. xcrun simctl ui $UDID dump-state | python3 -c "import sys,json; d=json.load(sys.stdin); elems=[e for e in d.get('elements',[]) if 'NavigationSplitView' in e.get('type','') or e.get('identifier')]; print(json.dumps(elems,indent=2))" > /tmp/multitask-landscape-tree.json
       3. Verify screenshot shows sidebar (navigator), content (editor), and detail (inspector) columns
       4. Verify status bar visible at bottom of screenshot
     Expected Result: 3-column layout visible, status bar at bottom, no clipping or overflow
@@ -1568,7 +1568,7 @@ Max Concurrent: 4 (Wave 1)
       1. xcrun simctl spawn $UDID notifyutil -p com.apple.springboard.orientation
       2. sleep 2
       3. xcrun simctl io $UDID screenshot /tmp/multitask-portrait.png
-      4. axe describe-ui --udid $UDID | jq '.[] | select(.identifier != null)' > /tmp/multitask-portrait-tree.json
+      4. xcrun simctl ui $UDID dump-state | python3 -c "import sys,json; d=json.load(sys.stdin); elems=[e for e in d.get('elements',[]) if e.get('identifier')]; print(json.dumps(elems,indent=2))" > /tmp/multitask-portrait-tree.json
       5. Verify sidebar is collapsed (auto-hidden) in portrait
       6. Verify status bar visible at bottom
     Expected Result: Content fills width, sidebar auto-collapsed, status bar at bottom
@@ -1579,7 +1579,7 @@ Max Concurrent: 4 (Wave 1)
     Tool: Bash
     Preconditions: App in portrait or narrow Split View
     Steps:
-      1. axe describe-ui --udid $UDID | grep -i 'toolbar\|button' > /tmp/toolbar-items.txt
+      1. xcrun simctl ui $UDID dump-state | python3 -c "import sys,json; d=json.load(sys.stdin); [print(e.get('label','')) for e in d.get('elements',[]) if 'toolbar' in e.get('type','').lower() or 'button' in e.get('type','').lower()]" > /tmp/toolbar-items.txt
       2. Verify no truncated labels or "..." in toolbar button text
       3. xcrun simctl io $UDID screenshot /tmp/multitask-toolbar.png
     Expected Result: All toolbar items visible without overflow or truncation
@@ -1596,7 +1596,7 @@ Max Concurrent: 4 (Wave 1)
   - Verify Cmd+O triggers `OpenQuicklyView` sheet presentation in simulator
   - Test search filtering with hardware keyboard input (type characters, verify list filters)
   - Test sheet dismissal: swipe down gesture and Escape key
-  - Use `axe describe-ui` to confirm sheet elements are present in accessibility tree
+  - Use `xcrun simctl ui $UDID dump-state` to confirm sheet elements are present in accessibility tree
   - Screenshot each sheet open state
 
   **Must NOT do**:
@@ -1625,8 +1625,8 @@ Max Concurrent: 4 (Wave 1)
   - `Sources/HyaloShared/OpenQuickly/OpenQuicklyView.swift` — The file search sheet to verify renders
 
   **External References**:
-  - `axe describe-ui --udid $UDID` — Inspect accessibility tree for sheet presence
-  - `axe key` — Send hardware keyboard events to simulator
+  - `xcrun simctl ui $UDID dump-state` — Inspect accessibility tree for sheet presence
+  - `xcrun simctl io $UDID sendkey` — Send hardware keyboard events to simulator
 
   **WHY Each Reference Matters**:
   - HyaloiOSNavigationLayout.swift defines HOW sheets are triggered — executor needs to understand the state binding to verify correct behavior
@@ -1635,7 +1635,7 @@ Max Concurrent: 4 (Wave 1)
   **Acceptance Criteria**:
   - [ ] Cmd+P opens CommandPaletteView sheet (screenshot evidence)
   - [ ] Cmd+O opens OpenQuicklyView sheet (screenshot evidence)
-  - [ ] Typing in search field filters the list (axe describe-ui shows filtered items)
+  - [ ] Typing in search field filters the list (`xcrun simctl ui $UDID dump-state` shows filtered items)
   - [ ] Sheet dismisses on swipe down or Escape
 
   **QA Scenarios (MANDATORY):**
@@ -1645,9 +1645,9 @@ Max Concurrent: 4 (Wave 1)
     Tool: Bash
     Preconditions: App running in simulator with mock data (Task 2), hardware keyboard connected
     Steps:
-      1. axe key --udid $UDID --modifiers command p
+      1. xcrun simctl io $UDID sendkey command-p
       2. sleep 1
-      3. axe describe-ui --udid $UDID | jq '[.[] | select(.label | test("command|palette|search"; "i"))]' > /tmp/palette-tree.json
+      3. xcrun simctl ui $UDID dump-state | python3 -c "import sys,json; d=json.load(sys.stdin); items=[e for e in d if 'command' in str(e.get('label','')).lower() or 'palette' in str(e.get('label','')).lower() or 'search' in str(e.get('label','')).lower()]; json.dump(items,open('/tmp/palette-tree.json','w'))"
       4. xcrun simctl io $UDID screenshot /tmp/command-palette.png
       5. Verify palette-tree.json has >= 1 element (sheet is visible)
     Expected Result: Sheet visible with search field and command list items from mock data
@@ -1658,9 +1658,9 @@ Max Concurrent: 4 (Wave 1)
     Tool: Bash
     Preconditions: App running, mock data loaded
     Steps:
-      1. axe key --udid $UDID --modifiers command o
+      1. xcrun simctl io $UDID sendkey command-o
       2. sleep 1
-      3. axe describe-ui --udid $UDID | jq '[.[] | select(.label | test("open|quickly|file|search"; "i"))]' > /tmp/open-quickly-tree.json
+      3. xcrun simctl ui $UDID dump-state | python3 -c "import sys,json; d=json.load(sys.stdin); items=[e for e in d if 'open' in str(e.get('label','')).lower() or 'quickly' in str(e.get('label','')).lower() or 'file' in str(e.get('label','')).lower() or 'search' in str(e.get('label','')).lower()]; json.dump(items,open('/tmp/open-quickly-tree.json','w'))"
       4. xcrun simctl io $UDID screenshot /tmp/open-quickly.png
       5. Verify open-quickly-tree.json has >= 1 element
     Expected Result: File search sheet visible with search field
@@ -1671,11 +1671,11 @@ Max Concurrent: 4 (Wave 1)
     Tool: Bash
     Preconditions: Command palette sheet open (from previous scenario)
     Steps:
-      1. axe key --udid $UDID --modifiers command p   # open sheet
+      1. xcrun simctl io $UDID sendkey command-p   # open sheet
       2. sleep 1
-      3. axe key --udid $UDID escape   # dismiss
+      3. xcrun simctl io $UDID sendkey escape   # dismiss
       4. sleep 1
-      5. axe describe-ui --udid $UDID | jq '[.[] | select(.label | test("palette"; "i"))]' > /tmp/dismissed.json
+      5. xcrun simctl ui $UDID dump-state | python3 -c "import sys,json; d=json.load(sys.stdin); items=[e for e in d if 'palette' in str(e.get('label','')).lower()]; json.dump(items,open('/tmp/dismissed.json','w'))"
       6. Verify dismissed.json is empty or has 0 elements (sheet gone)
     Expected Result: Sheet dismissed, main app view visible
     Failure Indicators: Sheet still visible after Escape, crash on dismiss
@@ -1762,7 +1762,7 @@ Max Concurrent: 4 (Wave 1)
     Preconditions: App running in simulator with mock data
     Steps:
       1. xcrun simctl io $UDID screenshot /tmp/utility-area.png
-      2. axe describe-ui --udid $UDID | jq '[.[] | select(.label | test("diagnostic|terminal|utility"; "i"))]'
+      2. xcrun simctl ui $UDID dump-state | python3 -c "import sys,json; d=json.load(sys.stdin); items=[e for e in d if 'diagnostic' in str(e.get('label','')).lower() or 'terminal' in str(e.get('label','')).lower() or 'utility' in str(e.get('label','')).lower()]; print(json.dumps(items,indent=2))"
     Expected Result: Utility area visible at bottom with at least diagnostics tab
     Failure Indicators: No utility area visible, crash when toggling utility area
     Evidence: .sisyphus/evidence/task-17-utility-area.png
