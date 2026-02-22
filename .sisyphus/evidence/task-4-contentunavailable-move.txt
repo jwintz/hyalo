@@ -1,0 +1,7 @@
+Evidence for task 4: Move HyaloContentUnavailableView
+- Created: Sources/HyaloShared/Shared/HyaloContentUnavailableView.swift containing complete struct HyaloContentUnavailableView<Actions: View> and preserved import SwiftUI.
+- Removed lines 143-200 from Sources/HyaloMac/Core/HyaloShared.swift (now removed; HyaloContentUnavailableView is no longer defined there).
+- Verification:
+  - grep -r 'struct HyaloContentUnavailableView' Sources/HyaloShared/Shared/HyaloContentUnavailableView.swift -> matches (1 file)
+  - grep -r 'struct HyaloContentUnavailableView' Sources/HyaloMac/ -> 0 matches
+- Summary: The struct is now defined in HyaloShared's shared module, and no longer defined in HyaloMac's HyaloShared.swift. Consumers will use the moved type from HyaloShared.

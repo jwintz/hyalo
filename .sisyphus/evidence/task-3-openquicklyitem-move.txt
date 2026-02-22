@@ -1,0 +1,15 @@
+Evidence summary for task 3: Move OpenQuicklyItem to HyaloShared
+
+- Created new file: Sources/HyaloShared/CommandPalette/OpenQuicklyItem.swift
+  - Contains: OpenQuicklyItem struct and FuzzyMatchable conformance
+  - Import: Foundation
+
+- Updated: Sources/HyaloMac/CommandPalette/CommandPaletteManager.swift
+  - Removed in-file OpenQuicklyItem and FuzzyMatchable extension (lines 32-45)
+  - Added import HyaloShared to access shared types
+
+- Verification steps (executed):
+  - grep -r 'struct OpenQuicklyItem' Sources/HyaloShared -> Found 1 match
+  - grep -r 'struct OpenQuicklyItem' Sources/HyaloMac/    -> No matches found
+
+- Result: OpenQuicklyItem now lives in HyaloShared; CommandPaletteManager references shared types via HyaloShared.

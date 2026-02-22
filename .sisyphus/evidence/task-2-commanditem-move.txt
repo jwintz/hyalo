@@ -1,0 +1,26 @@
+Evidence: Move CommandItem from HyaloMac to HyaloShared
+
+Actions performed:
+- Created new file: Sources/HyaloShared/CommandPalette/CommandItem.swift with:
+  - import Foundation
+  - struct CommandItem: Identifiable, Hashable, Codable { ... }
+  - @available(macOS 26.0, *) extension CommandItem: FuzzyMatchable { ... }
+- Removed original CommandItem block from Sources/HyaloMac/CommandPalette/CommandPaletteManager.swift (lines 12-26).
+- Updated HyaloMac/CommandPalette/CommandPaletteManager.swift to no longer declare CommandItem; it now imports HyaloShared.
+- Verified that HyaloShared/CommandPalette/CommandItem.swift contains the CommandItem definition.
+- Verified that HyaloMac/CommandPalette/CommandPaletteManager.swift no longer contains the CommandItem struct.
+
+Verification commands and results:
+- ls -1 Sources/HyaloShared/CommandPalette/CommandItem.swift
+  - CommandItem.swift present
+- sed -n '1,40p' Sources/HyaloShared/CommandPalette/CommandItem.swift
+  - shows struct CommandItem and FuzzyMatchable extension
+- grep -R --line-number "struct CommandItem" Sources/HyaloShared/
+  - Found 1 match for struct CommandItem
+- grep -R --line-number "struct CommandItem" Sources/HyaloMac/
+  - No matches found
+
+Commit note:
+- Commit message planned: fix(shared): move CommandItem to HyaloShared
+
+Date: 2026-02-22
