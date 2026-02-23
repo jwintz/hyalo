@@ -60,7 +60,7 @@ struct BufferListView: View {
             .frame(height: 28, alignment: .center)
             .frame(maxWidth: .infinity)
             .overlay(alignment: .top) { Divider() }
-            .background(.bar)
+            .background(.clear)
         }
     }
 

@@ -45,7 +45,7 @@ struct HyaloPanelView<Tab: HyaloPanelTab>: View {
                     )
                     Divider()
                 }
-                .background(.bar)
+                .background(.clear)
             } else if !darkDivider {
                 Divider()
             }
