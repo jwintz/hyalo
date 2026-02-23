@@ -46,4 +46,12 @@ void ios_notify_bootstrap_start (void) {}
 void ios_report_load_progress (const char *filename) { (void)filename; }
 void ios_report_bootstrap_complete (void) {}
 
+/* Receive Swift response from reverse channel.
+   No-op under the simulator. */
+void
+hyalo_ios_receive_swift_response (const char *json_response)
+{
+  (void)json_response;
+}
+
 #endif /* TARGET_OS_SIMULATOR */

@@ -114,7 +114,7 @@
 
 (use-package hyalo-compile
   :ensure nil
-  :if (eq window-system 'ns)
+  :if (memq window-system '(ns ios))
   :config
   (hyalo-compile-setup))
 
@@ -122,7 +122,7 @@
 
 (use-package hyalo-package
   :ensure nil
-  :if (eq window-system 'ns)
+  :if (memq window-system '(ns ios))
   :config
   (hyalo-package-setup))
 
@@ -130,18 +130,26 @@
 
 (use-package hyalo-keycast
   :ensure nil
-  :if (eq window-system 'ns)
-  :commands (hyalo-keycast-mode))
+  :if (memq window-system '(ns ios))
+  :commands (hyalo-keycast-mode)
+  :init (hyalo-keycast-mode))
 
 ;;;; Hyalo Appearance
 
 (use-package hyalo-appearance
   :ensure nil
-  :if (eq window-system 'ns)
+  :if (memq window-system '(ns ios))
   :config
   ;; Push theme-derived settings to Swift (background color, dividers, fringe).
   ;; Opacity and material persist in UserDefaults, managed by the Swift panel.
   (hyalo-appearance-sync))
+
+;;;; Hyalo Doctor
+
+(use-package hyalo-doctor
+  :ensure nil
+  :if (memq window-system '(ns))
+  :commands (hyalo-doctor))
 
 (provide 'init-hyalo)
 ;;; init-hyalo.el ends here

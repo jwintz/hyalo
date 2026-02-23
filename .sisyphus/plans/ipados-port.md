@@ -1112,7 +1112,7 @@ Max Concurrent: 4 (Wave 1)
   - Files: `Sources/HyaloiOS/Bridge/ChannelBridge.swift`, `Sources/HyaloEmacsStubs/EmacsStubs.c`, `iOS/HyaloApp/BridgingHeader.h`
   - Pre-commit: `swift build --target Hyalo`
 
-- [ ] 10. Lisp Bridge Update (Phase 7.4)
+- [x] 10. Lisp Bridge Update (Phase 7.4)
 
   **What to do**:
   - Rewrite `lisp/hyalo-channels-ios.el` to use `hyalo-ios-dispatch` for ALL Emacs-to-Swift calls:
@@ -1202,7 +1202,7 @@ Max Concurrent: 4 (Wave 1)
   - Pre-commit: `swift build --target Hyalo`
 
 
-- [ ] 11. Reverse Channel: Swift-to-Emacs (Phase 7.5)
+- [x] 11. Reverse Channel: Swift-to-Emacs (Phase 7.5)
 
   **What to do**:
   - Design and implement the Swift-to-Emacs command queue:
@@ -1307,7 +1307,7 @@ Max Concurrent: 4 (Wave 1)
   - Files: `Sources/HyaloiOS/Bridge/ChannelBridge.swift`, `Sources/HyaloEmacsStubs/EmacsStubs.c`
   - Pre-commit: `swift build --target Hyalo`
 
-- [ ] 12. init-hyalo.el iOS Adaptation (Phase 8.1)
+- [x] 12. init-hyalo.el iOS Adaptation (Phase 8.1)
 
   **What to do**:
   - Add iOS blocks to `init/init-hyalo.el` alongside existing macOS `(eq window-system 'ns)` blocks:
@@ -1396,7 +1396,7 @@ Max Concurrent: 4 (Wave 1)
   - Files: `init/init-hyalo.el`
   - Pre-commit: `swift build --target Hyalo`
 
-- [ ] 13. init-bootstrap.el iOS Path (Phase 8.2)
+- [x] 13. init-bootstrap.el iOS Path (Phase 8.2)
 
   **What to do**:
   - Identify all packages loaded by init files that require runtime installation (straight.el, package-vc-install, etc.)

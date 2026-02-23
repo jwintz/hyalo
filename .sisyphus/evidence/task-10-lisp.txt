@@ -1,0 +1,85 @@
+Task 10: Update Lisp bridge for single dispatch (Phase 7.4)
+============================================================
+Date: Mon Feb 23 2026
+
+Files Modified/Created:
+-----------------------
+1. lisp/hyalo-channels.el - Added single dispatch infrastructure
+2. lisp/hyalo-ios.el - Added iOS dispatch bridge and handlers
+3. init/init-hyalo.el - Added iOS support
+
+Test Results:
+-------------
+Byte-compilation completed successfully with only expected warnings
+(no syntax errors).
+
+Key Components Added:
+--------------------
+
+1. Single Dispatch Infrastructure (hyalo-channels.el):
+   - hyalo-channel-handlers: Hash table for channel handlers
+   - hyalo-dispatch-pending-callbacks: Async callback tracking
+   - hyalo-register-channel-handler: Register handlers by channel ID
+   - hyalo-single-dispatch: Main dispatch function with callback support
+   - hyalo-single-dispatch-raw: Raw dispatch (overridden by platform)
+   - hyalo-dispatch-handle-response: Process Swift responses
+   - hyalo-dispatch-handle-error: Handle dispatch errors
+
+2. iOS Bridge (hyalo-ios.el):
+   - Command ID constants matching EmacsCommandID enum:
+     * hyalo-ios-command-eval (1)
+     * hyalo-ios-command-switch-buffer (3)
+     * hyalo-ios-command-kill-buffer (4)
+     * hyalo-ios-command-find-file (5)
+     * hyalo-ios-command-execute-command (7)
+     * hyalo-ios-command-appearance-change (10)
+     * hyalo-ios-command-search (11)
+     * hyalo-ios-command-search-navigate (12)
+     * hyalo-ios-command-git-show-commit (16)
+     * hyalo-ios-command-git-show-diff (17)
+   
+   - hyalo-ios-dispatch: Send commands to Swift via C FFI
+   - hyalo-ios-dispatch-sync: Synchronous dispatch with timeout
+   - hyalo-single-dispatch-raw: iOS implementation override
+   
+   - Command handlers:
+     * hyalo-ios-handle-eval: Evaluate Elisp code
+     * hyalo-ios-handle-switch-buffer: Switch to buffer
+     * hyalo-ios-handle-find-file: Open file
+     * hyalo-ios-handle-kill-buffer: Kill buffer
+     * hyalo-ios-handle-search: Execute search
+     * hyalo-ios-handle-search-navigate: Navigate to search result
+     * hyalo-ios-handle-execute-command: Execute interactive command
+     * hyalo-ios-handle-appearance-change: Change appearance mode
+     * hyalo-ios-handle-show-commit: Show git commit
+     * hyalo-ios-handle-show-diff: Show file diff
+   
+   - hyalo-ios-dispatch-command: Main router function
+   - hyalo-ios-init: Initialize iOS bridge
+
+3. init-hyalo.el Changes:
+   - Added Hyalo iOS Module section with use-package
+   - Updated window-system checks from '(eq window-system 'ns)' 
+     to '(memq window-system '(ns ios))' for:
+     * hyalo-status
+     * hyalo-navigator
+     * hyalo-source-control
+     * hyalo-compile
+     * hyalo-package
+     * hyalo-keycast
+     * hyalo-appearance
+
+Test Command:
+-------------
+(hyalo-ios-dispatch 1 '((code . "(+ 1 2)")))
+
+This dispatches the "eval" command (ID 1) with Elisp code to evaluate.
+Expected: Code is evaluated and result returned via callback.
+
+Notes:
+------
+- C FFI functions (hyalo-ios-dispatch-raw, etc.) are declared but
+  provided by libemacs.a on actual iOS device/simulator
+- The bridge uses JSON for payload encoding/decoding
+- Async callbacks are tracked via request IDs
+- All existing macOS channel handlers are reused for iOS

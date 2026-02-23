@@ -362,21 +362,86 @@ Called during initialization."
 (defconst hyalo-ios-command-git-show-commit 16)
 (defconst hyalo-ios-command-git-show-diff 17)
 
+;;; Command Name to ID Mapping
+
+(defun hyalo-ios-command-name-to-id (command-name)
+  "Map COMMAND-NAME string to command ID integer.
+Returns nil if command name is not recognized.
+Valid command names: eval, open-file, switch-buffer, kill-buffer,
+  find-file, save-buffer, execute-command, navigator-select,
+  status-tap, appearance-change, search, search-navigate,
+  diagnostic-navigate, package-refresh, package-upgrade,
+  git-show-commit, git-show-diff"
+  (pcase command-name
+    ("eval" hyalo-ios-command-eval)
+    ("open-file" hyalo-ios-command-open-file)
+    ("switch-buffer" hyalo-ios-command-switch-buffer)
+    ("kill-buffer" hyalo-ios-command-kill-buffer)
+    ("find-file" hyalo-ios-command-find-file)
+    ("save-buffer" hyalo-ios-command-save-buffer)
+    ("execute-command" hyalo-ios-command-execute-command)
+    ("navigator-select" hyalo-ios-command-navigator-select)
+    ("status-tap" hyalo-ios-command-status-tap)
+    ("appearance-change" hyalo-ios-command-appearance-change)
+    ("search" hyalo-ios-command-search)
+    ("search-navigate" hyalo-ios-command-search-navigate)
+    ("diagnostic-navigate" hyalo-ios-command-diagnostic-navigate)
+    ("package-refresh" hyalo-ios-command-package-refresh)
+    ("package-upgrade" hyalo-ios-command-package-upgrade)
+    ("git-show-commit" hyalo-ios-command-git-show-commit)
+    ("git-show-diff" hyalo-ios-command-git-show-diff)
+    (_ nil)))
+
+(defun hyalo-ios-command-id-to-name (command-id)
+  "Map COMMAND-ID integer to command name string.
+Returns nil if command ID is not recognized."
+  (pcase command-id
+    (1 "eval")
+    (2 "open-file")
+    (3 "switch-buffer")
+    (4 "kill-buffer")
+    (5 "find-file")
+    (6 "save-buffer")
+    (7 "execute-command")
+    (8 "navigator-select")
+    (9 "status-tap")
+    (10 "appearance-change")
+    (11 "search")
+    (12 "search-navigate")
+    (13 "diagnostic-navigate")
+    (14 "package-refresh")
+    (15 "package-upgrade")
+    (16 "git-show-commit")
+    (17 "git-show-diff")
+    (_ nil)))
+
 ;; Declare C functions provided by libemacs.a
 (declare-function hyalo-ios-dispatch-raw "hyalo-ios" (command-id json-payload))
 (declare-function hyalo-ios-dispatch-response "hyalo-ios" (request-id json-response))
 (declare-function hyalo-ios-dispatch-error "hyalo-ios" (request-id error-message))
 
-(defun hyalo-ios-dispatch (command-id payload)
-  "Dispatch COMMAND-ID with JSON PAYLOAD to Swift.
-COMMAND-ID is an integer matching EmacsCommandID enum.
-PAYLOAD is an alist that will be encoded as JSON."
-  (let ((json-payload (json-encode payload)))
-    (hyalo-log 'ios "Dispatch %d: %s" command-id json-payload)
-    (if (fboundp 'hyalo-ios-dispatch-raw)
-        (hyalo-ios-dispatch-raw command-id json-payload)
-      (hyalo-log 'ios "hyalo-ios-dispatch-raw not available")
-      nil)))
+(defun hyalo-ios-dispatch (command payload)
+  "Dispatch COMMAND with PAYLOAD to Swift.
+COMMAND can be either an integer (command ID) or a string (command name).
+PAYLOAD is an alist that will be encoded as JSON.
+Examples:
+  (hyalo-ios-dispatch \"eval\" \"(+ 1 2)\")
+  (hyalo-ios-dispatch 1 \"(+ 1 2)\")"
+  (let* ((command-id (if (stringp command)
+                         (hyalo-ios-command-name-to-id command)
+                       command))
+         (json-payload (json-encode payload)))
+    (if (not command-id)
+        (progn
+          (hyalo-log 'ios "Unknown command: %s" command)
+          nil)
+      (hyalo-log 'ios "Dispatch %s (%d): %s"
+                 (hyalo-ios-command-id-to-name command-id)
+                 command-id json-payload)
+      (if (fboundp 'hyalo-ios-dispatch-raw)
+          (hyalo-ios-dispatch-raw command-id json-payload)
+        (hyalo-log 'ios "hyalo-ios-dispatch-raw not available")
+        nil))))
 
 (defun hyalo-ios-dispatch-sync (command-id payload)
   "Dispatch COMMAND-ID with PAYLOAD and wait for result.
@@ -518,5 +583,108 @@ Returns JSON-encoded response."
   ;; Register handlers with the single dispatch system
   (hyalo-register-channel-handler "ios" #'hyalo-ios-dispatch-command)
   (hyalo-log 'ios "iOS bridge initialized"))
+
+;;; Reverse Channel (Emacs -> Swift with callbacks)
+
+;; Declare C functions for reverse channel
+(declare-function hyalo-ios-call-swift-raw "hyalo-ios" (handler-name json-payload callback-id))
+(declare-function hyalo-ios-receive-swift-response "hyalo-ios" (json-response))
+
+(defvar hyalo-ios--swift-callbacks (make-hash-table :test 'equal)
+  "Hash table mapping callback IDs to Emacs callback functions.")
+
+(defvar hyalo-ios--callback-counter 0
+  "Counter for generating unique callback IDs.")
+
+(defun hyalo-ios--generate-callback-id ()
+  "Generate a unique callback ID."
+  (setq hyalo-ios--callback-counter (1+ hyalo-ios--callback-counter))
+  (format "emacs_cb_%d" hyalo-ios--callback-counter))
+
+(defun hyalo-ios-call-swift (handler payload &optional callback)
+  "Call Swift HANDLER with PAYLOAD and optional CALLBACK.
+HANDLER is a string naming the Swift handler to invoke.
+PAYLOAD is an alist that will be encoded as JSON.
+CALLBACK is an optional function to call with the result.
+Returns the callback ID, or nil if the call failed.
+
+Example:
+  (hyalo-ios-call-swift \"get_workspace_info\" nil
+    (lambda (result)
+      (message \"Workspace: %s\" result)))"
+  (let* ((callback-id (hyalo-ios--generate-callback-id))
+         (json-payload (json-encode (or payload '()))))
+    ;; Store callback if provided
+    (when callback
+      (puthash callback-id callback hyalo-ios--swift-callbacks))
+    ;; Call the C function
+    (if (fboundp 'hyalo-ios-call-swift-raw)
+        (progn
+          (hyalo-log 'ios "Calling Swift handler '%s' with callback %s" handler callback-id)
+          (hyalo-ios-call-swift-raw handler json-payload callback-id)
+          callback-id)
+      (hyalo-log 'ios "hyalo-ios-call-swift-raw not available")
+      nil)))
+
+(defun hyalo-ios-call-swift-sync (handler payload &optional timeout)
+  "Call Swift HANDLER with PAYLOAD synchronously.
+Waits for response up to TIMEOUT seconds (default 5).
+Returns the result or raises an error on timeout."
+  (let ((result nil)
+        (done nil)
+        (cb-id nil))
+    (setq cb-id
+          (hyalo-ios-call-swift
+           handler
+           payload
+           (lambda (res)
+             (setq result res)
+             (setq done t))))
+    (if (not cb-id)
+        (error "Failed to call Swift handler '%s'" handler)
+      (with-timeout ((or timeout 5) (progn
+                        (hyalo-log 'ios "Swift call '%s' timed out" handler)
+                        (remhash cb-id hyalo-ios--swift-callbacks)
+                        (error "Timeout calling Swift handler '%s'" handler)))
+        (while (not done)
+          (accept-process-output nil 0.1)))
+      result)))
+
+(defun hyalo-ios-receive-swift-response (json-response)
+  "Handle Swift response JSON-RESPONSE from reverse channel.
+This function is called by the C layer when Swift sends a response."
+  (condition-case err
+      (let* ((response (json-read-from-string json-response))
+             (callback-id (cdr (assoc 'callback_id response)))
+             (success (cdr (assoc 'success response)))
+             (result (cdr (assoc 'result response)))
+             (error-msg (cdr (assoc 'error response))))
+        (hyalo-log 'ios "Received Swift response for callback %s (success: %s)" callback-id success)
+        ;; Find and call the callback
+        (let ((callback (gethash callback-id hyalo-ios--swift-callbacks)))
+          (when callback
+            (remhash callback-id hyalo-ios--swift-callbacks)
+            (if success
+                (funcall callback result)
+              (funcall callback `((error . ,(or error-msg "Unknown error"))))))))
+    (error
+     (hyalo-log 'ios "Error processing Swift response: %s" (error-message-string err)))))
+
+;;; Predefined Swift Handlers
+
+;; These handlers are implemented in Swift and can be called from Emacs
+
+(defun hyalo-ios-get-workspace-info (&optional callback)
+  "Get workspace information from Swift.
+Calls CALLBACK with the workspace info when available."
+  (hyalo-ios-call-swift "get_workspace_info" nil callback))
+
+(defun hyalo-ios-get-theme-info (&optional callback)
+  "Get current theme information from Swift."
+  (hyalo-ios-call-swift "get_theme_info" nil callback))
+
+(defun hyalo-ios-set-appearance (mode &optional callback)
+  "Set appearance MODE in Swift (light/dark/auto)."
+  (hyalo-ios-call-swift "set_appearance" `((mode . ,mode)) callback))
 (provide 'hyalo-ios)
 ;;; hyalo-ios.el ends here

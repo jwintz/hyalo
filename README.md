@@ -147,6 +147,7 @@ Theme-appearance synchronization:
 | `nano-themes.el` | N Λ N O theme infrastructure (built on modus-themes) |
 | `nano-light-theme.el` | N Λ N O light theme (Material Design palette) |
 | `nano-dark-theme.el` | N Λ N O dark theme (Nord palette) |
+| `hyalo-doctor.el` | Environment doctor: checks Swift, macOS, Xcode, fonts, tools |
 | `hyalo-ios.el` | iOS module loader (no dlopen, static linking) |
 | `hyalo-channels-ios.el` | iOS channel bridge via C FFI instead of dynamic module |
 | `header2.el` | File header creation and update (vendored) |

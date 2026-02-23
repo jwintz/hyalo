@@ -199,13 +199,34 @@ Uses elog if available, otherwise falls back to message."
 (use-package exec-path-from-shell
   :ensure t
   :config
-  (when (memq window-system '(mac ns x))
+  (when (and (memq window-system '(mac ns x)) (not (eq window-system 'ios)))
     ;; Non-interactive login shell: faster startup, loads .zshenv/.zprofile only
     ;; Move PATH exports from .zshrc to .zshenv for this to work
     (setq exec-path-from-shell-arguments '("-l"))
     (dolist (var '("SYNTHETIC_API_KEY"))
       (add-to-list 'exec-path-from-shell-variables var))
     (exec-path-from-shell-initialize)))
+
+;;; ===========================================================================
+;;; iOS-Specific Setup
+;;; ===========================================================================
+
+;; iOS uses bundled packages instead of ELPA
+(when (eq window-system 'ios)
+  ;; Set paths for bundled resources
+  (when (getenv "HYALO_BUNDLE_PATH")
+    (let ((bundle-path (getenv "HYALO_BUNDLE_PATH")))
+      ;; Add bundled lisp directory to load-path
+      (add-to-list 'load-path (expand-file-name "lisp" bundle-path))
+      ;; Set up bundled packages directory
+      (setq package-user-dir (expand-file-name "bundled-elpa" bundle-path))
+      ;; Initialize package system with bundled packages
+      (setq package-archives nil)))
+  ;; iOS uses local storage in app container
+  (setq user-emacs-directory (expand-file-name "emacs.d" (or (getenv "HOME") "~")))
+  ;; Disable native compilation (not available on iOS)
+  (setq native-comp-async-jobs-number 0)
+  (setq native-comp-enable-async-compilation nil))
 
 (provide 'init-bootstrap)
 ;;; init-bootstrap.el ends here

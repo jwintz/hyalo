@@ -40,8 +40,8 @@
   (require 'hyalo-window)
   (hyalo-window--early-setup))
 
-;; Check for module support early
-(unless module-file-suffix
+;; Check for module support early (not required on iOS where modules are statically linked)
+(unless (or (eq window-system 'ios) module-file-suffix)
   (error "Emacs was not compiled with dynamic module support (--with-modules)"))
 
 ;;; ---------------------------------------------------------------------------
