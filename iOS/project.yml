@@ -22,6 +22,7 @@ targets:
       PRODUCT_BUNDLE_IDENTIFIER: org.gnu.hyalo.kit
       SWIFT_VERSION: "5.0"
       DEFINES_MODULE: "YES"
+      GENERATE_INFOPLIST_FILE: "YES"
       HEADER_SEARCH_PATHS:
         - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src
         - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios

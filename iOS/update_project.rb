@@ -34,6 +34,7 @@ project.targets.each do |target|
         '-lnettle',
         '-lhogweed',
         '-ltasn1',
+        '-ltree-sitter',
         '-lz',
         '-liconv'
       ]

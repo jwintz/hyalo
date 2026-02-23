@@ -903,3 +903,62 @@ make -C src -j$(sysctl -n hw.ncpu) LIBS_TERMCAP="" \
 - `otool -l libemacs.a | grep -A2 LC_BUILD_VERSION` shows platform 7 (iossimulator), minos 17.0
 - `file libemacs.a` confirms it's a "current ar archive"
 
+
+---
+
+## Task 3: Link real libemacs.a in simulator build (COMPLETED - 2026-02-23)
+
+### Summary
+Successfully linked real libemacs.a with tree-sitter support in iOS Simulator build. Build completed without undefined symbol errors.
+
+### Changes Made
+
+1. **iOS/update_project.rb**
+   - Added `-ltree-sitter` linker flag for simulator builds
+   - Tree-sitter library already available at `~/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib/libtree-sitter.a`
+
+2. **iOS/project.yml**
+   - Added `GENERATE_INFOPLIST_FILE: "YES"` to HyaloKitFramework target settings
+   - Required for code signing the framework
+
+3. **libemacs.a Fix**
+   - Rebuilt libemacs.a to remove duplicate `regex.o` from libgnu.a
+   - Conflict: `regex.o` (gnulib) vs `regex-emacs.o` (Emacs) both defined same symbols:
+     - `_rpl_re_set_registers`
+     - `_rpl_re_search_2`
+     - `_rpl_re_match_2`
+     - `_rpl_re_compile_pattern`
+     - `_rpl_re_search`
+   - Solution: Extract libgnu.a, remove regex.o, recreate libemacs.a
+
+### Build Verification
+
+**Command:**
+```bash
+cd iOS
+swift run --package-path .. xcodegen generate
+ruby update_project.rb
+xcodebuild -project HyaloApp.xcodeproj -scheme HyaloApp \
+  -destination 'platform=iOS Simulator,name=iPad Pro 13-inch (M5)' \
+  -derivedDataPath /tmp/hyalo-ios-build build
+```
+
+**Result:** BUILD SUCCEEDED
+
+**Output:**
+- Hyalo.app (21MB total)
+- libemacs.a (4.5MB) successfully linked
+- All dependencies linked: xml2, jansson, gmp, gnutls, nettle, hogweed, tasn1, z, iconv, sqlite3, tree-sitter
+- No undefined symbol errors
+
+### Evidence
+
+- `.sisyphus/evidence/task-3-sim-build-success.txt` - Build success details
+
+### Key Findings
+
+1. **Tree-sitter linking works** - Adding `-ltree-sitter` resolves all tree-sitter symbol errors
+2. **Duplicate symbols in libemacs.a** - libgnu.a's regex.o conflicts with Emacs regex-emacs.o
+3. **Framework needs Info.plist** - GENERATE_INFOPLIST_FILE required for code signing
+4. **Simulator build complete** - Ready for emulator testing
+

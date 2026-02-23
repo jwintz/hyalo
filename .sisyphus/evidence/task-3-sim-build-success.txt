@@ -1,0 +1,49 @@
+Task 3: Link real libemacs.a in simulator build
+
+Build Date: Mon Feb 23 02:52:43 CET 2026
+Status: BUILD SUCCEEDED
+
+Key Changes:
+- Added -ltree-sitter linker flag to update_project.rb
+- Fixed libemacs.a by removing duplicate regex.o from libgnu.a
+- Added GENERATE_INFOPLIST_FILE to project.yml HyaloKitFramework target
+
+Linked Libraries:
+- libemacs.a (4.5MB, arm64, iOS Simulator platform 7)
+- libtree-sitter.a (232KB)
+- libxml2, libjansson, libgmp, libgnutls, libnettle, libhogweed, libtasn1, libz, libiconv, libsqlite3
+
+Build Products:
+total 21M
+drwxr-xr-x   3 jwintz wheel   96 Feb 23 02:52 _CodeSignature
+-rw-r--r--   1 jwintz wheel  21M Feb 23 02:52 bootstrap-emacs.pdmp
+drwxr-xr-x  80 jwintz wheel 2.5K Feb 23 02:52 etc
+drwxr-xr-x   3 jwintz wheel   96 Feb 23 02:52 Frameworks
+-rwxr-xr-x   1 jwintz wheel  86K Feb 23 02:52 Hyalo
+-rw-r--r--   1 jwintz wheel 1.2K Feb 23 02:52 Info.plist
+drwxr-xr-x  16 jwintz wheel  512 Feb 23 02:52 init
+drwxr-xr-x 664 jwintz wheel  21K Feb 23 02:52 lisp
+-rw-r--r--   1 jwintz wheel    8 Feb 23 02:52 PkgInfo
+
+Verification:
+/tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app/Hyalo:
+	@rpath/HyaloKitFramework.framework/HyaloKitFramework (compatibility version 1.0.0, current version 1.0.0)
+	/System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 4201.0.0, weak)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)
+	/System/Library/Frameworks/SwiftUI.framework/SwiftUI (compatibility version 1.0.0, current version 7.2.5)
+	/System/Library/Frameworks/UIKit.framework/UIKit (compatibility version 1.0.0, current version 9126.2.4, weak)
+	/usr/lib/swift/libswiftCore.dylib (compatibility version 0.0.0, current version 0.0.0)
+	/usr/lib/swift/libswiftCoreFoundation.dylib (compatibility version 1.0.0, current version 120.100.0, weak)
+	/usr/lib/swift/libswiftCoreImage.dylib (compatibility version 1.0.0, current version 2.2.0, weak)
+	/usr/lib/swift/libswiftDispatch.dylib (compatibility version 1.0.0, current version 56.0.0, weak)
+	/usr/lib/swift/libswiftMetal.dylib (compatibility version 1.0.0, current version 370.64.2, weak)
+	/usr/lib/swift/libswiftOSLog.dylib (compatibility version 1.0.0, current version 10.0.0, weak)
+	/usr/lib/swift/libswiftObjectiveC.dylib (compatibility version 1.0.0, current version 951.1.0, weak)
+	/usr/lib/swift/libswiftQuartzCore.dylib (compatibility version 1.0.0, current version 5.0.0, weak)
+	/usr/lib/swift/libswiftSpatial.dylib (compatibility version 1.0.0, current version 1.0.0, weak)
+	/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib (compatibility version 1.0.0, current version 879.2.4, weak)
+	/usr/lib/swift/libswiftXPC.dylib (compatibility version 1.0.0, current version 105.0.14, weak)
+	/usr/lib/swift/libswift_Builtin_float.dylib (compatibility version 1.0.0, current version 0.0.0, weak)
+	/usr/lib/swift/libswiftos.dylib (compatibility version 1.0.0, current version 1076.40.2, weak)
+	/usr/lib/swift/libswiftsimd.dylib (compatibility version 1.0.0, current version 23.0.0, weak)
