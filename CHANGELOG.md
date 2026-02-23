@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `hyalo-build` and `hyalo-rebuild-and-reload` now open `*hyalo-build*` in `compilation-mode` in addition to their current behavior (Swift activity viewer tracking unchanged). For the async path (`hyalo-async-build`), a new `hyalo-build` channel (`hyalo-setup-build-channel`) fires three Emacs callbacks per build: `hyalo-channels--handle-build-start` (prepares the buffer), `hyalo-channels--handle-build-log-line` (streams each line with auto-scroll), `hyalo-channels--handle-build-finish` (appends a completion marker). For the sync fallback paths the buffer is prepared before `call-process-shell-command` runs and `compilation-mode` is activated after. Swift compiler output (`file:line:col: error:`) is parsed by `compilation-mode` enabling `next-error` / `M-g n` navigation to build errors.
 - Initial revision: native macOS Emacs with SwiftUI chrome, NavigationSplitView layout, bidirectional Swift/Emacs Lisp channels, and integrated package/activity/terminal UI.
 - Add `git-modes` package to `init-modes.el` for `.gitignore`, `.gitattributes`, and `.gitconfig` file support with proper comment syntax.
 

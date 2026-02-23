@@ -1,0 +1,60 @@
+Task 8: Create feedstock patch for single dispatch DEFUN (Phase 7.2)
+====================================================================
+
+Patch file: patches/ios-single-dispatch.patch
+
+Contents:
+---------
+- Creates src/iosdispatch.h with:
+  * Command ID enum (IOS_CMD_NONE through IOS_CMD_MAX)
+  * Dispatch table structure (ios_command_entry)
+  * DEFUN_IOS macro for registering functions
+  * DEFUN_IOS_CUSTOM macro for custom wrappers
+  * Function declarations for dispatch system
+
+Integration:
+------------
+The patch was tested with:
+1. pixi run ios_sim_prep - Creates clean build directory
+2. patch -p1 < ../patches/ios-single-dispatch.patch - Applies cleanly
+
+Modified files in ios/ directory (copied by ios_install_src):
+- iosfns.m: Added dispatch implementation and #include
+- iosterm.h: Added #include for iosdispatch.h
+- iosdispatch.h: Added to ios/ directory
+
+Verification:
+-------------
+
+Patch applied to: emacs-build-ios-sim/src/iosdispatch.h
+-rw-r--r-- 1 jwintz staff 4310 Feb 23 21:57 /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-sim/src/iosdispatch.h
+
+DEFUN_IOS macro defined:
+#define DEFUN_IOS(cmd_id, lname, fnname, sname, minargs, maxargs, intspec, doc) \
+  DEFUN(lname, fnname, sname, minargs, maxargs, intspec, doc); \
+  static void __attribute__((constructor)) _register_##fnname(void) { \
+    ios_dispatch_register(cmd_id, lname, NULL, fnname); \
+  } \
+  Lisp_Object fnname
+--
+#define DEFUN_IOS_CUSTOM(cmd_id, lname, fnname, sname, wrapper, minargs, maxargs, intspec, doc) \
+  static Lisp_Object fnname(Lisp_Object); \
+  static Lisp_Object wrapper(Lisp_Object); \
+  DEFUN(lname, fnname, sname, minargs, maxargs, intspec, doc); \
+  static void __attribute__((constructor)) _register_##fnname(void) { \
+    ios_dispatch_register(cmd_id, lname, wrapper, fnname); \
+
+Dispatch functions in iosfns.m:
+51:ios_command_entry *ios_dispatch_table = NULL;
+52:int ios_dispatch_count = 0;
+53:int ios_dispatch_capacity = 0;
+56:ios_dispatch_init(void)
+58:  if (ios_dispatch_table == NULL) {
+59:    ios_dispatch_capacity = 32;
+60:    ios_dispatch_table = xzalloc(sizeof(ios_command_entry) * ios_dispatch_capacity);
+61:    ios_dispatch_count = 0;
+66:ios_dispatch_register(ios_command_id cmd_id, const char *name,
+67:                      ios_dispatch_handler handler,
+
+Test: Patch applies cleanly
+Status: PASS

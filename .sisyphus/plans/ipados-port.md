@@ -938,7 +938,7 @@ Max Concurrent: 4 (Wave 1)
   ```
 
   **Commit**: NO (verification only, no code changes)
-- [ ] 8. Feedstock Patch: Single Dispatch DEFUN (Phase 7.2)
+- [x] 8. Feedstock Patch: Single Dispatch DEFUN (Phase 7.2)
 
   **What to do**:
   - Patch `~/Syntropment/hyalo-feedstock-unified/ios/iosfns.m` to add the single dispatch DEFUN:
@@ -1023,7 +1023,7 @@ Max Concurrent: 4 (Wave 1)
 
   **Commit**: NO (feedstock patch -- human commits feedstock)
 
-- [ ] 9. Swift Dispatch Router (Phase 7.3)
+- [x] 9. Swift Dispatch Router (Phase 7.3)
 
   **What to do**:
   - In `Sources/HyaloiOS/Bridge/ChannelBridge.swift`, implement the central dispatch router:

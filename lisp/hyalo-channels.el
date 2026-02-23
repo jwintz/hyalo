@@ -37,6 +37,8 @@
           (hyalo-setup-source-control-channel))
         (when (fboundp 'hyalo-setup-environment-channel)
           (hyalo-setup-environment-channel))
+        (when (fboundp 'hyalo-setup-build-channel)
+          (hyalo-setup-build-channel))
         ;; Push initial environment state now that channel is ready
         (when (fboundp 'hyalo-environment--push-initial)
           (hyalo-environment--push-initial))
@@ -244,5 +246,124 @@ unstaged diff via magit-diff-buffer-file."
         (magit-diff-buffer-file)
       (message "magit not available"))))
 
+;; Build channel handlers (called from Swift via hyalo-setup-build-channel)
+
+(defun hyalo-channels--handle-build-start (config)
+  "Prepare *hyalo-build* in `compilation-mode' for streaming build output.
+CONFIG is the build configuration string (\"debug\" or \"release\").
+Pops the buffer so the user sees output as lines arrive."
+  (let ((buf (get-buffer-create "*hyalo-build*")))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert (format "swift build -c %s\n\n" config)))
+      (compilation-mode)
+      (setq-local compilation-scroll-output t))
+    (display-buffer buf '((display-buffer-reuse-window
+                           display-buffer-pop-up-window)))))
+
+(defun hyalo-channels--handle-build-log-line (line)
+  "Append LINE to *hyalo-build*, auto-scrolling when point is at end."
+  (when-let ((buf (get-buffer "*hyalo-build*")))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t)
+            (was-at-end (= (point) (point-max))))
+        (save-excursion
+          (goto-char (point-max))
+          (insert line "\n"))
+        (when was-at-end
+          (goto-char (point-max)))))))
+
+(defun hyalo-channels--handle-build-finish (success)
+  "Append a completion marker to *hyalo-build*."
+  (when-let ((buf (get-buffer "*hyalo-build*")))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-max))
+          (insert (if success "\nBuild complete.\n" "\nBuild failed.\n")))))))
+
+
+;;; Single Dispatch Infrastructure (for iOS bridge)
+;; Provides generic command routing for Swift -> Emacs communication
+
+(defvar hyalo-channel-handlers (make-hash-table :test 'equal)
+  "Hash table mapping channel IDs to handler functions.")
+
+(defvar hyalo-dispatch-pending-callbacks (make-hash-table :test 'equal)
+  "Hash table mapping request IDs to callback functions.")
+
+(defvar hyalo-dispatch-request-counter 0
+  "Counter for generating unique request IDs.")
+
+(defun hyalo-register-channel-handler (channel-id handler)
+  "Register HANDLER function for CHANNEL-ID."
+  (puthash channel-id handler hyalo-channel-handlers)
+  (hyalo-log 'channels "Registered handler for %s" channel-id))
+
+(defun hyalo-dispatch-channel-message (channel-id message)
+  "Dispatch MESSAGE to handler for CHANNEL-ID."
+  (let ((handler (gethash channel-id hyalo-channel-handlers)))
+    (if handler
+        (funcall handler message)
+      (hyalo-log 'channels "No handler for channel %s" channel-id))))
+
+(defun hyalo-dispatch-generate-request-id ()
+  "Generate a unique request ID."
+  (setq hyalo-dispatch-request-counter (1+ hyalo-dispatch-request-counter))
+  (format "req_%d" hyalo-dispatch-request-counter))
+
+(defun hyalo-dispatch-register-callback (request-id callback)
+  "Register CALLBACK to be called when REQUEST-ID completes."
+  (puthash request-id callback hyalo-dispatch-pending-callbacks))
+
+(defun hyalo-dispatch-run-callback (request-id result)
+  "Run the callback for REQUEST-ID with RESULT."
+  (let ((callback (gethash request-id hyalo-dispatch-pending-callbacks)))
+    (when callback
+      (remhash request-id hyalo-dispatch-pending-callbacks)
+      (funcall callback result))))
+
+(defun hyalo-dispatch-clear-callback (request-id)
+  "Clear the callback for REQUEST-ID without running it."
+  (remhash request-id hyalo-dispatch-pending-callbacks))
+
+(defun hyalo-single-dispatch (command-id payload &optional callback)
+  "Dispatch COMMAND-ID with PAYLOAD to Swift.
+If CALLBACK is provided, it will be called with the result when available.
+PAYLOAD should be an alist that will be encoded as JSON."
+  (let* ((request-id (hyalo-dispatch-generate-request-id))
+         (payload-with-id (cons (cons "request_id" request-id) payload)))
+    (when callback
+      (hyalo-dispatch-register-callback request-id callback))
+    ;; Platform-specific dispatch happens here
+    (hyalo-single-dispatch-raw command-id payload-with-id)))
+
+(defun hyalo-single-dispatch-raw (command-id payload)
+  "Raw dispatch function to be overridden by platform-specific code.
+COMMAND-ID is the command identifier.
+PAYLOAD is the alist to be sent."
+  (hyalo-log 'channels "Dispatch %s: %S" command-id payload))
+
+(defun hyalo-dispatch-handle-response (request-id json-response)
+  "Handle a dispatch response from Swift.
+REQUEST-ID is the request identifier.
+JSON-RESPONSE is the JSON string response."
+  (condition-case err
+      (let ((response (json-read-from-string json-response)))
+        (hyalo-dispatch-run-callback request-id response))
+    (error
+     (hyalo-log 'channels "Failed to parse response for %s: %s"
+              request-id (error-message-string err)))))
+
+(defun hyalo-dispatch-handle-error (request-id error-message)
+  "Handle a dispatch error from Swift.
+REQUEST-ID is the request identifier.
+ERROR-MESSAGE describes the error."
+  (hyalo-log 'channels "Dispatch error for %s: %s" request-id error-message)
+  (let ((callback (gethash request-id hyalo-dispatch-pending-callbacks)))
+    (when callback
+      (remhash request-id hyalo-dispatch-pending-callbacks)
+      (funcall callback `((success . nil) (error . ,error-message))))))
 (provide 'hyalo-channels)
 ;;; hyalo-channels.el ends here

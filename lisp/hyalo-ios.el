@@ -339,5 +339,184 @@ Called during initialization."
   (hyalo-ios-setup-channels)
   (hyalo-log 'window "Setup complete"))
 
+
+;;; iOS Single Dispatch Bridge
+;; Implements the Swift -> Emacs dispatch mechanism for iOS
+
+;; Command IDs matching EmacsCommandID in DispatchRouter.swift
+(defconst hyalo-ios-command-eval 1)
+(defconst hyalo-ios-command-open-file 2)
+(defconst hyalo-ios-command-switch-buffer 3)
+(defconst hyalo-ios-command-kill-buffer 4)
+(defconst hyalo-ios-command-find-file 5)
+(defconst hyalo-ios-command-save-buffer 6)
+(defconst hyalo-ios-command-execute-command 7)
+(defconst hyalo-ios-command-navigator-select 8)
+(defconst hyalo-ios-command-status-tap 9)
+(defconst hyalo-ios-command-appearance-change 10)
+(defconst hyalo-ios-command-search 11)
+(defconst hyalo-ios-command-search-navigate 12)
+(defconst hyalo-ios-command-diagnostic-navigate 13)
+(defconst hyalo-ios-command-package-refresh 14)
+(defconst hyalo-ios-command-package-upgrade 15)
+(defconst hyalo-ios-command-git-show-commit 16)
+(defconst hyalo-ios-command-git-show-diff 17)
+
+;; Declare C functions provided by libemacs.a
+(declare-function hyalo-ios-dispatch-raw "hyalo-ios" (command-id json-payload))
+(declare-function hyalo-ios-dispatch-response "hyalo-ios" (request-id json-response))
+(declare-function hyalo-ios-dispatch-error "hyalo-ios" (request-id error-message))
+
+(defun hyalo-ios-dispatch (command-id payload)
+  "Dispatch COMMAND-ID with JSON PAYLOAD to Swift.
+COMMAND-ID is an integer matching EmacsCommandID enum.
+PAYLOAD is an alist that will be encoded as JSON."
+  (let ((json-payload (json-encode payload)))
+    (hyalo-log 'ios "Dispatch %d: %s" command-id json-payload)
+    (if (fboundp 'hyalo-ios-dispatch-raw)
+        (hyalo-ios-dispatch-raw command-id json-payload)
+      (hyalo-log 'ios "hyalo-ios-dispatch-raw not available")
+      nil)))
+
+(defun hyalo-ios-dispatch-sync (command-id payload)
+  "Dispatch COMMAND-ID with PAYLOAD and wait for result.
+Returns the parsed JSON response."
+  (let ((result nil)
+        (done nil))
+    (hyalo-single-dispatch
+     command-id
+     payload
+     (lambda (response)
+       (setq result response)
+       (setq done t)))
+    ;; Wait for response with timeout
+    (with-timeout (5 (progn
+                       (hyalo-log 'ios "Dispatch timeout for %d" command-id)
+                       `((success . nil) (error . "Timeout"))))
+      (while (not done)
+        (accept-process-output nil 0.1)))
+    result))
+
+;; Override the raw dispatch function for iOS
+(defun hyalo-single-dispatch-raw (command-id payload)
+  "iOS implementation of raw dispatch.
+Sends the command to Swift via C FFI."
+  (let ((json-payload (json-encode payload)))
+    (when (fboundp 'hyalo-ios-dispatch-raw)
+      (hyalo-ios-dispatch-raw command-id json-payload))))
+
+;;; Command Handlers
+
+(defun hyalo-ios-handle-eval (payload)
+  "Handle eval command from Swift.
+PAYLOAD contains: code - Elisp code to evaluate."
+  (let ((code (cdr (assoc "code" payload))))
+    (condition-case err
+        (let ((result (eval (read code))))
+          `((success . t) (result . ,(format "%S" result))))
+      (error
+       `((success . nil) (error . ,(error-message-string err)))))))
+
+(defun hyalo-ios-handle-switch-buffer (payload)
+  "Handle switch-buffer command from Swift.
+PAYLOAD contains: buffer-name - name of buffer to switch to."
+  (let ((buffer-name (cdr (assoc "buffer_name" payload))))
+    (when buffer-name
+      (hyalo-channels--handle-switch-buffer buffer-name))
+    `((success . t))))
+
+(defun hyalo-ios-handle-find-file (payload)
+  "Handle find-file command from Swift.
+PAYLOAD contains: file_path - path of file to open."
+  (let ((file-path (cdr (assoc "file_path" payload))))
+    (when file-path
+      (hyalo-channels--handle-find-file file-path))
+    `((success . t))))
+
+(defun hyalo-ios-handle-kill-buffer (payload)
+  "Handle kill-buffer command from Swift.
+PAYLOAD contains: buffer_name - name of buffer to kill."
+  (let ((buffer-name (cdr (assoc "buffer_name" payload))))
+    (when buffer-name
+      (let ((buf (get-buffer buffer-name)))
+        (when buf (kill-buffer buf))))
+    `((success . t))))
+
+(defun hyalo-ios-handle-search (payload)
+  "Handle search command from Swift.
+PAYLOAD contains: query - search string."
+  (let ((query (cdr (assoc "query" payload))))
+    (when query
+      (hyalo-channels--handle-search query))
+    `((success . t))))
+
+(defun hyalo-ios-handle-search-navigate (payload)
+  "Handle search-navigate command from Swift.
+PAYLOAD contains: location - file:line:col string."
+  (let ((location (cdr (assoc "location" payload))))
+    (when location
+      (hyalo-channels--handle-search-navigate location))
+    `((success . t))))
+
+(defun hyalo-ios-handle-execute-command (payload)
+  "Handle execute-command command from Swift.
+PAYLOAD contains: command - command name to execute."
+  (let ((command (cdr (assoc "command" payload))))
+    (when command
+      (hyalo-channels--handle-execute-command command))
+    `((success . t))))
+
+(defun hyalo-ios-handle-appearance-change (payload)
+  "Handle appearance-change command from Swift.
+PAYLOAD contains: mode - light/dark/auto."
+  (let ((mode (cdr (assoc "mode" payload))))
+    (when mode
+      (hyalo-channels--handle-appearance-mode mode))
+    `((success . t))))
+
+(defun hyalo-ios-handle-show-commit (payload)
+  "Handle git-show-commit command from Swift.
+PAYLOAD contains: hash - commit hash."
+  (let ((hash (cdr (assoc "hash" payload))))
+    (when hash
+      (hyalo-channels--handle-show-commit hash))
+    `((success . t))))
+
+(defun hyalo-ios-handle-show-diff (payload)
+  "Handle git-show-diff command from Swift.
+PAYLOAD contains: path - file path."
+  (let ((path (cdr (assoc "path" payload))))
+    (when path
+      (hyalo-channels--handle-show-diff path))
+    `((success . t))))
+
+;;; Dispatch Router
+
+(defun hyalo-ios-dispatch-command (command-id payload)
+  "Route COMMAND-ID to appropriate handler with PAYLOAD.
+Returns JSON-encoded response."
+  (let ((result
+         (pcase command-id
+           (`1 (hyalo-ios-handle-eval payload))
+           (`3 (hyalo-ios-handle-switch-buffer payload))
+           (`4 (hyalo-ios-handle-kill-buffer payload))
+           (`5 (hyalo-ios-handle-find-file payload))
+           (`7 (hyalo-ios-handle-execute-command payload))
+           (`10 (hyalo-ios-handle-appearance-change payload))
+           (`11 (hyalo-ios-handle-search payload))
+           (`12 (hyalo-ios-handle-search-navigate payload))
+           (`16 (hyalo-ios-handle-show-commit payload))
+           (`17 (hyalo-ios-handle-show-diff payload))
+           (_ `((success . nil) (error . ,(format "Unknown command: %d" command-id)))))))
+    (json-encode result)))
+
+;;; Registration
+
+(defun hyalo-ios-init ()
+  "Initialize iOS bridge and register handlers."
+  (hyalo-log 'ios "Initializing iOS bridge")
+  ;; Register handlers with the single dispatch system
+  (hyalo-register-channel-handler "ios" #'hyalo-ios-dispatch-command)
+  (hyalo-log 'ios "iOS bridge initialized"))
 (provide 'hyalo-ios)
 ;;; hyalo-ios.el ends here

@@ -136,6 +136,7 @@ final class HyaloModule: Module {
     static var packageChannel: Any?
     static var sourceControlChannel: Any?
     static var moduleReloadChannel: Any?
+    static var buildChannel: Any?
 
     // Window controllers keyed by Emacs frame window-id (desc_ctr)
     static var controllers: [Int: HyaloWindowController] = [:]
@@ -207,6 +208,11 @@ final class HyaloModule: Module {
     // Source control channel callbacks (stored globally)
     static var sourceControlShowCommitCallback: ((String) -> Void)?
     static var sourceControlShowDiffCallback: ((String) -> Void)?
+
+    // Build channel callbacks — forward async build output to Emacs compilation buffer
+    static var buildStartCallback: ((String) -> Void)?
+    static var buildLogLineCallback: ((String) -> Void)?
+    static var buildFinishCallback: ((Bool) -> Void)?
 
     /// Wire channel callbacks to a controller's view models.
     /// Called at decoration time and after channel setup.
@@ -1336,6 +1342,45 @@ final class HyaloModule: Module {
             return false
         }
 
+        // MARK: - Build Channel
+
+        try env.defun("hyalo-setup-build-channel",
+            with: """
+            Open the async channel that forwards build output to an Emacs
+            compilation buffer.  Swift fires three callbacks into Emacs for
+            each async build triggered by `hyalo-async-build':
+              hyalo-channels--handle-build-start (config string)
+              hyalo-channels--handle-build-log-line (one output line)
+              hyalo-channels--handle-build-finish (success bool)
+            The Emacs side populates *hyalo-build* in compilation-mode.
+            Returns t on success.
+            """
+        ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                let channel = try env.openChannel(name: "hyalo-build")
+                HyaloModule.buildChannel = channel
+
+                let startCallback: (String) -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment, config: String) in
+                    try env.funcall("hyalo-channels--handle-build-start", with: config)
+                }
+                let logLineCallback: (String) -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment, line: String) in
+                    try env.funcall("hyalo-channels--handle-build-log-line", with: line)
+                }
+                let finishCallback: (Bool) -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment, success: Bool) in
+                    try env.funcall("hyalo-channels--handle-build-finish", with: success)
+                }
+
+                HyaloModule.buildStartCallback = startCallback
+                HyaloModule.buildLogLineCallback = logLineCallback
+                HyaloModule.buildFinishCallback = finishCallback
+                return true
+            }
+            return false
+        }
+
         // MARK: - Toolbar Channel
 
         try env.defun("hyalo-setup-toolbar-channel",
@@ -2101,10 +2146,11 @@ final class HyaloModule: Module {
         let mgr = ActivityManager.shared
         let activityID = ActivityManager.moduleBuildID
 
-        // Push start activity
+        // Push start activity and notify Emacs compilation buffer
         DispatchQueue.main.async {
             mgr.clearLog(id: activityID)
             mgr.startModuleBuild()
+            HyaloModule.buildStartCallback?(config)
         }
 
         let process = Process()
@@ -2133,6 +2179,7 @@ final class HyaloModule: Module {
                 if let line = String(data: lineData, encoding: .utf8), !line.isEmpty {
                     DispatchQueue.main.async {
                         mgr.appendLog(id: activityID, line: line)
+                        HyaloModule.buildLogLineCallback?(line)
                         // Update the activity message with the last meaningful line
                         let trimmed = line.trimmingCharacters(in: .whitespaces)
                         if trimmed.hasPrefix("[") || trimmed.hasPrefix("Build") || trimmed.hasPrefix("Compiling") ||
@@ -2151,12 +2198,14 @@ final class HyaloModule: Module {
             if !lineBuffer.isEmpty, let line = String(data: lineBuffer, encoding: .utf8) {
                 DispatchQueue.main.async {
                     mgr.appendLog(id: activityID, line: line)
+                    HyaloModule.buildLogLineCallback?(line)
                 }
             }
 
             let success = proc.terminationStatus == 0
             DispatchQueue.main.async {
                 mgr.finishModuleBuild(success: success, dylibChanged: success)
+                HyaloModule.buildFinishCallback?(success)
                 // Update the FSEvents watcher's known mod times so it doesn't
                 // re-trigger for this build's artifacts.
                 if success {

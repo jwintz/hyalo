@@ -166,6 +166,48 @@ func bridgeShowCommandPalette() {
             HyaloiOSModule.shared.showCommandPalette = true
         }
     }
+    }
+
+// MARK: - Dispatch Channel (Swift -> Emacs)
+
+@_cdecl("hyalo_ios_dispatch_response")
+func bridgeDispatchResponse(_ requestID: UnsafePointer<CChar>, _ jsonResponse: UnsafePointer<CChar>) {
+    if #available(iOS 26.0, *) {
+        DispatchRouter.shared.handleDispatchResponse(requestID, jsonResponse)
+    }
 }
 
+@_cdecl("hyalo_ios_dispatch_error")
+func bridgeDispatchError(_ requestID: UnsafePointer<CChar>, _ errorMessage: UnsafePointer<CChar>) {
+    if #available(iOS 26.0, *) {
+        DispatchRouter.shared.handleDispatchError(requestID, errorMessage)
+    }
+}
+
+extension ChannelBridge {
+    /// Send a command to Emacs via the dispatch router
+    @available(iOS 26.0, *)
+    public func dispatchCommand(
+        _ commandID: EmacsCommandID,
+        payload: [String: Any],
+        completion: @escaping (Result<Data, Error>) -> Void
+    ) {
+        DispatchRouter.shared.sendCommand(commandID, payload: payload, completion: completion)
+    }
+    
+    /// Send a command without waiting for response
+    @available(iOS 26.0, *)
+    public func dispatchCommand(_ commandID: EmacsCommandID, payload: [String: Any]) {
+        DispatchRouter.shared.sendCommand(commandID, payload: payload)
+    }
+    
+    /// Send a type-safe command
+    @available(iOS 26.0, *)
+    public func dispatchCommand<T: EmacsCommand>(
+        _ command: T,
+        completion: @escaping (Result<T.Response, Error>) -> Void
+    ) {
+        DispatchRouter.shared.sendCommand(command, completion: completion)
+    }
+}
 #endif // canImport(UIKit)
