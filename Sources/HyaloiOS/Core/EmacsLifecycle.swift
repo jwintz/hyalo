@@ -39,7 +39,7 @@ final class EmacsLifecycle {
         setenv("HOME", docsPath, 1)
         setenv("XDG_CONFIG_HOME", "\(docsPath)/emacs", 1)
         setenv("EMACSLOADPATH", "\(bundlePath)/lisp", 1)
-        setenv("EMACSDATA", "\(cachesPath)/emacs/data", 1)
+        setenv("EMACSDATA", "\(bundlePath)/etc", 1)
         setenv("EMACSDOC", "\(bundlePath)/etc", 1)
     }
 

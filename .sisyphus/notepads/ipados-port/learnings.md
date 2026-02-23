@@ -962,3 +962,104 @@ xcodebuild -project HyaloApp.xcodeproj -scheme HyaloApp \
 3. **Framework needs Info.plist** - GENERATE_INFOPLIST_FILE required for code signing
 4. **Simulator build complete** - Ready for emulator testing
 
+
+
+---
+
+## Task 4: Emacs Bootstrap in Simulator - FAILURE (2026-02-23)
+
+### Status
+**FAILED** - Emacs did not complete initialization. Critical blocker.
+
+### Failure Analysis
+
+**Primary Error:**
+```
+Error: .../Library/Caches/emacs/data/charsets: No such file or directory
+Emacs will not function correctly without the character map files.
+```
+
+**Root Cause:**
+The etc/charsets directory exists in the app bundle (verified: 134 entries), but was NOT copied to the app's Library/Caches/emacs/data/ directory at runtime. Emacs requires these character map files to function.
+
+### What Worked
+
+1. App installation: SUCCESS
+2. App launch: SUCCESS (no crash)
+3. Path initialization: SUCCESS (ios_init_paths)
+4. Bundle path resolution: SUCCESS
+5. Terminal initialization: SUCCESS (syms_of_iosterm)
+6. Feature provision: SUCCESS (Fprovide Qios)
+
+### What Failed
+
+1. **Data file copying**: The etc/ directory contents were not copied from bundle to Library/Caches/emacs/data/
+2. **Emacs completion**: Failed before ios_set_main_emacs_view (view never initialized)
+3. **PDMP loading**: Fingerprint mismatch forced bootstrap from source
+
+### Missing Success Indicators
+
+| Indicator | Expected | Actual |
+|-----------|----------|--------|
+| ios_set_main_emacs_view | "view=<non-null>" | NOT FOUND |
+| void-function errors | Empty | N/A (blocked earlier) |
+| Full initialization | Complete | FAILED |
+
+### Evidence
+
+- Full log: `/tmp/emacs-boot.log`
+- Evidence file: `.sisyphus/evidence/task-4-emacs-init.txt`
+
+### Recommendation
+
+The iOS app needs to implement data file copying during first launch:
+
+1. In `application:didFinishLaunchingWithOptions:` or early init:
+   - Check if `Library/Caches/emacs/data/` exists
+   - If not, copy `etc/` contents from bundle to data directory
+   - This must complete BEFORE Emacs initialization
+
+2. Alternative: Modify iOS Emacs port to read charsets directly from bundle
+
+### Impact
+
+**CRITICAL BLOCKER** - All subsequent tasks (T8-T13, F1-F4) are blocked until this is resolved. The iOS port cannot proceed without a functioning Emacs bootstrap.
+
+
+### Detailed Root Cause
+
+**Code Analysis:**
+
+In `Sources/HyaloiOS/Core/EmacsLifecycle.swift:42`:
+```swift
+setenv("EMACSDATA", "\(cachesPath)/emacs/data", 1)
+```
+
+This overrides the fallback mechanism in `iosterm.m:175-183`:
+```objc
+const char *emacsdata = getenv ("EMACSDATA");
+if (emacsdata && *emacsdata)
+  ios_etc_directory = strdup (emacsdata);  // Uses empty caches dir
+else
+  {
+    // Fallback to bundle/etc - NEVER REACHED because EMACSDATA is set
+    NSString *etcPath = [bundlePath stringByAppendingPathComponent:@"etc"];
+    ...
+  }
+```
+
+**The Fix:**
+
+Option B - Point EMACSDATA to bundle etc directly:
+```swift
+setenv("EMACSDATA", "\(bundlePath)/etc", 1)
+```
+
+This is a one-line fix that requires no file copying.
+
+### Files to Modify
+
+1. `Sources/HyaloiOS/Core/EmacsLifecycle.swift` - Line 42
+   Change: `setenv("EMACSDATA", "\(cachesPath)/emacs/data", 1)`
+   To: `setenv("EMACSDATA", "\(bundlePath)/etc", 1)`
+

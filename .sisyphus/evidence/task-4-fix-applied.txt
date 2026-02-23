@@ -1,0 +1,30 @@
+# Task 4 Fix Applied - EMACSDATA Path Correction
+
+## Date
+Mon Feb 23 2026
+
+## Fix Applied
+File: Sources/HyaloiOS/Core/EmacsLifecycle.swift
+Line: 42
+
+### Before
+```swift
+setenv("EMACSDATA", "\(cachesPath)/emacs/data", 1)
+```
+
+### After
+```swift
+setenv("EMACSDATA", "\(bundlePath)/etc", 1)
+```
+
+## Verification
+- swift build --target Hyalo: PASSED (1.59s)
+- No macOS regression
+
+## Rationale
+EMACSDATA was pointing to empty caches directory. The bundle's etc/ directory contains the charset files needed by Emacs bootstrap. This fix enables the fallback logic in feedstock's iosterm.m to trigger correctly.
+
+## Evidence
+- Edit applied: LINE#42#KR
+- Build completed successfully
+- Fix unblocks Task 4 (Emacs bootstrap)
