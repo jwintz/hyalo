@@ -130,41 +130,36 @@ struct HyaloNavigationLayout: View {
             // Push trailing items to the right
             ToolbarSpacer(.flexible)
 
-            // Keycast pill — trailing, compact glass capsule.
-            // ControlGroup sizes to content in Liquid Glass.
+            // Keycast pill — trailing. Glass background is owned by KeycastView
+            // itself. visibilityPriority .low (-1000): disappears before package
+            // (.high = 1000) and inspector (.user = 2000) when space is tight.
             ToolbarItem {
-                ControlGroup {
-                    KeycastView(viewModel: ToolbarManager.shared.viewModel)
-                }
+                _KeycastToolbarContent(
+                    viewModel: ToolbarManager.shared.viewModel
+                )
             }
 
-            // Package manager — its own glass group
+            // Package manager — bordered single-action button (.buttonStyle(.bordered)
+            // is set inside PackageManagerView on its trigger button).
+            // visibilityPriority .user: NSToolbar hides this before the inspector.
             ToolbarItem {
-	        ControlGroup {
-                    PackageManagerView(viewModel: ToolbarManager.shared.viewModel)
-		}
-                .fixedSize()
+                _PackageManagerToolbarContent(
+                    viewModel: ToolbarManager.shared.viewModel
+                )
             }
 
             // Visual break between package manager and inspector
             ToolbarSpacer(.fixed)
 
-            // Inspector toggle — its own glass group
+            // Inspector toggle — plain bordered button anchored to trailing edge.
+            // visibilityPriority .user (2000): NSToolbar never auto-overflows this.
+            // No ControlGroup: ControlGroup → NSToolbarItemGroup → collapses under
+            // space pressure, which is the primary cause of the shrinking pill bug.
             ToolbarItem {
-	        ControlGroup {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            workspace.inspectorVisible.toggle()
-                        }
-                    } label: {
-                        Image(systemName: "sidebar.right")
-                    }
-                }
-                .fixedSize()
-                .help(workspace.inspectorVisible ? "Hide Inspector" : "Show Inspector")
+                _InspectorToggleToolbarContent(workspace: workspace)
             }
 
-            // Visual break between package manager and keycast
+            // Trailing gap — keeps the inspector button off the window edge.
             ToolbarSpacer(.fixed)
         }
         
@@ -228,5 +223,65 @@ struct HyaloNavigationLayout: View {
                 workspace.navigatorVisible = isVisible
             }
         }
+    }
+}
+
+// MARK: - Private toolbar item content views
+//
+// These are extracted from the .toolbar {} closure to keep generic type
+// complexity manageable for @ToolbarContentBuilder inference. Each
+// ToolbarItem<Content> needs a concrete Content type; deeply nested
+// ModifiedContent chains cause the tuple builder to fail.
+
+@available(macOS 26.0, *)
+private struct _KeycastToolbarContent: View {
+    let viewModel: ToolbarViewModel
+
+    var body: some View {
+        KeycastView(viewModel: viewModel)
+            // External left gap: ToolbarSpacer(.fixed) between a flexible spacer
+            // and a custom-capsule item produces no visible gap on macOS 26.
+            // Padding inside the ToolbarItem frame is reliable.
+            .padding(.leading, 8)
+            // .low (-1000): keycast overflows before package (.high = 1000) and
+            // inspector (.user = 2000). It is informational, not structural.
+            .toolbarItemVisibilityPriority(.low)
+    }
+}
+
+@available(macOS 26.0, *)
+private struct _PackageManagerToolbarContent: View {
+    let viewModel: ToolbarViewModel
+
+    var body: some View {
+        // PackageManagerView uses .buttonStyle(.bordered) internally on its
+        // trigger button, giving the Liquid Glass single-action pill look.
+        PackageManagerView(viewModel: viewModel)
+            .fixedSize()
+            // .high (1000): NSToolbar moves this to overflow before the inspector
+            // (.user = 2000) when horizontal space is exhausted.
+            .toolbarItemVisibilityPriority(.high)
+    }
+}
+
+@available(macOS 26.0, *)
+private struct _InspectorToggleToolbarContent: View {
+    @Bindable var workspace: HyaloWorkspaceState
+
+    var body: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                workspace.inspectorVisible.toggle()
+            }
+        } label: {
+            Image(systemName: "sidebar.right")
+        }
+        .buttonStyle(.bordered)
+        .fixedSize()
+        .help(workspace.inspectorVisible ? "Hide Inspector" : "Show Inspector")
+        // .user (2000): highest built-in priority. NSToolbar never automatically
+        // moves this item to overflow. On a non-customizable toolbar this means
+        // the inspector toggle is always visible regardless of window width.
+        .toolbarItemVisibilityPriority(.user)
     }
 }

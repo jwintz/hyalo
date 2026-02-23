@@ -47,6 +47,7 @@ targets:
         - -ltasn1
         - -lz
         - -liconv
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib/libtree-sitter-stub.a
         - -ltree-sitter
         - -lsqlite3
       OTHER_LDFLAGS[sdk=iphoneos*]:
@@ -62,6 +63,7 @@ targets:
         - -ltasn1
         - -lz
         - -liconv
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib/libtree-sitter-stub.a
         - -ltree-sitter
         - -lsqlite3
 

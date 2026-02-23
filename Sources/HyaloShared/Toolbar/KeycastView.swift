@@ -7,8 +7,11 @@
 //
 // When idle, only the placeholder icon is in the view tree so the pill
 // shrinks to its minimal size.  When active, the HStack with key and
-// command replaces the placeholder.  The ControlGroup wrapper in the
-// toolbar provides the Liquid Glass pill shape and clips content.
+// command replaces the placeholder.
+//
+// The pill shape and clipping are owned by this view. The enclosing toolbar
+// must NOT wrap this in a ControlGroup — that would create an
+// NSToolbarItemGroup at the AppKit layer with compression/collapse behaviour.
 
 import SwiftUI
 
@@ -51,18 +54,21 @@ public struct KeycastView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 6)
                 } else {
                     Image(systemName: "keyboard")
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
-                        .frame(minWidth: 20, minHeight: 20)
-                        .padding(.horizontal, 8)
+                        .padding(.horizontal, 6)
                 }
             }
+            .padding(.vertical, 5)
             .contentTransition(.opacity)
             .animation(.easeInOut(duration: 0.2), value: showContent)
-            .clipped()
+            // The pill background and clipping live here, not in a ControlGroup
+            // wrapper in the toolbar. ControlGroup bridges to NSToolbarItemGroup
+            // which applies compression/collapse under space pressure.
+            .background(.regularMaterial, in: Capsule())
             .onChange(of: viewModel.keycastKey) { _, _ in
                 showAndScheduleFade()
             }

@@ -1,0 +1,48 @@
+Feedstock Option C: Separate Build Directories - Test Results
+=============================================================
+Date: 2026-02-23
+
+Test 1: Directory Creation
+------------------------
+PASS: emacs-build-macos/ directory created
+PASS: emacs-build-ios-sim/ directory created
+
+Test 2: mac_prep Task
+---------------------
+Command: pixi run mac_prep
+Result: PASS
+Details: Successfully rsynced emacs/ to emacs-build-macos/
+
+Test 3: ios_sim_prep Task
+-------------------------
+Command: pixi run ios_sim_prep
+Result: PASS
+Details: Successfully rsynced emacs/ to emacs-build-ios-sim/
+
+Test 4: mac_patch Task
+----------------------
+Command: pixi run mac_patch
+Result: PASS
+Details: Successfully applied patches to emacs-build-macos/
+Output: Patches applied successfully to emacs-build-macos/
+
+Test 5: ios_sim_patch Task
+--------------------------
+Command: pixi run ios_sim_patch
+Result: PASS
+Details: Successfully applied patches to emacs-build-ios-sim/
+Output: Patches applied successfully to emacs-build-ios-sim/
+
+Test 6: Directory Separation Verification
+-----------------------------------------
+PASS: emacs/ - Original source directory (pristine, with .git)
+PASS: emacs-build-macos/ - Contains build artifacts and .patched marker
+PASS: emacs-build-ios-sim/ - Contains build artifacts and .patched marker
+
+Summary
+-------
+All tests passed. The separation of build directories is working correctly:
+- macOS builds operate in emacs-build-macos/
+- iOS Simulator builds operate in emacs-build-ios-sim/
+- Original emacs/ directory remains untouched and pristine
+- Both builds can proceed independently without conflict

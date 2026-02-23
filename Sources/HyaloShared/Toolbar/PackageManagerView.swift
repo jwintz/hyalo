@@ -94,6 +94,10 @@ public struct PackageManagerView: View {
                 }
             }
         }
+        // .bordered gives the Liquid Glass single-action toolbar button look in
+        // macOS 26 without wrapping in a ControlGroup (which bridges to
+        // NSToolbarItemGroup and causes compression/collapse under space pressure).
+        .buttonStyle(.bordered)
         .help(helpText)
         .onHover { isHovering = $0 }
         .popover(isPresented: $showPopover, arrowEdge: .bottom) {

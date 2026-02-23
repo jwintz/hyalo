@@ -582,7 +582,7 @@ Max Concurrent: 4 (Wave 1)
   - Files: `iOS/project.yml`, `Package.swift` (if changed)
   - Pre-commit: `swift build --target Hyalo`
 
-- [ ] 4. Emacs Bootstrap in Simulator (Phase 5.4)
+- [x] 4. Emacs Bootstrap in Simulator (Phase 5.4)
 
   **What to do**:
   - Build, install, and launch the app in simulator with real libemacs.a linked

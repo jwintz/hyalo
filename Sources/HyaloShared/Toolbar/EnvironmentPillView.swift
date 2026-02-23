@@ -54,8 +54,11 @@ private struct BreadcrumbContent: View {
             Spacer(minLength: 0)
 
             // Segment 3: build/activity status (existing, right-aligned)
+            // Trailing padding matches segments 1 and 2 (.padding(.horizontal, 6))
+            // which combined with the outer .padding(5) gives 11pt from the capsule edge.
             BuildStatusView(activityManager: activityManager)
                 .fixedSize()
+                .padding(.trailing, 6)
         }
         .padding(5)
         .clipShape(Capsule())

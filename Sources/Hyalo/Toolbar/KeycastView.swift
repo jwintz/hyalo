@@ -51,13 +51,10 @@ struct KeycastView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
-                    .padding(.horizontal, 8)
                 } else {
                     Image(systemName: "keyboard")
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
-                        .frame(minWidth: 20, minHeight: 20)
-                        .padding(.horizontal, 8)
                 }
             }
             .contentTransition(.opacity)
