@@ -190,6 +190,14 @@ public struct HyaloRootView: View {
             }
         }
         .onAppear {
+            #if DEBUG
+            // Load mock data for visual testing when no real Emacs is running
+            if case .running = module.lifecycle.state {
+                // Emacs is running, don't load mock data
+            } else {
+                module.loadMockData()
+            }
+            #endif
             module.start()
         }
         .onChange(of: scenePhase) { _, phase in

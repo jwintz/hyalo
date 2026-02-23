@@ -9,16 +9,14 @@ let package = Package(
         .iOS(.v26)
     ],
     products: [
-        // macOS: dynamic module loaded by Emacs
         .library(
             name: "Hyalo",
             type: .dynamic,
             targets: ["Hyalo"]
         ),
-        // iOS: dynamic framework embedded in app
         .library(
             name: "HyaloKit",
-            type: .dynamic,
+            type: .static,
             targets: ["HyaloKit"]
         )
     ],
@@ -41,7 +39,6 @@ let package = Package(
         )
     ],
     targets: [
-        // Cross-platform shared code (models, view models, pure SwiftUI views)
         .target(
             name: "HyaloShared",
             dependencies: [
@@ -53,8 +50,6 @@ let package = Package(
                 .swiftLanguageMode(.v5)
             ]
         ),
-
-        // macOS: Emacs dynamic module (AppKit, EmacsSwiftModule)
         .target(
             name: "Hyalo",
             dependencies: [
@@ -70,20 +65,16 @@ let package = Package(
                 .plugin(name: "ModuleFactoryPlugin", package: "emacs-swift-module")
             ]
         ),
-
-        // iOS: dynamic framework (UIKit, C FFI bridge to libemacs)
         .target(
             name: "HyaloKit",
             dependencies: [
-                "HyaloShared",
-                .target(name: "HyaloEmacsStubs")
+                "HyaloShared"
             ],
             path: "Sources/HyaloiOS",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]
         ),
-
         .target(
             name: "HyaloEmacsStubs",
             path: "Sources/HyaloEmacsStubs",

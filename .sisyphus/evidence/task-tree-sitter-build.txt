@@ -1,0 +1,23 @@
+=== Tree-sitter Build Evidence ===
+Date: Mon Feb 23 01:26:38 CET 2026
+Version: 0.24.4
+Source: https://github.com/tree-sitter/tree-sitter
+
+=== File type ===
+/Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib/libtree-sitter.a: current ar archive random library
+
+=== LC_BUILD_VERSION ===
+      cmd LC_BUILD_VERSION
+  cmdsize 24
+ platform 7
+    minos 17.0
+      sdk 26.2
+
+=== Architecture ===
+arm64
+
+=== Library details ===
+-rw-r--r-- 1 jwintz staff 232776 Feb 23 01:26 /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib/libtree-sitter.a
+
+=== Header file ===
+-rw-r--r-- 1 jwintz staff 41665 Feb 23 01:26 /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/include/tree_sitter/api.h

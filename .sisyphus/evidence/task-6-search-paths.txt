@@ -1,0 +1,57 @@
+# Task 6: LIBRARY_SEARCH_PATHS Configuration Verification
+# Date: 2026-02-23
+
+## Configuration Changes
+
+Updated iOS/project.yml to split LIBRARY_SEARCH_PATHS per-SDK:
+
+### Before (single path):
+```yaml
+LIBRARY_SEARCH_PATHS:
+  - "$(inherited)"
+  - "$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src"
+  - "$(SRCROOT)/../../hyalo-feedstock-unified/ios-sim-deps/lib"
+```
+
+### After (per-SDK paths):
+```yaml
+# Simulator: use ios-sim-deps
+"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]":
+  - "$(inherited)"
+  - "$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src"
+  - "$(SRCROOT)/../../hyalo-feedstock-unified/ios-sim-deps/lib"
+# Device: use ios-deps (built separately)
+"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]":
+  - "$(inherited)"
+  - "$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src"
+  - "$(SRCROOT)/../../hyalo-feedstock-unified/ios-deps/lib"
+```
+
+## Verification Results
+
+### Simulator SDK (iphonesimulator)
+LIBRARY_SEARCH_PATHS = 
+  /Users/jwintz/Library/Developer/Xcode/DerivedData/HyaloApp-akemqluvwufddbbiymjmgivgelyd/Build/Products/Debug-iphonesimulator
+  /Users/jwintz/Syntropment/hyalo-unified/iOS/../../hyalo-feedstock-unified/emacs/src
+  /Users/jwintz/Syntropment/hyalo-unified/iOS/../../hyalo-feedstock-unified/ios-sim-deps/lib
+
+OTHER_LDFLAGS = 
+  -framework UIKit -framework CoreGraphics -framework CoreText -framework QuartzCore
+
+### Device SDK (iphoneos)
+LIBRARY_SEARCH_PATHS = 
+  /Users/jwintz/Library/Developer/Xcode/DerivedData/HyaloApp-akemqluvwufddbbiymjmgivgelyd/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphoneos
+  /Users/jwintz/Syntropment/hyalo-unified/iOS/../../hyalo-feedstock-unified/emacs/src
+  /Users/jwintz/Syntropment/hyalo-unified/iOS/../../hyalo-feedstock-unified/ios-deps/lib
+
+OTHER_LDFLAGS = 
+  -force_load /Users/jwintz/Syntropment/hyalo-unified/iOS/../../hyalo-feedstock-unified/emacs/src/libemacs.a
+  -lxml2 -ljansson -lgmp -lgnutls -lnettle -ltasn1 -lz -liconv
+  -framework UIKit -framework CoreGraphics -framework CoreText -framework QuartzCore
+
+## Summary
+- Simulator correctly uses ios-sim-deps/lib
+- Device correctly uses ios-deps/lib
+- Per-SDK LIBRARY_SEARCH_PATHS configuration working as expected
+- xcodegen generate succeeds
+- xcodebuild -showBuildSettings confirms correct paths for both SDKs

@@ -1,0 +1,105 @@
+Task 3: Link real libemacs.a in simulator build
+================================================
+
+Date: 2026-02-23
+Status: IN PROGRESS - Blocked by missing tree-sitter library
+
+CHANGES MADE:
+-------------
+
+1. Updated iOS/project.yml
+   - Added configFiles reference to HyaloKit.xcconfig for Debug/Release
+   - Added simulator linker flags for libemacs.a and dependencies:
+     * -force_load $(SRCROOT)/../../hyalo-feedstock-unified/emacs/src/libemacs.a
+     * Libraries: -lxml2, -ljansson, -lgmp, -lgnutls, -lnettle, -lhogweed, -ltasn1, -lz, -liconv
+   - Added per-SDK LIBRARY_SEARCH_PATHS:
+     * iphonesimulator: emacs/src, ios-sim-deps/lib
+     * iphoneos: emacs/src, ios-deps/lib
+
+2. Updated Package.swift
+   - Removed HyaloEmacsStubs dependency from HyaloKit target
+   - Removed linkerSettings (moved to Xcode project level)
+   - Added comment noting HyaloEmacsStubs kept for backwards compatibility
+
+3. Created iOS/HyaloKit.xcconfig
+   - Global xcconfig with SDK-specific settings
+   - Contains LIBRARY_SEARCH_PATHS and OTHER_LDFLAGS per SDK
+
+4. Created iOS/update_project.rb
+   - Ruby script using xcodeproj gem to modify generated Xcode project
+   - Adds linker settings directly to HyaloKit target build configurations
+   - Run automatically after xcodegen generate
+
+5. Created iOS/fix_hyalokit_settings.sh (backup approach)
+   - Shell script using sed to modify project.pbxproj
+   - Not used in final solution
+
+BUILD STATUS:
+-------------
+
+Last build attempt: FAILED
+Error: Undefined tree-sitter symbols in libemacs.a
+
+Missing symbols:
+  - _ts_parser_delete, _ts_parser_new, _ts_parser_parse, etc.
+  - _ts_tree_cursor_* functions
+  - _ts_node_* functions
+  - _ts_language_* functions
+
+Root cause: libemacs.a was built with tree-sitter support (--with-tree-sitter)
+but tree-sitter library is not in ios-sim-deps. The tree-sitter library needs
+to be built for iOS simulator and added to ios-sim-deps/lib.
+
+Current ios-sim-deps libraries:
+  - libgmp.a
+  - libgnutls.a
+  - libhogweed.a
+  - libjansson.a
+  - libnettle.a
+  - libtasn1.a
+  - libxml2.a
+
+Missing: libtree-sitter.a for iOS simulator
+
+NEXT STEPS:
+-----------
+
+1. Build tree-sitter for iOS simulator:
+   - Target: arm64-apple-ios17.0-simulator
+   - Install to: ~/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib/
+
+2. Update linker flags in update_project.rb to include:
+   - -ltree-sitter
+
+3. Rebuild and verify no undefined symbols
+
+VERIFICATION COMMANDS:
+----------------------
+
+# Check libemacs.a architecture
+file ~/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a
+
+# Check available libraries
+ls -la ~/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib/*.a
+
+# Build command used
+xcodebuild -project HyaloApp.xcodeproj -scheme HyaloApp \
+  -destination 'platform=iOS Simulator,id=4E2970D5-CCF3-4B16-8CAF-5ECF142CAB51' \
+  -derivedDataPath /tmp/hyalo-ios-build build
+
+FILES MODIFIED:
+---------------
+- iOS/project.yml (updated with configFiles)
+- Package.swift (removed HyaloEmacsStubs dependency)
+- iOS/HyaloKit.xcconfig (new)
+- iOS/update_project.rb (new)
+- iOS/fix_hyalokit_settings.sh (new, backup)
+
+NOTES:
+------
+- The xcodegen packages.<name>.targets.<target>.settings syntax does not work
+  for applying settings to Swift package targets
+- The xcconfig at project level is not applied to package targets
+- The Ruby script approach successfully modifies the generated project
+- libemacs.a is correctly found and linked
+- Only blocking issue is missing tree-sitter dependency

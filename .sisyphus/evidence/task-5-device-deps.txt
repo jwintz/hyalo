@@ -1,0 +1,58 @@
+TASK 5: Device Dependencies Status Check
+Date: 2026-02-23
+Status: MISSING - ios-deps/lib/ not built
+
+FINDINGS:
+=========
+
+1. DEVICE DEPENDENCIES DIRECTORY:
+   - Expected: ~/Syntropment/hyalo-feedstock-unified/ios-deps/lib/
+   - Actual: DIRECTORY DOES NOT EXIST
+   - Status: Device dependencies have NOT been built
+
+2. SIMULATOR DEPENDENCIES (for comparison):
+   - Location: ~/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib/
+   - Status: EXISTS and contains all required libraries
+   - Contents:
+     * libxml2.a (1,912,400 bytes)
+     * libjansson.a (84,312 bytes)
+     * libgmp.a (902,480 bytes)
+     * libgnutls.a (4,182,600 bytes)
+     * libnettle.a (1,522,816 bytes)
+     * libhogweed.a (1,125,520 bytes)
+     * libtasn1.a (99,584 bytes)
+     * libtree-sitter.a (232,776 bytes)
+     * pkgconfig/ directory
+     * cmake/ directory
+
+3. REQUIRED LIBRARIES (from scripts/build-device-deps.sh):
+   - libxml2
+   - jansson
+   - gmp
+   - nettle
+   - libtasn1
+   - gnutls
+
+4. BUILD SCRIPTS AVAILABLE:
+   - scripts/build-device-deps.sh - Builds all device dependencies
+   - scripts/ios-env.sh - Sets up cross-compilation environment
+   - IOS_PREFIX defaults to: $(pwd)/ios-deps
+
+CONCLUSION:
+===========
+Device dependencies (ios-deps/lib/) do NOT exist. They must be built before
+device build can succeed.
+
+BUILD INSTRUCTIONS:
+===================
+To build device dependencies:
+  cd ~/Syntropment/hyalo-feedstock-unified
+  ./scripts/build-device-deps.sh
+
+This will:
+1. Create ios-deps/ directory
+2. Download and build all required libraries
+3. Install static .a files to ios-deps/lib/
+4. Install headers to ios-deps/include/
+
+Expected build time: ~10-15 minutes on modern hardware

@@ -1,0 +1,17 @@
+// Build settings for HyaloKit target
+// This file is referenced from project.yml to add linker settings
+
+// Library search paths for iOS Simulator
+LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*] = $(inherited) /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib
+
+// Library search paths for iOS Device
+LIBRARY_SEARCH_PATHS[sdk=iphoneos*] = $(inherited) /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-deps/lib
+
+// Header search paths
+HEADER_SEARCH_PATHS = $(inherited) /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios
+
+// Linker flags for iOS Simulator - link real libemacs.a and all native deps
+OTHER_LDFLAGS[sdk=iphonesimulator*] = $(inherited) -force_load /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a -lxml2 -ljansson -lgmp -lgnutls -lnettle -lhogweed -ltasn1 -lz -liconv -ltree-sitter -lsqlite3
+
+// Linker flags for iOS Device - link real libemacs.a and all native deps
+OTHER_LDFLAGS[sdk=iphoneos*] = $(inherited) -force_load /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a -lxml2 -ljansson -lgmp -lgnutls -lnettle -ltasn1 -lz -liconv

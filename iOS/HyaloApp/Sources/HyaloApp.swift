@@ -2,7 +2,7 @@
 // All lifecycle management is delegated to HyaloKit.
 
 import SwiftUI
-import HyaloKit
+import HyaloKitFramework
 
 @main
 struct HyaloApp: App {

@@ -1,0 +1,110 @@
+================================================================================
+TASK 1: Build libemacs.a for iOS Simulator - EVIDENCE
+================================================================================
+Date: Mon Feb 23 2026
+Task: Phase 5.2 - Build libemacs.a for iOS Simulator
+Repository: ~/Syntropment/hyalo-feedstock-unified/
+
+================================================================================
+BUILD CONFIGURATION
+================================================================================
+SDK: /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk
+Toolchain: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain
+Architecture: arm64
+Minimum iOS Version: 17.0
+Target: arm64-apple-ios17.0-simulator
+
+================================================================================
+DEPENDENCIES VERIFIED
+================================================================================
+iOS Simulator dependencies found in ios-sim-deps/lib/:
+- libgmp.a (902480 bytes)
+- libgnutls.a (4182600 bytes)
+- libhogweed.a (1125520 bytes)
+- libjansson.a (84312 bytes)
+- libnettle.a (1522816 bytes)
+- libtasn1.a (99584 bytes)
+- libtree-sitter.a (232776 bytes)
+- libxml2.a (1912400 bytes)
+
+Native tools found in native-tools/:
+- make-docfile (38816 bytes)
+- make-fingerprint (71312 bytes)
+
+================================================================================
+BUILD STEPS EXECUTED
+================================================================================
+1. Set up cross-compilation environment variables
+2. Built gnulib (already up to date)
+3. Copied native tools to lib-src/
+4. Built Emacs with fixes for library linking
+
+BUILD FIXES APPLIED:
+- Override LIBZ with SDK path: ${SDKPATH}/usr/lib/libz.tbd
+- Override SQLITE3_LIBS with SDK path: ${SDKPATH}/usr/lib/libsqlite3.tbd
+- This prevents linking against macOS pixi libraries
+
+Build command used:
+make -C src -j$(sysctl -n hw.ncpu) LIBS_TERMCAP="" \
+  LIBZ="${SDKPATH}/usr/lib/libz.tbd" \
+  SQLITE3_LIBS="${SDKPATH}/usr/lib/libsqlite3.tbd" \
+  bootstrap-emacs
+
+================================================================================
+OUTPUT FILES
+================================================================================
+Primary output: ~/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a
+Symlink: ~/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs-sim.a -> libemacs.a
+
+File size: 4.6M (4836352 bytes)
+File type: current ar archive
+
+================================================================================
+PLATFORM VERIFICATION
+================================================================================
+Platform markers verified with: otool -l libemacs.a | grep -A2 LC_BUILD_VERSION
+
+Sample output:
+      cmd LC_BUILD_VERSION
+  cmdsize 24
+ platform 7          <-- iossimulator platform
+    minos 17.0      <-- minimum OS version
+      sdk 26.2      <-- SDK version
+
+All objects in archive have platform 7 (iossimulator) markers.
+Build completed successfully for iOS Simulator (arm64, iOS 17.0+).
+
+================================================================================
+OBJECT FILES INCLUDED
+================================================================================
+Archive contains object files from:
+- src/*.o (Emacs core objects)
+- lib/libgnu.a (gnulib objects)
+
+Key objects:
+- alloc.o, atimer.o, bidi.o, bignum.o, buffer.o
+- bytecode.o, callint.o, callproc.o, casefiddle.o
+- casetab.o, category.o, ccl.o, character.o, charset.o
+- chartab.o, cmds.o, coding.o, comp.o, composite.o
+- data.o, decompress.o, dired.o, dispnew.o, doc.o
+- editfns.o, emacs-module.o, eval.o, fileio.o, filelock.o
+- fns.o, font.o, fontset.o, frame.o, gnutls.o
+- image.o, indent.o, insdel.o, iosfns.o, json.o
+- keyboard.o, keymap.o, kqueue.o, lread.o, macros.o
+- menu.o, minibuf.o, pdumper.o, print.o, process.o
+- search.o, sqlite.o, sysdep.o, term.o, terminal.o
+- thread.o, timefns.o, undo.o, window.o, xdisp.o
+- xfaces.o, and gnulib objects
+
+================================================================================
+BUILD COMPLETE
+================================================================================
+Status: SUCCESS
+Output: libemacs.a created with iOS Simulator platform markers
+Ready for: Linking in Xcode project (Task 3)
+
+Next steps:
+- Update iOS/project.yml to link libemacs-sim.a
+- Configure Xcode build settings
+- Test linking in simulator build
+================================================================================

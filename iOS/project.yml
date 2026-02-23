@@ -9,16 +9,79 @@ packages:
     path: ..
 
 targets:
+  HyaloKitFramework:
+    type: framework
+    platform: iOS
+    sources:
+      - HyaloKitFramework
+    dependencies:
+      - package: Hyalo
+        product: HyaloKit
+    settings:
+      PRODUCT_NAME: HyaloKitFramework
+      PRODUCT_BUNDLE_IDENTIFIER: org.gnu.hyalo.kit
+      SWIFT_VERSION: "5.0"
+      DEFINES_MODULE: "YES"
+      HEADER_SEARCH_PATHS:
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios
+      LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]:
+        - $(inherited)
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib
+      LIBRARY_SEARCH_PATHS[sdk=iphoneos*]:
+        - $(inherited)
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-deps/lib
+      OTHER_LDFLAGS[sdk=iphonesimulator*]:
+        - $(inherited)
+        - -force_load
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a
+        - -lxml2
+        - -ljansson
+        - -lgmp
+        - -lgnutls
+        - -lnettle
+        - -lhogweed
+        - -ltasn1
+        - -lz
+        - -liconv
+        - -ltree-sitter
+        - -lsqlite3
+      OTHER_LDFLAGS[sdk=iphoneos*]:
+        - $(inherited)
+        - -force_load
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a
+        - -lxml2
+        - -ljansson
+        - -lgmp
+        - -lgnutls
+        - -lnettle
+        - -lhogweed
+        - -ltasn1
+        - -lz
+        - -liconv
+        - -ltree-sitter
+        - -lsqlite3
+
   HyaloApp:
     type: application
     platform: iOS
     sources:
       - HyaloApp/Sources
-    resources:
-      - HyaloApp/Resources
+      - path: HyaloApp/Resources/lisp
+        type: folder
+        buildPhase: resources
+      - path: HyaloApp/Resources/etc
+        type: folder
+        buildPhase: resources
+      - path: HyaloApp/Resources/init
+        type: folder
+        buildPhase: resources
+      - path: HyaloApp/Resources/bootstrap-emacs.pdmp
+        buildPhase: resources
     dependencies:
-      - package: Hyalo
-        product: HyaloKit
+      - target: HyaloKitFramework
         embed: true
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: org.gnu.hyalo
@@ -26,33 +89,7 @@ targets:
       SWIFT_VERSION: "5.0"
       INFOPLIST_FILE: Info.plist
       SWIFT_OBJC_BRIDGING_HEADER: HyaloApp/BridgingHeader.h
-      LIBRARY_SEARCH_PATHS:
-        - "$(inherited)"
-        - "$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src"
-        - "$(SRCROOT)/../../hyalo-feedstock-unified/ios-sim-deps/lib"
+      ENABLE_DEBUG_DYLIB: "NO"
       HEADER_SEARCH_PATHS:
-        - "$(inherited)"
-        - "$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src"
-        - "$(SRCROOT)/../../hyalo-feedstock-unified/ios"
-      # Device (iphoneos): link real libemacs.a and all native deps
-      "OTHER_LDFLAGS[sdk=iphoneos*]":
-        - "-force_load"
-        - "$(SRCROOT)/../../hyalo-feedstock-unified/emacs/src/libemacs.a"
-        - "-lxml2"
-        - "-ljansson"
-        - "-lgmp"
-        - "-lgnutls"
-        - "-lnettle"
-        - "-ltasn1"
-        - "-lz"
-        - "-liconv"
-        - "-framework UIKit"
-        - "-framework CoreGraphics"
-        - "-framework CoreText"
-        - "-framework QuartzCore"
-      # Simulator: stubs provided by HyaloEmacsStubs — no libemacs.a
-      "OTHER_LDFLAGS[sdk=iphonesimulator*]":
-        - "-framework UIKit"
-        - "-framework CoreGraphics"
-        - "-framework CoreText"
-        - "-framework QuartzCore"
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios

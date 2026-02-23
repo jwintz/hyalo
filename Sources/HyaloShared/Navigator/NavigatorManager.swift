@@ -12,6 +12,14 @@ public struct BufferInfo: Codable, Identifiable, Hashable {
     public let path: String?
     public let modified: Bool
     public let icon: String?
+
+    public init(id: String, name: String, path: String?, modified: Bool, icon: String?) {
+        self.id = id
+        self.name = name
+        self.path = path
+        self.modified = modified
+        self.icon = icon
+    }
 }
 
 public struct SearchResult: Codable, Identifiable, Hashable {

@@ -2,7 +2,11 @@
   "active_plan": "/Users/jwintz/Syntropment/hyalo-unified/.sisyphus/plans/ipados-port.md",
   "started_at": "2026-02-22T23:35:00.000Z",
   "session_ids": [
-    "ses_37895b597ffepKm7117Sx8ze7G"
+    "ses_37895b597ffepKm7117Sx8ze7G",
+    "ses_3784554cdffeG8vsQGS7CI0YJC",
+    "ses_3781fd4bdffekjEKifTpBSnoql",
+    "ses_378196906ffeEsT2Ch1T0wDRc4",
+    "ses_377d68abbffeA2XfDEpBk2YZE2"
   ],
   "plan_name": "ipados-port",
   "agent": "atlas"

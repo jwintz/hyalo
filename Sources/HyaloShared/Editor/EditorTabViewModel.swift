@@ -12,6 +12,15 @@ public struct EditorTab: Codable, Identifiable, Hashable {
     public let isModified: Bool
     public let isTemporary: Bool
     public let filePath: String?
+
+    public init(id: String, name: String, icon: String?, isModified: Bool, isTemporary: Bool, filePath: String?) {
+        self.id = id
+        self.name = name
+        self.icon = icon
+        self.isModified = isModified
+        self.isTemporary = isTemporary
+        self.filePath = filePath
+    }
 }
 
 // MARK: - View Model

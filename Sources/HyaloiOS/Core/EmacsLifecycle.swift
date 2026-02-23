@@ -12,7 +12,7 @@ import SwiftUI
 @Observable
 final class EmacsLifecycle {
 
-    enum State: Sendable {
+    public enum State: Sendable, Equatable {
         case idle
         case starting
         case bootstrapping(progress: String)
