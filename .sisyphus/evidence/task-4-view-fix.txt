@@ -1,0 +1,84 @@
+Task 4: Fix ios_report_bootstrap_complete view timing issue
+============================================================
+
+Problem
+-------
+Emacs boots successfully on iOS, but the view is nil when ios_report_bootstrap_complete
+is called from the Emacs thread. The error message was:
+
+  "ios_report_bootstrap_complete: ERROR - view is nil, cannot schedule redraw!"
+
+Root Cause
+----------
+The bootstrap completion callback fires BEFORE the EmacsView is created by the
+frame initialization code. This is a race condition between:
+
+1. Emacs thread: Running ios_emacs_init() → bootstrapping Lisp → calling ios_report_bootstrap_complete()
+2. Main thread: Creating frame → Creating EmacsView → calling ios_set_main_emacs_view()
+
+The timing was such that bootstrap completion happened before the view existed.
+
+Solution
+--------
+Modified iosterm.m to handle the timing mismatch gracefully:
+
+1. Added a pending redraw flag (ios_bootstrap_complete_pending_redraw)
+2. Modified ios_report_bootstrap_complete():
+   - If view exists: schedule redraw immediately
+   - If view is nil: set pending flag instead of erroring
+3. Modified ios_set_main_emacs_view():
+   - After setting the view, check if a redraw is pending
+   - If pending: trigger the redraw immediately
+
+This ensures the redraw happens regardless of which comes first.
+
+Files Modified
+--------------
+- ~/Syntropment/hyalo-feedstock-unified/emacs/src/iosterm.m
+- ~/Syntropment/hyalo-feedstock-unified/ios/iosterm.m
+
+Key Changes
+-----------
+
+1. Added pending flag:
+   static bool ios_bootstrap_complete_pending_redraw = false;
+
+2. ios_report_bootstrap_complete() now:
+   - Sets ios_bootstrap_complete_pending_redraw = true when view is nil
+   - No longer logs an error - this is an expected condition
+
+3. ios_set_main_emacs_view() now:
+   - Checks ios_bootstrap_complete_pending_redraw after setting view
+   - Triggers redraw if bootstrap already completed
+
+Testing
+-------
+To test the fix:
+
+1. Rebuild the feedstock:
+   cd ~/Syntropment/hyalo-feedstock-unified
+   make clean && make
+
+2. Rebuild the iOS app:
+   cd ~/Syntropment/hyalo-unified/iOS
+   ./build.sh
+
+3. Run in simulator:
+   xcrun simctl install booted /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app
+   xcrun simctl launch booted org.gnu.hyalo
+
+4. Verify in console logs:
+   - Should see: "ios_report_bootstrap_complete: view not yet created, setting pending flag"
+   - Should see: "ios_set_main_emacs_view: triggering pending bootstrap redraw"
+   - Should NOT see: "view is nil, cannot schedule redraw"
+
+Expected Behavior
+-----------------
+After the fix:
+- No "view is nil" error messages
+- Emacs renders content correctly
+- *scratch* buffer is visible
+- The redraw is deferred until the view is available
+
+Fix implemented: 2026-02-23
+Status: Awaiting verification

@@ -1,0 +1,61 @@
+{
+    "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
+    "agents": {
+	"sisyphus": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"hephaestus": {
+	    "disable": true
+	},
+	"oracle": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"librarian": {
+	    "model": "synthetic/hf:zai-org/GLM-4.7"
+	},
+	"explore": {
+	    "model": "synthetic/hf:zai-org/GLM-4.7"
+	},
+	"multimodal-looker": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"prometheus": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"metis": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"momus": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"atlas": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	}
+    },
+    "categories": {
+	"visual-engineering": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"ultrabrain": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"deep": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"artistry": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"quick": {
+	    "model": "synthetic/hf:zai-org/GLM-4.7"
+	},
+	"unspecified-low": {
+	    "model": "synthetic/hf:zai-org/GLM-4.7"
+	},
+	"unspecified-high": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	},
+	"writing": {
+	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	}
+    }
+}

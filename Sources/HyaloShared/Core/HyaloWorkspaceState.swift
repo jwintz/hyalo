@@ -135,7 +135,10 @@ public final class HyaloWorkspaceState {
         case "dark": return true
         case "light": return false
         default:
-            return platformIsDarkMode()
+            // Read from colorTheme.isDark — a tracked @Observable property —
+            // so SwiftUI re-evaluates any view that depends on isDarkMode when
+            // the system appearance changes.
+            return colorTheme.isDark
         }
     }
 

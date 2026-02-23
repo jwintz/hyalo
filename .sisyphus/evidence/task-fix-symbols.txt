@@ -1,0 +1,44 @@
+TASK: Fix duplicate symbol errors in libemacs.a by removing regex.o from libgnu.a
+
+DATE: 2026-02-23
+
+PROBLEM:
+- libemacs.a had duplicate symbols: regex.o (from libgnu.a) and regex-emacs.o (from Emacs src)
+- Error: duplicate symbol '_rpl_re_set_registers', '_rpl_re_search_2', etc.
+- Both files defined the same symbols causing linker errors
+
+SOLUTION:
+1. Backed up original libemacs.a to libemacs.a.bak
+2. Extracted libgnu.a to temporary directory _libgnu_tmp
+3. Removed regex.o from extracted libgnu.a files
+4. Recreated libemacs.a from src/*.o files (without duplicates)
+5. Merged filtered libgnu.a objects (without regex.o) into libemacs.a
+6. Cleaned up temporary directory
+
+VERIFICATION RESULTS:
+
+1. Backup created:
+   - libemacs.a.bak: 4.6M
+
+2. libemacs.a recreated:
+   - Original: 4.6M
+   - New: 4.4M (slightly smaller due to removed regex.o)
+
+3. Regex files in libemacs.a:
+   - regex-emacs.o (present - authoritative version)
+   - regex.o (removed - duplicate)
+
+4. Symbol verification (nm libemacs.a | grep "_rpl_re_"):
+   - _rpl_re_set_registers: ONE instance (T symbol)
+   - _rpl_re_search: ONE instance (T symbol)
+   - _rpl_re_search_2: ONE instance (T symbol)
+   - _rpl_re_match_2: ONE instance (T symbol)
+   - _rpl_re_compile_pattern: ONE instance (T symbol)
+
+OUTCOME:
+✓ libemacs.a recreated without duplicate symbols
+✓ nm shows only ONE instance of each _rpl_re_* symbol
+✓ regex-emacs.o retained as authoritative version
+✓ regex.o removed from libgnu.a merge
+
+STATUS: COMPLETED

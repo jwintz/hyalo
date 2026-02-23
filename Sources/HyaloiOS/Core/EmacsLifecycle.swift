@@ -64,6 +64,9 @@ final class EmacsLifecycle {
         )[0]
 
         emacsThread = Thread { [weak self] in
+            // Enable iOS window system to bypass tty check.
+            // This must be set before ios_emacs_init to enable the iOS terminal.
+            ios_init_gui = true
             // Resolve portable dump file
             let dumpFile: String? = {
                 guard let fp = ios_get_fingerprint() else { return nil }

@@ -41,6 +41,13 @@ func ios_signal_event_available()
 // MARK: - UIWindow Setup
 
 
+// MARK: - Window System Initialization
+
+/// Enable iOS window system to bypass tty check.
+/// Must be set to true before ios_emacs_init to enable iOS window system.
+@_silgen_name("ios_init_gui")
+var ios_init_gui: CBool
+
 @_silgen_name("ios_set_main_window")
 func ios_set_main_window(_ window: AnyObject)
 #endif // canImport(UIKit)

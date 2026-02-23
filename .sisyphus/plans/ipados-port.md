@@ -37,6 +37,16 @@ This plan spans TWO repositories:
 - `~/Syntropment/hyalo-unified` (Swift/Lisp, main repo)
 - `~/Syntropment/hyalo-feedstock-unified` (C/Emacs build, feedstock)
 
+
+**WARNING**: `~/Syntropment/hyalo-feedstock` is a DIFFERENT repository. DO NOT TOUCH IT.
+Only `~/Syntropment/hyalo-feedstock-unified` is used for this project.
+
+**CRITICAL: NEVER COMMIT BINARY FILES**
+- NEVER commit `.o`, `.a`, `.dylib`, `.app`, `.framework`, `.png`, `.jpg`, `.pdf` files
+- These are build artifacts and should NEVER be in the repository
+- Always run `git rm --cached <file>` and add to `.gitignore` if accidentally staged
+- This rule is MANDATORY - violating it blocks all work until fixed
+
 Feedstock changes must be:
 1. Applied directly to feedstock working directory
 2. Documented as patch descriptions in task evidence
@@ -51,6 +61,85 @@ Feedstock changes must be:
 - Feedstock patch management: each feedstock task documents exact changes and verification
 - pdmp fingerprint mismatch: explicit fallback to bootstrap-from-source documented
 - Reverse channel queue bounds: addressed in task 11 acceptance criteria
+
+
+### Current State (2026-02-23)
+
+**Wave 1 DONE**: T1 (libemacs.a built), T2 (mock data), T5 (device lib check), T14 (appearance)
+**Wave 2 DONE**: T3 (libemacs.a linked in simulator), T6 (device build config), T15 (multitasking test)
+**Wave 3 BLOCKED**: T4 (Emacs bootstrap) is the GATE task -- everything else depends on it.
+
+#### Task 4 Blocker: Unapplied Feedstock Patches
+
+**Problem**: Emacs terminates with `"standard input is not a tty"` during `init_display_interactive()` in `dispnew.c`.
+
+**Root Cause**: 15 iOS patches in `~/Syntropment/hyalo-feedstock-unified/patches/` were never applied to the emacs source tree. The critical missing patch is `ios-dispnew.patch`, which adds:
+```c
+#ifdef HAVE_IOS
+  if (!inhibit_window_system && ios_init_gui)
+    {
+      Vinitial_window_system = Qios;
+      ios_term_init ();
+      return;
+    }
+#endif
+```
+Without this block, Emacs falls through all window-system checks (HAVE_X_WINDOWS, HAVE_NS, HAVE_ANDROID, etc.) to the tty check, which fails because iOS has no tty.
+
+**All 15 unapplied patches**:
+- `ios-dispnew` -- CRITICAL: init_display sets Qios, calls ios_term_init()
+- `ios-terminal` -- terminal-live-p needs output_ios case
+- `ios-bidi` -- bidi processing safety during early startup
+- `ios-bootstrap-progress` -- progress callbacks in lread.c
+- `ios-checkstring` -- nil guard in CHECK_STRING
+- `ios-compat` -- nil directory fallback in buffer.c
+- `ios-cus-edit-lisp` -- customization patches
+- `ios-debug` -- nil guards in fileio.c, data.c, search.c
+- `ios-epaths` -- path configuration
+- `ios-faces-lisp` -- faces.el patches
+- `ios-frame-lisp` -- frame.el patches
+- `ios-libemacs` -- Makefile for libemacs.a
+- `ios-macroexp` -- macroexp.el patches
+- `ios-minibuffer-timerp` -- minibuffer timer
+- `ios-try-window` -- display safety during early startup
+
+**Fix implemented -- awaiting confirmation**: All 15 patches applied via `git apply --directory=emacs` to `~/Syntropment/hyalo-feedstock-unified`. Rebuild of libemacs.a required.
+
+**Next step**: Use `pixi run ios_patch` for the canonical patch workflow (it starts with `git checkout .` then applies ALL patches). Then rebuild: `pixi run ios_sim_build && pixi run ios_sim_build_libemacs`.
+
+### Feedstock Build Strategy
+
+The feedstock at `~/Syntropment/hyalo-feedstock-unified` supports BOTH macOS and iOS builds via `pixi.toml` task families. The emacs source tree is a git submodule that can only hold ONE active configuration at a time.
+
+#### Task Families
+
+| Family | Prefix | Purpose |
+|--------|--------|---------|
+| macOS | `mac_*` | Patch, configure with `--with-ns`, build Emacs.app |
+| iOS Shared | `ios_*` | Patch (superset of mac), autogen, install sources, copy resources |
+| iOS Simulator | `ios_sim_*` | Configure for arm64-apple-ios17.0-simulator, build temacs, create libemacs.a |
+| iOS Device | `ios_device_*` | Configure for arm64-apple-ios17.0, build temacs, create libemacs-device.a |
+
+#### Switching Between Targets
+
+```bash
+# Switch to macOS build
+pixi run unpatch           # git checkout . in emacs submodule
+pixi run mac_patch         # apply macOS patches
+pixi run mac_configure     # configure with --with-ns
+pixi run mac_build         # build Emacs.app
+
+# Switch to iOS Simulator build
+pixi run unpatch           # git checkout . in emacs submodule
+pixi run ios_patch         # apply ALL iOS patches (superset of mac)
+pixi run ios_sim_configure # configure with --with-ios for simulator SDK
+pixi run ios_sim_build     # build temacs for simulator
+pixi run ios_sim_build_libemacs  # create libemacs.a
+```
+
+**Key constraint**: `pixi run unpatch` (or each patch task's `git checkout .`) reverts ALL patches. You must re-apply patches and reconfigure when switching targets. The build artifacts (temacs, libemacs.a, config.status) are overwritten.
+
+**iOS patches are safe for macOS**: All iOS patches use `#ifdef HAVE_IOS` guards, which is only defined by `./configure --with-ios`. If the same source tree has iOS patches applied but is configured for macOS (`--with-ns`), the iOS code is inert.
 
 ---
 

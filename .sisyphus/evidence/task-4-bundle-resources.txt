@@ -1,0 +1,84 @@
+=== TASK 4: Bundle Resources Verification ===
+Date: $(date)
+
+=== APP BUNDLE LOCATION ===
+/tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app
+
+=== BUNDLE CONTENTS ===
+total 21116
+drwxr-xr-x   3 jwintz wheel       96 Feb 23 02:52 _CodeSignature
+drwxr-xr-x  11 jwintz wheel      352 Feb 23 14:48 .
+drwxr-xr-x  20 jwintz wheel      640 Feb 23 14:13 ..
+-rw-r--r--   1 jwintz wheel 21521592 Feb 23 14:48 bootstrap-emacs.pdmp
+drwxr-xr-x  80 jwintz wheel     2560 Feb 23 14:48 etc
+drwxr-xr-x   3 jwintz wheel       96 Feb 23 14:13 Frameworks
+-rwxr-xr-x   1 jwintz wheel    87584 Feb 23 14:48 Hyalo
+-rw-r--r--   1 jwintz wheel     1175 Feb 23 02:52 Info.plist
+drwxr-xr-x  16 jwintz wheel      512 Feb 23 14:48 init
+drwxr-xr-x 664 jwintz wheel    21248 Feb 23 14:48 lisp
+-rw-r--r--   1 jwintz wheel        8 Feb 23 02:52 PkgInfo
+
+=== LISP DIRECTORY ===
+abbrev.el
+abbrev.elc
+align.el
+align.elc
+allout-widgets.el
+allout-widgets.elc
+allout.el
+allout.elc
+ansi-color.el
+ansi-color.elc
+ansi-osc.el
+ansi-osc.elc
+apropos.el
+apropos.elc
+arc-mode.el
+arc-mode.elc
+array.el
+array.elc
+auth-source-pass.el
+auth-source-pass.elc
+... (total: 662 files)
+
+=== ETC DIRECTORY ===
+AUTHORS
+CALC-NEWS
+ChangeLog.1
+charsets
+compilation.txt
+COPYING
+copyright-assign.txt
+DEBUG
+DEVEL.HUMOR
+DISTRIB
+DOC
+e
+edt-user.el
+EGLOT-NEWS
+emacs_lldb.py
+emacs-buffer.gdb
+emacs-mail.desktop
+emacs.desktop
+emacs.icon
+emacs.metainfo.xml
+... (total: 78 files)
+
+=== INIT DIRECTORY ===
+init-agents.el
+init-appearance.el
+init-bootstrap.el
+init-completion.el
+init-core.el
+init-editing.el
+init-emacs.el
+init-header.el
+init-help.el
+init-hyalo.el
+init-markdown.el
+init-modes.el
+init-tengwar.el
+init-tools.el
+
+=== PDMP FILE ===
+-rw-r--r-- 1 jwintz wheel 21M Feb 23 14:48 /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app/bootstrap-emacs.pdmp

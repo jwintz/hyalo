@@ -1063,3 +1063,74 @@ This is a one-line fix that requires no file copying.
    Change: `setenv("EMACSDATA", "\(cachesPath)/emacs/data", 1)`
    To: `setenv("EMACSDATA", "\(bundlePath)/etc", 1)`
 
+
+---
+
+## Task 5.4: EMACSDATA Path Fix Verification (2026-02-23)
+
+### Summary
+EMACSDATA path fix verified - charsets error resolved. Emacs progresses further but blocked by "standard input is not a tty".
+
+### Changes Verified
+The fix from commit 6b7a93c is working:
+- File: `Sources/HyaloiOS/Core/EmacsLifecycle.swift` line 42
+- Change: `setenv("EMACSDATA", "\(bundlePath)/etc", 1)` (points to bundle etc/)
+
+### Test Results
+
+**Build Status**: SUCCESS
+- Build completed without errors
+- App installed in simulator successfully
+
+**Charsets Error**: FIXED
+- Previous error: `Error: .../Library/Caches/emacs/data/charsets: No such file or directory`
+- Current status: NO charsets error in logs
+- Bundle verification: etc/charsets/ exists with 134+ charset map files
+
+**Path Initialization**: SUCCESS
+```
+ios_init_paths: bundlePath=/Users/.../Hyalo.app
+ios_init_paths: lisp=/Users/.../Hyalo.app/lisp etc=/Users/.../Hyalo.app/etc exec=/Users/.../Hyalo.app
+```
+
+**Emacs Initialization Progress**:
+1. ✓ Path variables set correctly
+2. ✓ Vinvocation_directory set
+3. ✓ Vinvocation_name set to "Emacs"
+4. ✓ syms_of_iosterm completed
+5. ✓ Fprovide (Qios, Qnil) called
+6. → BLOCKED at init_display: "emacs: standard input is not a tty"
+
+**Current Blocker**:
+- Error: `emacs: standard input is not a tty`
+- Cause: Emacs attempting to read from stdin during initialization
+- Impact: Emacs stops before creating the main view
+- Missing: `ios_set_main_emacs_view` log entry
+
+### Log Analysis
+
+**Success Indicators Present**:
+- ✓ ios_init_paths completed
+- ✓ ios_override_path_variables completed  
+- ✓ syms_of_iosterm completed (Fterminal_list returned length=1)
+- ✓ Fprovide Qios called
+- ✓ No charsets/No such file errors
+
+**Missing Success Indicator**:
+- ✗ ios_set_main_emacs_view not found in logs
+
+### Conclusion
+
+**EMACSDATA fix is working correctly** - the charsets error is resolved. Emacs now progresses through:
+1. Path initialization
+2. Terminal setup
+3. Feature provision
+
+**New blocker identified**: "standard input is not a tty" - Emacs needs stdin to be configured or needs to run in batch mode for iOS.
+
+### Next Steps
+
+1. Investigate stdin configuration for iOS Emacs
+2. Check if Emacs needs --batch flag or stdin redirection
+3. Verify iOS terminal/tty setup in iosterm.m
+

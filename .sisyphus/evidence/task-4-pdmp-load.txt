@@ -1,0 +1,23 @@
+=== TASK 4: PDMP Loading Verification ===
+Date: $(date)
+
+=== PDMP FINGERPRINT MISMATCH ===
+From console logs (task-4-emacs-init.txt):
+
+Desired fingerprint: de86bb99fff5469a9e3f9f5d9adff091bdcdc1e80c161eafb86ce22bb124ceb0
+Found fingerprint:    94ed22516fda26d581df088918e11bc5f8f306c2e4eab73cf69e8160c240c8b1
+
+Result: pdmp load failed (not built for this Emacs executable)
+Fallback: will bootstrap from source
+
+=== IMPLICATION ===
+The PDMP file was built with a different Emacs binary (different fingerprint).
+This is expected when libemacs.a is rebuilt without rebuilding the PDMP.
+
+Emacs falls back to bootstrap-from-source, which is slower but functional.
+However, this fallback ALSO fails because of the missing ios-dispnew patch.
+
+=== EVIDENCE ===
+desired fingerprint: de86bb99fff5469a9e3f9f5d9adff091bdcdc1e80c161eafb86ce22bb124ceb0
+found fingerprint: 94ed22516fda26d581df088918e11bc5f8f306c2e4eab73cf69e8160c240c8b1
+iOS: pdmp load failed (not built for this Emacs executable), will bootstrap from source

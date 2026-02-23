@@ -1,0 +1,62 @@
+=== TASK 4: Build Status Summary ===
+Date: $(date)
+
+=== CHECKLIST ===
+
+[✓] Rebuilt libemacs.a exists at ~/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a
+    - File exists: YES
+    - Path: /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a
+    - Size: 4705272 bytes (4.7MB)
+    - Architecture: arm64
+    - Issue: NOT rebuilt with ios-dispnew patch (patch applied after build)
+
+[✓] xcodebuild succeeds for HyaloApp scheme
+    - Build completed: YES
+    - Build log: task-4-ios-build.log
+    - Derived data: /tmp/hyalo-ios-build
+    - App bundle: /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app
+
+[✗] xcrun simctl launch shows `ios_set_main_emacs_view` in logs
+    - Expected: ios_set_main_emacs_view: view=<non-null>
+    - Actual: NOT FOUND
+    - Reason: Emacs exits before reaching this point due to "not a tty" error
+
+[✓] Bundle contains lisp/, etc/, init/, bootstrap-emacs.pdmp
+    - lisp/: YES (664 files)
+    - etc/: YES (80 entries)
+    - init/: YES (16 files)
+    - bootstrap-emacs.pdmp: YES (21MB)
+
+[✗] No (void-function ...) errors in console
+    - Not reached: Emacs exits before loading Lisp
+
+=== VERDICT ===
+
+Task 4 is BLOCKED by a missing critical patch (ios-dispnew.patch).
+
+The iOS app infrastructure is fully functional:
+- Xcode project builds successfully
+- App installs and launches in simulator
+- All bundle resources are present
+- iOS-specific paths are correctly set
+
+However, Emacs cannot bootstrap because:
+1. ios-dispnew.patch was not applied during initial patch sequence
+2. init_display_interactive() doesn't recognize iOS window system
+3. Falls through to TTY check which fails on iOS
+
+=== NEXT STEPS TO COMPLETE ===
+
+1. Fix patch application order in pixi.toml or fix ios-font.patch
+2. Re-run: pixi run ios_patch
+3. Re-run: pixi run ios_sim_build_libemacs
+4. Re-run: ./build.sh in iOS directory
+5. Re-test in simulator
+
+=== EVIDENCE FILES ===
+- task-4-summary.txt: Overall summary
+- task-4-ios-build.log: Xcode build output
+- task-4-emacs-init.txt: Simulator console logs
+- task-4-bundle-resources.txt: Bundle contents
+- task-4-pdmp-load.txt: PDMP loading status
+- task-4-build-status.txt: This file

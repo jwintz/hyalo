@@ -22,6 +22,25 @@
 .sisyphus/evidence/**/*.png
 
 ## ###################################################################
+## Binary files - NEVER commit these!
+## Build artifacts, .o, .a, .dylib, .app, screenshots
+## ###################################################################
+
+*.o
+*.a
+*.dylib
+*.app
+*.framework
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.pdf
+iosterm.o
+libtree-sitter.a
+iPad Pro*
+
+## ###################################################################
 ## Build folders
 ## ###################################################################
 

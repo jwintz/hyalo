@@ -1,0 +1,83 @@
+=== Task 1 Rebuild Evidence ===
+Mon Feb 23 15:13:01 CET 2026
+
+=== Patch Status ===
+ M admin/unidata/unidata-gen.el
+ M configure.ac
+ M lisp/emacs-lisp/derived.el
+ M lisp/emacs-lisp/loaddefs-gen.el
+ M src/Makefile.in
+ M src/callproc.c
+ M src/dispextern.h
+ M src/dispnew.c
+ M src/frame.c
+ M src/frame.h
+ M src/image.c
+ M src/macfont.m
+ M src/nsfns.m
+ M src/nsterm.h
+ M src/nsterm.m
+ M src/sysdep.c
+ M src/termhooks.h
+ M src/xdisp.c
+ M src/xfaces.c
+?? lisp/term/ios-win.el
+?? src/Makefile.bak
+?? src/ios-termstubs.c
+?? src/iosfns.m
+?? src/iosgui.h
+?? src/iosterm.h
+?? src/iosterm.m
+?? src/macfont.m.bak
+
+=== Build Status ===
+lrwxr-xr-x 1 jwintz staff      10 Feb 23 02:46 /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs-sim.a -> libemacs.a
+-rw-r--r-- 1 jwintz staff 4789056 Feb 23 14:52 /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a
+
+=== libemacs.a exists ===
+/Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a: current ar archive
+
+=== macfont.m Issues ===
+macfont.m has extensive AppKit dependencies that require ios-font-driver.patch
+Patch conflicts with frame-transparency.patch prevent automatic application
+Manual patching attempted but incomplete due to complexity
+
+=== SUMMARY ===
+
+EXISTING libemacs.a:
+- Path: /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a
+- Size: 4,789,056 bytes
+- Status: EXISTS (built before current patches)
+
+PATCH CONFLICT ISSUE:
+- ios-font-driver.patch modifies macfont.m extensively for iOS compatibility
+- frame-transparency.patch was already applied and modifies the same sections
+- Manual patch application fails due to conflicts
+- Manual patching of macfont.m attempted but incomplete due to complexity
+
+FUNCTIONS REQUIRING iOS IMPLEMENTATIONS in macfont.m:
+1. mac_font_get_weight (lines ~210) - needs #ifdef HAVE_IOS wrapper
+2. mac_screen_font_get_advance_width_for_glyph (lines ~218) - needs #ifdef HAVE_IOS wrapper
+3. mac_font_get_glyph_for_cid (lines ~226) - needs #ifndef HAVE_IOS to exclude
+4. mac_screen_font_create_with_name (lines ~276) - needs #ifdef HAVE_IOS wrapper
+5. mac_screen_font_get_metrics (lines ~288) - needs #ifdef HAVE_IOS wrapper
+6. mac_font_shape_1 (lines ~355) - needs separate iOS implementation
+7. mac_screen_font_shape (lines ~580) - needs #ifdef HAVE_IOS wrapper
+8. get_cgcolor (lines ~600) - needs #ifdef HAVE_IOS wrapper
+9. get_cgcolor_from_nscolor (lines ~620) - needs #ifndef HAVE_IOS to exclude
+10. Multiple drawing/color functions throughout the file
+
+BUILD STATUS:
+- Configure: SUCCESS
+- lib (gnulib): SUCCESS
+- src: FAILS at macfont.o due to AppKit dependencies
+
+RECOMMENDATION:
+To properly rebuild libemacs.a with all iOS patches:
+1. Apply ios-font-driver.patch BEFORE frame-transparency.patch
+2. Or manually merge the patches
+3. Or exclude macfont.o from iOS build if font support not critical
+
+VERIFICATION NEEDED:
+Current libemacs.a exists but may not have all iOS patches applied.
+Check platform with: otool -l emacs/src/libemacs.a | grep -A5 "LC_BUILD_VERSION"

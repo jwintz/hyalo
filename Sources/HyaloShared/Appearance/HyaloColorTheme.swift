@@ -54,12 +54,25 @@ public final class HyaloColorTheme {
     public var light: HyaloColorVariant = HyaloColorVariant.defaultLight
     public var dark: HyaloColorVariant = HyaloColorVariant.defaultDark
 
+    // MARK: - Appearance Tracking
+
+    /// Tracks the current interface style. Must be a stored property so
+    /// SwiftUI's @Observable graph registers a dependency on it. Computed
+    /// properties that read external state (e.g. NSApp.effectiveAppearance)
+    /// are invisible to the observation system and cannot trigger re-renders.
+    public var isDark: Bool = platformIsDarkMode()
+
+    /// Call this when the system appearance changes so all dependent views
+    /// re-render. Invoked by HyaloManager's DistributedNotificationCenter observer.
+    public func refreshAppearance() {
+        isDark = platformIsDarkMode()
+    }
+
     // MARK: - Active Variant
 
     /// Returns the variant matching the current effective appearance.
     public var active: HyaloColorVariant {
-        let isDark = platformIsDarkMode()
-        return isDark ? dark : light
+        isDark ? dark : light
     }
 
     // MARK: - SwiftUI Color Accessors

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- System appearance change (dark/light mode switch) no longer triggers color theme re-render. `HyaloColorTheme.active` was calling `platformIsDarkMode()` — an external read invisible to SwiftUI's `@Observable` tracking graph — so no views ever re-evaluated on system appearance change. Fix: introduce a stored `isDark: Bool` property on `HyaloColorTheme` (tracked by `@Observable`) updated by `HyaloManager`'s `DistributedNotificationCenter` observer via `refreshAppearance()`. Route `HyaloWorkspaceState.isDarkMode` through `colorTheme.isDark` for the same reason.
+
 ### Added
 
 - Initial revision: native macOS Emacs with SwiftUI chrome, NavigationSplitView layout, bidirectional Swift/Emacs Lisp channels, and integrated package/activity/terminal UI.

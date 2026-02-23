@@ -33,8 +33,10 @@ final class HyaloManager {
 
     @MainActor
     private func updateWindowsForSystemAppearanceChange() {
-        // Update all windows that are in "auto" mode
         for controller in HyaloModule.allControllers {
+            // Refresh the tracked isDark property so @Observable views re-render.
+            controller.workspace.colorTheme.refreshAppearance()
+            // Reset window appearance for windows in "auto" mode.
             if controller.workspace.windowAppearance == "auto" {
                 controller.window?.appearance = nil
             }

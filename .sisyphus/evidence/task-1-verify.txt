@@ -1,0 +1,30 @@
+=== Task 1 Verification ===
+Mon Feb 23 15:14:06 CET 2026
+
+=== Platform Verification ===
+      cmd LC_BUILD_VERSION
+  cmdsize 24
+ platform 7
+    minos 17.0
+      sdk 26.2
+   ntools 0
+Load command 2
+--
+      cmd LC_BUILD_VERSION
+  cmdsize 24
+ platform 7
+    minos 17.0
+      sdk 26.2
+   ntools 0
+Load command 2
+--
+      cmd LC_BUILD_VERSION
+  cmdsize 24
+ platform 7
+    minos 17.0
+
+=== Architecture ===
+arm64
+
+=== File Type ===
+/Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a: current ar archive

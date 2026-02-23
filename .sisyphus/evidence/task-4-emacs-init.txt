@@ -1,147 +1,25 @@
-================================================================================
-TASK 4: Emacs Bootstrap in iOS Simulator - EVIDENCE REPORT
-================================================================================
-Date: 2026-02-23
-Status: FAILED - Emacs did not complete initialization
-
---------------------------------------------------------------------------------
-1. APP INSTALLATION
---------------------------------------------------------------------------------
-Command: xcrun simctl install booted /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app
-Result: SUCCESS
-
---------------------------------------------------------------------------------
-2. APP LAUNCH
---------------------------------------------------------------------------------
-Command: xcrun simctl launch --console booted org.gnu.hyalo
-Result: App launched but Emacs initialization FAILED
-
---------------------------------------------------------------------------------
-3. BUNDLE RESOURCES VERIFICATION
---------------------------------------------------------------------------------
-✓ bootstrap-emacs.pdmp: 21,521,592 bytes
-✓ lisp/: 664 entries (source + compiled .elc files)
-✓ etc/: 80 entries including charsets/ directory
-✓ init/: 16 initialization files
-
---------------------------------------------------------------------------------
-4. CRITICAL FAILURE: MISSING DATA FILES
---------------------------------------------------------------------------------
-
-Error Message:
-  Error: /Users/jwintz/Library/Developer/CoreSimulator/Devices/65B71F4A-5614-485E-A5EF-EEAD2D35D1E9/data/Containers/Data/Application/E9F74B79-BB10-4AC6-A4C0-0343D0DF46E7/Library/Caches/emacs/data/charsets: No such file or directory
-  Emacs will not function correctly without the character map files.
-  The EMACSDATA environment variable is set.  Maybe it has the wrong value?
-  Please check your installation!
-
-Root Cause:
-  The etc/charsets directory exists in the app bundle but was NOT copied to the
-  app's Library/Caches/emacs/data/ directory at runtime.
-
---------------------------------------------------------------------------------
-5. MISSING SUCCESS INDICATORS
---------------------------------------------------------------------------------
-
-✗ ios_set_main_emacs_view: NOT FOUND in logs
-  Expected: "ios_set_main_emacs_view: view=<non-null>"
-  Actual: Log entry not present
-
-✗ Emacs fully initialized: NO
-  Emacs reached syms_of_iosterm but failed before view initialization
-
---------------------------------------------------------------------------------
-6. WHAT DID WORK
---------------------------------------------------------------------------------
-
-✓ App installed in simulator
-✓ App launched without crash
-✓ iOS path initialization (ios_init_paths)
-✓ Bundle paths resolved correctly
-✓ Path variables overridden (ios_override_path_variables)
-✓ Terminal initialized (syms_of_iosterm)
-✓ iOS feature provided (Fprovide Qios)
-✓ Fontset loaded (after syms_of_iosterm/iosfns/fontset)
-
---------------------------------------------------------------------------------
-7. LOG EXCERPT
---------------------------------------------------------------------------------
-
 desired fingerprint: de86bb99fff5469a9e3f9f5d9adff091bdcdc1e80c161eafb86ce22bb124ceb0
 found fingerprint: 94ed22516fda26d581df088918e11bc5f8f306c2e4eab73cf69e8160c240c8b1
 iOS: pdmp load failed (not built for this Emacs executable), will bootstrap from source
-...
-2026-02-23 02:54:19.315 Hyalo[45132:321556] [EMACS INIT] after syms_of_iosterm/iosfns/fontset
-Error: .../Library/Caches/emacs/data/charsets: No such file or directory
-Emacs will not function correctly without the character map files.
-
---------------------------------------------------------------------------------
-8. BLOCKING ISSUE
---------------------------------------------------------------------------------
-
-This is a CRITICAL GATE FAILURE. According to task instructions, I must STOP
-and report this failure. Do not proceed to later tasks (T8-T13, F1-F4).
-
-Required Fix:
-  The iOS initialization code must copy etc/ data from bundle to Library/Caches/
-  before Emacs attempts to load charset files.
-
---------------------------------------------------------------------------------
-9. RECOMMENDATION
---------------------------------------------------------------------------------
-
-The iOS port needs to implement data file copying during first launch:
-
-1. Check if Library/Caches/emacs/data/ exists
-2. If not, copy etc/ contents from bundle to data directory
-3. Then proceed with Emacs initialization
-
-This is typically done in the iOS app delegate or early initialization code.
-
-================================================================================
-END OF REPORT
-================================================================================
-
---------------------------------------------------------------------------------
-10. ROOT CAUSE ANALYSIS (UPDATED)
---------------------------------------------------------------------------------
-
-Code Flow:
-
-1. EmacsLifecycle.swift:42 sets EMACSDATA to caches directory:
-   setenv("EMACSDATA", "\(cachesPath)/emacs/data", 1)
-
-2. iosterm.m:175-183 reads EMACSDATA and uses it directly:
-   const char *emacsdata = getenv ("EMACSDATA");
-   if (emacsdata && *emacsdata)
-     ios_etc_directory = strdup (emacsdata);  // <-- Uses caches path
-   else
-     {
-       // Fallback to bundle/etc - NEVER REACHED
-       NSString *etcPath = [bundlePath stringByAppendingPathComponent:@"etc"];
-       ...
-     }
-
-3. Emacs tries to load charsets from ios_etc_directory (caches)
-4. Caches directory is empty -> FAILURE
-
-SIMPLE FIX OPTIONS:
-
-Option A: Remove EMACSDATA setting (let fallback work):
-   // Remove line 42 in EmacsLifecycle.swift
-
-Option B: Point EMACSDATA to bundle etc:
-   setenv("EMACSDATA", "\(bundlePath)/etc", 1)
-
-Option C: Copy etc/ to caches before starting Emacs:
-   // Add in setupEnvironment() before setenv:
-   copyBundleResource("etc", to: "\(cachesPath)/emacs/data")
-
-Recommended: Option B (minimal change, no file copying needed)
-
---------------------------------------------------------------------------------
-11. FILES INVOLVED
---------------------------------------------------------------------------------
-
-- Sources/HyaloiOS/Core/EmacsLifecycle.swift (line 42)
-- hyalo-feedstock-unified/emacs/src/iosterm.m (lines 175-183)
-
+Warning: arch-dependent data dir '/usr/local/libexec/emacs/31.0.50/aarch64-apple-darwin/': No such file or directory
+2026-02-23 14:49:04.910 Hyalo[92910:796410] ios_init_paths: called
+2026-02-23 14:49:04.910 Hyalo[92910:796410] ios_init_paths: bundlePath=/Users/jwintz/Library/Developer/CoreSimulator/Devices/B0AE6FF5-8C82-41BB-8FA4-1E944C29DA20/data/Containers/Bundle/Application/427D3382-2FDE-4C54-9012-084025317321/Hyalo.app
+2026-02-23 14:49:04.910 Hyalo[92910:796410] ios_init_paths: lisp=/Users/jwintz/Library/Developer/CoreSimulator/Devices/B0AE6FF5-8C82-41BB-8FA4-1E944C29DA20/data/Containers/Bundle/Application/427D3382-2FDE-4C54-9012-084025317321/Hyalo.app/lisp etc=/Users/jwintz/Library/Developer/CoreSimulator/Devices/B0AE6FF5-8C82-41BB-8FA4-1E944C29DA20/data/Containers/Bundle/Application/427D3382-2FDE-4C54-9012-084025317321/Hyalo.app/etc exec=/Users/jwintz/Library/Developer/CoreSimulator/Devices/B0AE6FF5-8C82-41BB-8FA4-1E944C29DA20/data/Containers/Bundle/Application/427D3382-2FDE-4C54-9012-084025317321/Hyalo.app
+2026-02-23 14:49:04.911 Hyalo[92910:796410] ios_override_path_variables: FUNCTION ENTRY
+2026-02-23 14:49:04.911 Hyalo[92910:796410] [IOS] about to set invocation vars, ios_exec_directory=/Users/jwintz/Library/Developer/CoreSimulator/Devices/B0AE6FF5-8C82-41BB-8FA4-1E944C29DA20/data/Containers/Bundle/Application/427D3382-2FDE-4C54-9012-084025317321/Hyalo.app
+2026-02-23 14:49:04.911 Hyalo[92910:796410] [IOS] setting Vinvocation_directory to /Users/jwintz/Library/Developer/CoreSimulator/Devices/B0AE6FF5-8C82-41BB-8FA4-1E944C29DA20/data/Containers/Bundle/Application/427D3382-2FDE-4C54-9012-084025317321/Hyalo.app
+2026-02-23 14:49:04.911 Hyalo[92910:796410] [IOS] Vinvocation_directory SET successfully
+2026-02-23 14:49:04.911 Hyalo[92910:796410] [IOS] Vinvocation_name SET to Emacs
+2026-02-23 14:49:04.911 Hyalo[92910:796410] [IOS] default-directory = /
+2026-02-23 14:49:04.911 Hyalo[92910:796410] ios_override_path_variables: source=/Users/jwintz/Library/Developer/CoreSimulator/Devices/B0AE6FF5-8C82-41BB-8FA4-1E944C29DA20/data/Containers/Bundle/Application/427D3382-2FDE-4C54-9012-084025317321/Hyalo.app/lisp
+2026-02-23 14:49:04.911 Hyalo[92910:796410] ios_override_path_variables: DONE - returning to emacs.c
+2026-02-23 14:49:04.911 Hyalo[92910:796410] [EMACS INIT] after ios_override_path_variables
+2026-02-23 14:49:04.912 Hyalo[92910:796410] [EMACS INIT] DEFVAR_BOOL x-use-underline-position-properties about to be defined
+2026-02-23 14:49:04.912 Hyalo[92910:796410] [EMACS INIT] DEFVAR_BOOL x-use-underline-position-properties DEFINED
+2026-02-23 14:49:04.912 Hyalo[92910:796410] syms_of_iosterm: about to call Fterminal_list for testing
+2026-02-23 14:49:04.912 Hyalo[92910:796410] syms_of_iosterm: Fterminal_list returned (length=1)
+2026-02-23 14:49:04.913 Hyalo[92910:796410] [EMACS INIT] Fprovide (Qios, Qnil) called - (featurep 'ios) should now return t
+2026-02-23 14:49:04.913 Hyalo[92910:796410] [EMACS INIT] after syms_of_iosterm/iosfns/fontset
+2026-02-23 14:49:04.913 Hyalo[92910:796410] [EMACS INIT] before init_display
+emacs: standard input is not a tty
+org.gnu.hyalo: 92910
