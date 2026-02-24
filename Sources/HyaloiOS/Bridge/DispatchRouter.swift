@@ -201,7 +201,6 @@ extension DispatchRouterError: LocalizedError {
 @_silgen_name("hyalo_ios_dispatch_command")
 func hyalo_ios_dispatch_command(_ commandID: Int32, _ jsonPayload: UnsafePointer<CChar>)
 
-@_silgen_name("ios_signal_event_available")
-func ios_signal_event_available()
+
 
 #endif

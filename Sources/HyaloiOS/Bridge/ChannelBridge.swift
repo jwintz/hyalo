@@ -22,35 +22,35 @@ public final class ChannelBridge {
 
 /// Callback handler type for Swift functions called from Emacs
 @available(iOS 26.0, *)
-typealias SwiftHandler = ([String: Any], @escaping (Result<[String: Any], Error>) -> Void) -> Void
+public typealias SwiftHandler = ([String: Any], @escaping (Result<[String: Any], Error>) -> Void) -> Void
 
 /// Manages bidirectional communication callbacks
 @available(iOS 26.0, *)
 @MainActor
 public final class ReverseChannelBridge {
     public static let shared = ReverseChannelBridge()
-    
+
     private var handlers: [String: SwiftHandler] = [:]
     private var pendingEmacsCallbacks: [String: (Result<[String: Any], Error>) -> Void] = [:]
     private var callbackCounter: Int64 = 0
     private let queue = DispatchQueue(label: "hyalo.reversechannel")
-    
+
     private init() {}
-    
+
     /// Register a Swift handler for calls from Emacs
     public func registerHandler(_ name: String, handler: @escaping SwiftHandler) {
         queue.async {
             self.handlers[name] = handler
         }
     }
-    
+
     /// Unregister a handler
     public func unregisterHandler(_ name: String) {
         queue.async {
             self.handlers.removeValue(forKey: name)
         }
     }
-    
+
     /// Execute a handler and return result via callback
     func executeHandler(name: String, payload: [String: Any], callbackID: String) {
         queue.async {
@@ -61,7 +61,7 @@ public final class ReverseChannelBridge {
                 }
                 return
             }
-            
+
             // Store callback for async response
             self.pendingEmacsCallbacks[callbackID] = { result in
                 DispatchQueue.main.async {
@@ -73,7 +73,7 @@ public final class ReverseChannelBridge {
                     }
                 }
             }
-            
+
             // Execute handler
             handler(payload) { result in
                 self.queue.async {
@@ -252,6 +252,7 @@ func bridgeRegisterSwiftHandler(_ nameCString: UnsafePointer<CChar>, _ handlerPt
     }
 }
 /// Emacs calls this to invoke a Swift function
+@MainActor
 @_cdecl("hyalo_ios_call_swift")
 func bridgeCallSwift(_ handlerName: UnsafePointer<CChar>, _ jsonPayload: UnsafePointer<CChar>, _ callbackID: UnsafePointer<CChar>) {
     let name = String(cString: handlerName)
@@ -297,14 +298,20 @@ func hyalo_ios_receive_swift_response(_ jsonResponse: UnsafePointer<CChar>)
 // MARK: - Dispatch Channel (Swift -> Emacs)
 
 @_cdecl("hyalo_ios_dispatch_response")
-func bridgeDispatchResponse(_ requestID: UnsafePointer<CChar>, _ jsonResponse: UnsafePointer<CChar>) {
+@MainActor
+func bridgeDispatchResponse(_ requestIDPtr: UnsafePointer<CChar>, _ jsonResponsePtr: UnsafePointer<CChar>) {
+    let requestID = String(cString: requestIDPtr)
+    let jsonResponse = String(cString: jsonResponsePtr)
     if #available(iOS 26.0, *) {
         DispatchRouter.shared.handleDispatchResponse(requestID, jsonResponse)
     }
 }
 
 @_cdecl("hyalo_ios_dispatch_error")
-func bridgeDispatchError(_ requestID: UnsafePointer<CChar>, _ errorMessage: UnsafePointer<CChar>) {
+@MainActor
+func bridgeDispatchError(_ requestIDPtr: UnsafePointer<CChar>, _ errorMessagePtr: UnsafePointer<CChar>) {
+    let requestID = String(cString: requestIDPtr)
+    let errorMessage = String(cString: errorMessagePtr)
     if #available(iOS 26.0, *) {
         DispatchRouter.shared.handleDispatchError(requestID, errorMessage)
     }
@@ -320,13 +327,13 @@ extension ChannelBridge {
     ) {
         DispatchRouter.shared.sendCommand(commandID, payload: payload, completion: completion)
     }
-    
+
     /// Send a command without waiting for response
     @available(iOS 26.0, *)
     public func dispatchCommand(_ commandID: EmacsCommandID, payload: [String: Any]) {
         DispatchRouter.shared.sendCommand(commandID, payload: payload)
     }
-    
+
     /// Send a type-safe command
     @available(iOS 26.0, *)
     public func dispatchCommand<T: EmacsCommand>(
@@ -350,7 +357,7 @@ extension ReverseChannelBridge {
             ]
             callback(.success(workspaceInfo))
         }
-        
+
         // Handler: get_theme_info
         registerHandler("get_theme_info") { payload, callback in
             if #available(iOS 26.0, *) {
@@ -363,7 +370,7 @@ extension ReverseChannelBridge {
                 callback(.success(["appearance": "unknown"]))
             }
         }
-        
+
         // Handler: set_appearance
         registerHandler("set_appearance") { payload, callback in
             if let mode = payload["mode"] as? String {
@@ -377,7 +384,7 @@ extension ReverseChannelBridge {
                 callback(.failure(NSError(domain: "ReverseChannel", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing mode in payload"])))
             }
         }
-        
+
         // Handler: ping (for testing)
         registerHandler("ping") { payload, callback in
             let response: [String: Any] = [
@@ -387,7 +394,7 @@ extension ReverseChannelBridge {
             ]
             callback(.success(response))
         }
-        
+
         print("[HyaloKit] Registered predefined Swift handlers")
     }
 }

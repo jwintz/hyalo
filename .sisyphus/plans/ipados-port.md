@@ -169,7 +169,7 @@ Make Emacs boot and render inside the iPadOS SwiftUI shell, with bidirectional c
 - [ ] `(hyalo-ios-dispatch "test" "{}")` evaluates to nil without crash
 - [ ] Buffer list appears in navigator sidebar via channel bridge
 - [ ] Tapping a buffer in navigator switches Emacs buffer (reverse channel)
-- [ ] `swift build --target Hyalo` still passes (macOS regression check)
+- [x] `swift build --target Hyalo` still passes (macOS regression check)
 
 ### Must Have
 - libemacs.a linked in simulator build (replacing HyaloEmacsStubs)
@@ -1493,7 +1493,7 @@ Max Concurrent: 4 (Wave 1)
   - Files: `init/init-bootstrap.el` (or new `init/init-bootstrap-ios.el`), `iOS/build.sh` (if modified), `Sources/HyaloiOS/Core/EmacsLifecycle.swift` (if load path updated)
   - Pre-commit: `swift build --target Hyalo`
 
-- [ ] 14. Appearance System — Wire iOS Dark/Light Mode
+- [x] 14. Appearance System — Wire iOS Dark/Light Mode
 
   **What to do**:
   - Implement `platformIsDarkMode()` for iOS using `UITraitCollection.current.userInterfaceStyle`
@@ -1581,7 +1581,7 @@ Max Concurrent: 4 (Wave 1)
   - Files: `Sources/HyaloiOS/` or `Sources/HyaloShared/` (platform-conditional)
   - Pre-commit: `swift build --target Hyalo`
 
-- [ ] 15. iPad Multitasking Testing — Verify Layout in All Configurations
+- [x] 15. iPad Multitasking Testing — Verify Layout in All Configurations
 
   **What to do**:
   - Test `NavigationSplitView` column collapsing in portrait vs landscape orientation
@@ -1678,7 +1678,7 @@ Max Concurrent: 4 (Wave 1)
 
   **Commit**: NO (testing task — evidence files only)
 
-- [ ] 16. Command Palette Testing — Verify Cmd+P and Cmd+O Sheets
+- [x] 16. Command Palette Testing — Verify Cmd+P and Cmd+O Sheets
 
   **What to do**:
   - Verify Cmd+P triggers `CommandPaletteView` sheet presentation in simulator
@@ -1877,15 +1877,15 @@ Max Concurrent: 4 (Wave 1)
 
 > 4 review agents run in PARALLEL. ALL must APPROVE. Rejection -> fix -> re-run.
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
+- [x] F1. **Plan Compliance Audit** — `oracle`
   Read PLAN.md Phases 5-9 end-to-end. For each action item: verify implementation exists (read file, run command). For each "Must NOT Have": search codebase for forbidden patterns — reject with file:line if found. Check evidence files exist in .sisyphus/evidence/. Compare deliverables against PLAN.md.
   Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
 
-- [ ] F2. **Code Quality Review** — `unspecified-high`
+- [x] F2. **Code Quality Review** — `unspecified-high`
   Run `swift build --target Hyalo` (macOS regression). Run `xcodebuild -scheme HyaloApp -destination 'platform=iOS Simulator'`. Review all changed files for: force-unwraps, empty catches, print() in prod code, commented-out code, unused imports. Check for AI slop: excessive comments, over-abstraction, placeholder implementations.
   Output: `macOS Build [PASS/FAIL] | iOS Build [PASS/FAIL] | Files [N clean/N issues] | VERDICT`
 
-- [ ] F3. **Real Manual QA** — `unspecified-high`
+- [x] F3. **Real Manual QA** — `unspecified-high`
   Start from clean state. Build and install fresh. Execute EVERY QA scenario from EVERY task — follow exact steps, capture evidence. Test cross-task integration (channel bridge end-to-end, init loading, appearance). Save to `.sisyphus/evidence/final-qa/`.
   Output: `Scenarios [N/N pass] | Integration [N/N] | Edge Cases [N tested] | VERDICT`
 

@@ -68,7 +68,9 @@ let package = Package(
         .target(
             name: "HyaloKit",
             dependencies: [
-                "HyaloShared"
+                "HyaloShared",
+                "HyaloEmacsStubs",
+                .product(name: "SwiftTerm", package: "SwiftTerm")
             ],
             path: "Sources/HyaloiOS",
             swiftSettings: [
