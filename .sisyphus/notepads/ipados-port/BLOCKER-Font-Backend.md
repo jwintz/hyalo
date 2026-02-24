@@ -77,7 +77,30 @@ The feedstock build (`~/Syntropment/hyalo-feedstock-unified`) needs:
 
 ## Status
 
-**BLOCKED** - Requires feedstock modifications outside hyalo-unified scope.
+**Fix implemented -- awaiting confirmation.**
+
+### Fixes Applied (2026-02-24)
+
+Three root causes identified and fixed:
+
+1. **Missing `syms_of_macfont()` call in `syms_of_iosterm()`**: On macOS, `syms_of_nsterm()` calls `syms_of_macfont()` (nsterm.m:11535) which sets `macfont_driver.type = Qmac_ct` and registers the font driver globally. On iOS, `syms_of_iosterm()` had no such call. Fixed by adding `syms_of_macfont();` to `syms_of_iosterm()` in `ios/iosterm.m`.
+
+2. **`syms_of_macfont` declaration hidden behind `#ifdef HAVE_NS` in `font.h`**: The declaration was only visible under `HAVE_NS` (macOS), not `HAVE_IOS`. Fixed by adding a parallel `#ifdef HAVE_IOS` block in `font.h`.
+
+3. **No patches were applied to the Emacs source tree**: The existing `libemacs.a` was built from an unpatched source tree. All 30 patches from `patches/` (including `ios-emacs-entry.patch`, `ios-font-driver.patch`, `ios-dispnew.patch`) were never applied. Fixed by using the pixi build workflow (`ios_sim_prep` -> `ios_patch` -> `ios_install_src` -> `ios_sim_configure` -> `ios_sim_build` -> `ios_sim_build_libemacs`).
+
+Additional fixes during rebuild:
+- `iosdispatch.h`: Missing `#endif` closings; nested `*/` in block comment
+- `macfont.m`: Unterminated `#ifdef HAVE_IOS` in `macfont_draw`; iOS-specific drawing path added
+- `macfont.m`: `CTFontManagerCompareFontFamilyNames` unavailable on iOS; replaced with `CFStringCompare`
+- `macfont.m`: `macfont_get_glyph_for_cid` call not guarded by `#ifndef HAVE_IOS`
+- `iosterm.m`: `ios_set_main_emacs_view` strong symbol conflicting with Swift @_cdecl; changed to extern declaration
+- `install-ios-src.sh`: Missing `iosdispatch.h` in file list
+- `project.yml`: Updated to reference `emacs-build-ios-sim/src/libemacs.a` instead of `emacs/src/libemacs.a`
+
+### Verification
+
+Screenshot shows Emacs rendering text on iPad Simulator via the macfont/CoreText driver. No crash.
 
 ## Evidence
 

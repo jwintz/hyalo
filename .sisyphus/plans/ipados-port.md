@@ -103,9 +103,9 @@ Without this block, Emacs falls through all window-system checks (HAVE_X_WINDOWS
 - `ios-minibuffer-timerp` -- minibuffer timer
 - `ios-try-window` -- display safety during early startup
 
-**Fix implemented -- awaiting confirmation**: All 15 patches applied via `git apply --directory=emacs` to `~/Syntropment/hyalo-feedstock-unified`. Rebuild of libemacs.a required.
+**RESOLVED (2026-02-24)**: All patches applied via `pixi run ios_sim_prep && pixi run ios_patch && pixi run ios_install_src`. libemacs.a rebuilt in `emacs-build-ios-sim/src/` with all fixes. The "No font backend available" crash is fixed (missing `syms_of_macfont()` call + missing font.h HAVE_IOS declaration + incomplete ios-font-driver.patch). Emacs boots in simulator and renders text via CoreText.
 
-**Next step**: Use `pixi run ios_patch` for the canonical patch workflow (it starts with `git checkout .` then applies ALL patches). Then rebuild: `pixi run ios_sim_build && pixi run ios_sim_build_libemacs`.
+**Current state**: Emacs bootstraps from source (pdmp fingerprint mismatch, expected). The `*scratch*` buffer loads. Text rendering works but has layout/placement issues (Y-coordinate handling). The app does not crash.
 
 ### Feedstock Build Strategy
 

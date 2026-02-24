@@ -24,11 +24,11 @@ targets:
       DEFINES_MODULE: "YES"
       GENERATE_INFOPLIST_FILE: "YES"
       HEADER_SEARCH_PATHS:
-        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-sim/src
         - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios
       LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]:
         - $(inherited)
-        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-sim/src
         - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib
       LIBRARY_SEARCH_PATHS[sdk=iphoneos*]:
         - $(inherited)
@@ -37,7 +37,7 @@ targets:
       OTHER_LDFLAGS[sdk=iphonesimulator*]:
         - $(inherited)
         - -force_load
-        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-sim/src/libemacs.a
         - -lxml2
         - -ljansson
         - -lgmp
@@ -53,7 +53,7 @@ targets:
       OTHER_LDFLAGS[sdk=iphoneos*]:
         - $(inherited)
         - -force_load
-        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-device/src/libemacs.a
         - -lxml2
         - -ljansson
         - -lgmp
@@ -94,5 +94,5 @@ targets:
       SWIFT_OBJC_BRIDGING_HEADER: HyaloApp/BridgingHeader.h
       ENABLE_DEBUG_DYLIB: "NO"
       HEADER_SEARCH_PATHS:
-        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src
+        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-sim/src
         - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix iPadOS startup crash "No font backend available" by adding `syms_of_macfont()` call to `syms_of_iosterm()` in feedstock, adding `HAVE_IOS` declaration for `syms_of_macfont` in `font.h`, and rebuilding libemacs.a with all patches applied via the pixi build workflow
+
+### Changed
+
+- Update `iOS/project.yml` to reference `emacs-build-ios-sim/src/libemacs.a` (properly patched build directory) instead of `emacs/src/libemacs.a` (unpatched submodule)
+
 ### Added
 
 - Add iOS initialization support to init files:

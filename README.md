@@ -51,7 +51,7 @@ This launches Emacs with the modular init system:
 - macOS 26+ with Xcode 17+
 - Swift 6.2 or later
 - **Emacs 30.1 or later compiled with `--with-modules`** (macOS)
-- Feedstock at `~/Syntropment/hyalo-feedstock-unified` (iOS)
+- Feedstock at `~/Syntropment/hyalo-feedstock-unified` (iOS). Must be built first: `pixi run ios_sim_prep && pixi run ios_patch && pixi run ios_install_src && pixi run ios_sim_configure && pixi run ios_sim_build && pixi run ios_sim_build_libemacs`
 
 ### Build
 
