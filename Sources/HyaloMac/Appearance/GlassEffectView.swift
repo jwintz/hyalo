@@ -1,5 +1,5 @@
-// GlassEffectView.swift - Glass effect wrappers
-// Target: macOS 26 Tahoe with Liquid Glass design
+// GlassEffectView.swift - Glass effect wrappers (Liquid Glass)
+// Target: macOS 26 Tahoe
 
 import AppKit
 import SwiftUI
@@ -39,8 +39,8 @@ struct GlassEffectView: NSViewRepresentable {
 
 // MARK: - Glass Effect Container (floating panels)
 
-/// Glass effect container for floating panels like the minibuffer.
-/// Uses NSGlassEffectView on macOS 26+, falls back to NSVisualEffectView.
+/// Floating panel container (e.g., minibuffer, command palette).
+/// Uses the Liquid Glass `.glassEffect()` modifier with a rounded-rect shape.
 @available(macOS 26.0, *)
 struct GlassEffectContainer<Content: View>: View {
     let title: String?
@@ -62,14 +62,12 @@ struct GlassEffectContainer<Content: View>: View {
                 }
                 .padding(.horizontal, HyaloDesign.Padding.horizontal)
                 .padding(.vertical, 6)
-                .background(Color.primary.opacity(0.04))
             }
 
             content
                 .padding(HyaloDesign.Padding.compact)
         }
-        .background(.ultraThinMaterial)
-        .clipShape(.rect(cornerRadius: HyaloDesign.CornerRadius.glass))
+        .glassEffect(in: .rect(cornerRadius: HyaloDesign.CornerRadius.glass))
         .shadow(color: .black.opacity(0.15), radius: 20, y: 10)
         .padding(HyaloDesign.Padding.outer)
     }

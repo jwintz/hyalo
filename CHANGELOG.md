@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Migrate `GlassEffectContainer` from `.background(.ultraThinMaterial).clipShape()` to `.glassEffect(in:)` (Liquid Glass API, macOS 26). Remove redundant title header tint overlay; glass handles its own surface rendering.
+- Remove orphaned `Sources/Hyalo/` directory (72 Swift files with no corresponding Package.swift target; dead code shadowing `Sources/HyaloMac/`)
+
+### Fixed
+
+- Fix SwiftUI shell never appearing on iPadOS: feedstock `ios_connect_frame_to_window` replaced the SwiftUI hosting controller with `EmacsViewController`, destroying the shell hierarchy. Add weak `ios_has_swiftui_host()` callback in feedstock; Swift overrides via `@_cdecl` to return `true`, causing `ios_connect_frame_to_window` to skip rootVC replacement. Move frame resize notification into `EmacsView.layoutSubviews` so it works without `EmacsViewController`. Make `EmacsContainerViewiOS.layoutSubviews` synchronous and defer `becomeFirstResponder` to next run-loop iteration.
+- Add `EmacsLifecycle.markRunning()` called from `bridgeSetMainEmacsView`: `ios_emacs_init` never returns while Emacs is alive, so `lifecycle.state` never reached `.running` via the thread exit handler. `markRunning()` is the correct trigger, driven by `ios_set_main_emacs_view` from the feedstock when the Emacs UIView is ready. Thread exit handler now only handles the failure (non-zero return) case.
+- Remove `@Published` from `emacsView` in `HyaloiOSModule`: `@Published` is an `ObservableObject` annotation and has no effect inside an `@Observable` class; property is now a plain stored var observed through the macro's synthesized access
+- Replace `ObservableObject` with a plain `final class` for `UtilityAreaTerminalHolder` in the iOS stub (`HyaloShared/UtilityArea/UtilityAreaTerminalView.swift`): the stub is unused on iOS and `ObservableObject` is not appropriate here
+- Fix missing closing braces in `EmacsViewsiOS.swift`: `updateUIView` body and `EmacsUIViewRepresentable` struct were unterminated, causing a compile error
+
 ### Fixed
 
 - Fix iPadOS startup crash "No font backend available" by adding `syms_of_macfont()` call to `syms_of_iosterm()` in feedstock, adding `HAVE_IOS` declaration for `syms_of_macfont` in `font.h`, and rebuilding libemacs.a with all patches applied via the pixi build workflow

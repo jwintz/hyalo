@@ -12,7 +12,7 @@ public struct UtilityAreaTerminalView: View {
 }
 
 @available(iOS 26.0, *)
-public class UtilityAreaTerminalHolder: ObservableObject {
+public final class UtilityAreaTerminalHolder {
     public init() {}
 }
 #endif

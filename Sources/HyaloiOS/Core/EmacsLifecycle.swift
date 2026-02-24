@@ -104,10 +104,11 @@ final class EmacsLifecycle {
             // Free argv
             for arg in args { free(arg) }
 
-            DispatchQueue.main.async {
-                if result == 0 {
-                    self?.state = .running
-                } else {
+            // ios_emacs_init only returns on Emacs exit or initialization failure.
+            // The .running transition is driven by markRunning() called from
+            // bridgeSetMainEmacsView when the Emacs UIView is ready.
+            if result != 0 {
+                DispatchQueue.main.async {
                     self?.state = .failed("Emacs init returned \(result)")
                 }
             }
@@ -117,6 +118,18 @@ final class EmacsLifecycle {
         emacsThread?.qualityOfService = .userInitiated
         emacsThread?.name = "emacs-main"
         emacsThread?.start()
+    }
+
+    // MARK: - Lifecycle Signals
+
+    /// Called by `bridgeSetMainEmacsView` when the Emacs UIView is ready.
+    /// Transitions state from `.starting`/`.bootstrapping` to `.running`,
+    /// which causes `HyaloRootView` to switch from the loading screen to the
+    /// full SwiftUI shell. This is the correct trigger point: `ios_emacs_init`
+    /// never returns while Emacs is alive, so it cannot drive the transition.
+    func markRunning() {
+        if case .running = state { return }
+        state = .running
     }
 
     // MARK: - Scene Lifecycle

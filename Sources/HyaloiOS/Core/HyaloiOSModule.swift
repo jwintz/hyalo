@@ -19,7 +19,7 @@ public final class HyaloiOSModule {
     let workspace = HyaloWorkspaceState()
 
     /// The EmacsView handed off from iosterm.m via ios_set_main_emacs_view.
-    @Published var emacsView: UIView?
+    var emacsView: UIView?
     let editorTabViewModel = EditorTabViewModel()
     let commandPaletteViewModel = CommandPaletteViewModel()
     let openQuicklyViewModel = OpenQuicklyViewModel()
@@ -137,7 +137,24 @@ func bridgeSetMainEmacsView(_ viewPtr: UnsafeMutableRawPointer) {
     let view = Unmanaged<UIView>.fromOpaque(viewPtr).takeUnretainedValue()
     DispatchQueue.main.async {
         HyaloiOSModule.shared.emacsView = view
+        // Transition lifecycle to .running now that the Emacs UIView is ready.
+        // ios_emacs_init never returns while Emacs is alive, so this C callback
+        // is the correct trigger point for the SwiftUI shell to appear.
+        HyaloiOSModule.shared.lifecycle.markRunning()
     }
+}
+
+/// Weak-symbol override checked by ios_connect_frame_to_window in the
+/// feedstock.  When this returns true, the feedstock skips its default
+/// behavior (replacing rootViewController + delayed becomeFirstResponder)
+/// because SwiftUI manages the window hierarchy.  The view hand-off
+/// already happened via ios_set_main_emacs_view; SwiftUI embeds the
+/// view through EmacsUIViewRepresentable, and
+/// EmacsContainerViewiOS.didMoveToWindow asserts first responder once
+/// the view has proper bounds.
+@_cdecl("ios_has_swiftui_host")
+func bridgeHasSwiftUIHost() -> Bool {
+    return true
 }
 
 #endif // canImport(UIKit)

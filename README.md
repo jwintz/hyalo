@@ -80,7 +80,77 @@ xcrun simctl install booted /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimu
 xcrun simctl launch booted org.gnu.hyalo
 ```
 
-The iOS build uses XcodeGen to generate `HyaloApp.xcodeproj` from `iOS/project.yml`. The Xcode project is not checked in -- regenerate it after any `project.yml` change.
+The iOS build uses XcodeGen to generate `HyaloApp.xcodeproj` from `iOS/project.yml`. The Xcode project is not checked in — regenerate it after any `project.yml` change.
+
+### iPadOS Simulator Test Loop
+
+Full rebuild-install-verify cycle. `UDID` is the target iPad simulator device.
+
+```bash
+# 0. Find simulator UDID (run once)
+xcrun simctl list devices available | grep "iPad Pro 13"
+UDID="<paste UDID here>"
+
+# 1. Boot simulator (if not running)
+xcrun simctl boot $UDID
+
+# 2. Regenerate Xcode project after any project.yml change
+cd iOS
+swift run --package-path .. xcodegen generate
+
+# 3. Build
+xcodebuild -project HyaloApp.xcodeproj -scheme HyaloApp \
+  -destination "platform=iOS Simulator,id=$UDID" \
+  -derivedDataPath /tmp/hyalo-ios-build \
+  build 2>&1 | tail -5
+
+# 4. Install + launch
+xcrun simctl install $UDID /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app
+xcrun simctl launch $UDID org.gnu.hyalo
+
+# 5. Screenshot (wait 5s for bootstrap)
+sleep 5
+xcrun simctl io $UDID screenshot /tmp/hyalo-verify.png
+open /tmp/hyalo-verify.png
+
+# 6. Logs (Hyalo-specific NSLog output)
+xcrun simctl spawn $UDID log show \
+  --predicate 'process == "Hyalo"' \
+  --last 30s --style compact 2>&1 | grep -v " Df "
+
+# 7. Crash reports (if app died)
+ls -lt ~/Library/Logs/DiagnosticReports/Hyalo-*.ips 2>/dev/null | head -3
+```
+
+**Expected screenshot**: iPad screen showing SwiftUI NavigationSplitView with:
+- Tab bar at top with editor tabs
+- Back/forward navigation arrows (< >) at top-left
+- Emacs content rendering in the center area
+- Keyboard accessory bar at the bottom (Esc, Ctrl, Alt, Tab, arrows)
+
+### Feedstock iosterm.m Patch + Rebuild
+
+When `ios/iosterm.m` changes (e.g. the `ios_has_swiftui_host` weak callback), recompile only the changed object file and update the archive without a full Emacs rebuild:
+
+```bash
+cd ~/Syntropment/hyalo-feedstock-unified
+
+# 1. Copy source to build tree (keeps both in sync)
+cp ios/iosterm.m emacs-build-ios-sim/src/iosterm.m
+
+# 2. Recompile
+make -C emacs-build-ios-sim/src iosterm.o
+
+# 3. Update archive
+AR="$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar"
+$AR r emacs-build-ios-sim/src/libemacs.a emacs-build-ios-sim/src/iosterm.o
+
+# 4. Verify weak symbol
+nm -m emacs-build-ios-sim/src/libemacs.a | grep ios_has_swiftui_host
+# Expected: "weak external _ios_has_swiftui_host"
+
+# 5. Rebuild the app (see test loop above)
+```
 
 ### Theme System
 

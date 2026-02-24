@@ -6,28 +6,41 @@ import SwiftUI
 import UIKit
 
 /// Container UIView that clips and manages the Emacs rendering view.
+///
+/// Responsibilities:
+///  - Size the EmacsView to fill the container (synchronously in
+///    layoutSubviews so the feedstock's EmacsView.layoutSubviews can
+///    call ios_request_frame_resize with the correct dimensions).
+///  - Forward touches to the EmacsView via hitTest.
+///  - Claim first responder status for hardware keyboard routing once
+///    the view is embedded in a window with non-zero bounds.
 class EmacsContainerViewiOS: UIView {
     weak var emacsView: UIView?
     override var canBecomeFirstResponder: Bool { true }
+
     override func layoutSubviews() {
         super.layoutSubviews()
-        // Defer resize to avoid glyph matrix corruption during animation
-        let targetFrame = bounds
-        DispatchQueue.main.async { [weak self] in
-            self?.emacsView?.frame = targetFrame
-        }
+        // Set the EmacsView frame synchronously so that the
+        // feedstock's EmacsView.layoutSubviews fires in the same
+        // layout pass and can call ios_request_frame_resize with the
+        // actual window dimensions.  The resize goes through the
+        // feedstock event queue, so Emacs processes it asynchronously
+        // on its own thread — no risk of glyph matrix corruption.
+        emacsView?.frame = bounds
     }
+
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        // Ensure touches reach the Emacs view
         guard bounds.contains(point) else { return nil }
         return emacsView ?? super.hitTest(point, with: event)
     }
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        // Once embedded in a window, make the Emacs view first responder
-        // so hardware keyboard events (pressesBegan/pressesEnded) are routed to it.
-        if window != nil {
+        guard window != nil, let emacsView else { return }
+        // Defer becomeFirstResponder to the next run-loop iteration so
+        // the layout pass has completed and the view has non-zero bounds.
+        // becomeFirstResponder fails on a zero-size view.
+        DispatchQueue.main.async { [weak emacsView] in
             emacsView?.becomeFirstResponder()
         }
     }
@@ -43,29 +56,28 @@ struct EmacsUIViewRepresentable: UIViewRepresentable {
         container.clipsToBounds = true
         if let emacsView {
             emacsView.removeFromSuperview()
-            emacsView.frame = container.bounds  // Set frame immediately
             container.addSubview(emacsView)
             container.emacsView = emacsView
+            // Frame will be set by layoutSubviews after SwiftUI
+            // determines the container's bounds.
         }
         return container
     }
 
     func updateUIView(_ uiView: EmacsContainerViewiOS, context: Context) {
-        // If the emacs view changed, re-parent it
         if let emacsView, uiView.emacsView !== emacsView {
+            // EmacsView instance changed — re-parent.
             uiView.emacsView?.removeFromSuperview()
             emacsView.removeFromSuperview()
-            emacsView.frame = uiView.bounds  // Set frame immediately
             uiView.addSubview(emacsView)
             uiView.emacsView = emacsView
-
             uiView.setNeedsLayout()
-            // Re-assert first responder after re-parenting
-            emacsView.becomeFirstResponder()
-        } else if let emacsView {
-            // Update frame on size changes
-            emacsView.frame = uiView.bounds
+            // First responder will be asserted by didMoveToWindow or
+            // the next layout cycle.
         }
+        // Frame updates are handled by layoutSubviews — no need to
+        // set the frame here explicitly.
+    }
 }
 
 #endif // canImport(UIKit)
