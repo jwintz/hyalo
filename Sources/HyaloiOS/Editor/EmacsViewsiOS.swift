@@ -43,6 +43,7 @@ struct EmacsUIViewRepresentable: UIViewRepresentable {
         container.clipsToBounds = true
         if let emacsView {
             emacsView.removeFromSuperview()
+            emacsView.frame = container.bounds  // Set frame immediately
             container.addSubview(emacsView)
             container.emacsView = emacsView
         }
@@ -54,14 +55,17 @@ struct EmacsUIViewRepresentable: UIViewRepresentable {
         if let emacsView, uiView.emacsView !== emacsView {
             uiView.emacsView?.removeFromSuperview()
             emacsView.removeFromSuperview()
+            emacsView.frame = uiView.bounds  // Set frame immediately
             uiView.addSubview(emacsView)
             uiView.emacsView = emacsView
 
             uiView.setNeedsLayout()
             // Re-assert first responder after re-parenting
             emacsView.becomeFirstResponder()
+        } else if let emacsView {
+            // Update frame on size changes
+            emacsView.frame = uiView.bounds
         }
-    }
 }
 
 #endif // canImport(UIKit)

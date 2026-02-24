@@ -19,7 +19,7 @@ public final class HyaloiOSModule {
     let workspace = HyaloWorkspaceState()
 
     /// The EmacsView handed off from iosterm.m via ios_set_main_emacs_view.
-    var emacsView: UIView?
+    @Published var emacsView: UIView?
     let editorTabViewModel = EditorTabViewModel()
     let commandPaletteViewModel = CommandPaletteViewModel()
     let openQuicklyViewModel = OpenQuicklyViewModel()

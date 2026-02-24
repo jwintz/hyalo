@@ -171,7 +171,7 @@ Falls back to prin1 if pretty-printing fails."
 7. If breaking change, add \"BREAKING CHANGE:\" footer
 
 Respond with ONLY the commit message, no explanation, no markdown, no quotes."
-    "System message for Gemini CLI commit message generation.")
+    "System message for commit message generation.")
 
   (defcustom magit-commit-provider "synthetic"
     "AI provider for commit message generation."

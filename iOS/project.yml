@@ -67,32 +67,85 @@ targets:
         - -ltree-sitter
         - -lsqlite3
 
-  HyaloApp:
-    type: application
-    platform: iOS
-    sources:
-      - HyaloApp/Sources
-      - path: HyaloApp/Resources/lisp
-        type: folder
-        buildPhase: resources
-      - path: HyaloApp/Resources/etc
-        type: folder
-        buildPhase: resources
-      - path: HyaloApp/Resources/init
-        type: folder
-        buildPhase: resources
-      - path: HyaloApp/Resources/bootstrap-emacs.pdmp
-        buildPhase: resources
-    dependencies:
-      - target: HyaloKitFramework
-        embed: true
-    settings:
-      PRODUCT_BUNDLE_IDENTIFIER: org.gnu.hyalo
-      PRODUCT_NAME: Hyalo
-      SWIFT_VERSION: "5.0"
-      INFOPLIST_FILE: Info.plist
-      SWIFT_OBJC_BRIDGING_HEADER: HyaloApp/BridgingHeader.h
-      ENABLE_DEBUG_DYLIB: "NO"
-      HEADER_SEARCH_PATHS:
-        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-sim/src
-        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios
+  #PH|  HyaloApp:
+#RH|    type: application
+#MK|    platform: iOS
+#TJ|    sources:
+#NP|      - HyaloApp/Sources
+#MN|      - path: HyaloApp/Resources/lisp
+#SQ|        type: folder
+#PN|        buildPhase: resources
+#RB|      - path: HyaloApp/Resources/etc
+#SQ|        type: folder
+#PN|        buildPhase: resources
+#SN|      - path: HyaloApp/Resources/init
+#SQ|        type: folder
+#PN|        buildPhase: resources
+#MW|      - path: HyaloApp/Resources/bootstrap-emacs.pdmp
+#PN|        buildPhase: resources
+#BK|    dependencies:
+#BV|      - target: HyaloKitFramework
+#NY|        embed: true
+#QX|    settings:
+#TT|      PRODUCT_BUNDLE_IDENTIFIER: org.gnu.hyalo
+#JK|      PRODUCT_NAME: Hyalo
+#BZ|      SWIFT_VERSION: "5.0"
+#YK|      INFOPLIST_FILE: Info.plist
+#MB|      SWIFT_OBJC_BRIDGING_HEADER: HyaloApp/BridgingHeader.h
+#VQ|      ENABLE_DEBUG_DYLIB: "NO"
+#VH|      HEADER_SEARCH_PATHS:
+#SN|        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-sim/src
+#MZ|        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios
+#QJ|      LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]:
+#QH|        - $(inherited)
+#SN|        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-sim/src
+#VB|        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib
+#ZW|      LIBRARY_SEARCH_PATHS[sdk=iphoneos*]:
+#QH|        - $(inherited)
+#MR|        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs/src
+#JR|        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-deps/lib
+#WM|      OTHER_LDFLAGS[sdk=iphonesimulator*]:
+#QH|        - $(inherited)
+#ZX|        - -force_load
+#TY|        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-sim/src/libemacs.a
+#ZB|        - -lxml2
+#QR|        - -ljansson
+#TJ|        - -lgmp
+#WB|        - -lgnutls
+#XM|        - -lnettle
+#KZ|        - -lhogweed
+#HX|        - -ltasn1
+#YQ|        - -lz
+#RS|        - -liconv
+#KS|        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib/libtree-sitter-stub.a
+#YN|        - -ltree-sitter
+#TX|        - -lsqlite3
+#RZ|      OTHER_LDFLAGS[sdk=iphoneos*]:
+#QH|        - $(inherited)
+#ZX|        - -force_load
+#TN|        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-device/src/libemacs.a
+#ZB|        - -lxml2
+#QR|        - -ljansson
+#TJ|        - -lgmp
+#WB|        - -lgnutls
+#XM|        - -lnettle
+#KZ|        - -lhogweed
+#HX|        - -ltasn1
+#YQ|        - -lz
+#RS|        - -liconv
+#KS|        - /Users/jwintz/Syntropment/hyalo-feedstock-unified/ios-sim-deps/lib/libtree-sitter-stub.a
+#YN|        - -ltree-sitter
+#TX|        - -lsqlite3
+#KB|
+#QJ|schemes:
+#QJ|  HyaloApp:
+#QJ|    build:
+#QJ|      targets:
+#QJ|        - HyaloApp
+#QJ|      run:
+#QJ|        config: Debug
+#QJ|    run:
+#QJ|      config: Debug
+#QJ|      destinations:
+#QJ|        - platform=iOS Simulator,name=iPad Pro 11-inch (M5)
+#QJ|        - platform=iOS Simulator,name=iPad Pro 13-inch (M5)
