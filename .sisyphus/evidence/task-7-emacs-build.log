@@ -1,0 +1,44 @@
+ WARN Encountered 1 warning while parsing the manifest:
+  ⚠ The `project` field is deprecated. Use `workspace` instead.
+   ╭─[/Users/jwintz/Syntropment/hyalo-feedstock-unified/pixi.toml:1:1]
+ 1 │ ╭─▶ [project]
+ 2 │ │   name = "emacs"
+ 3 │ │   version = "HEAD"
+ 4 │ │   description = "GNU Emacs"
+ 5 │ │   channels = ["https://repo.prefix.dev/jwintz", "conda-forge"]
+ 6 │ ├─▶ platforms = ["osx-arm64"]
+   · ╰──── replace this with 'workspace'
+ 7 │     
+   ╰────
+
+✨ Pixi task (ios_device_build): bash -c '
+set -e
+export SDKPATH=$(xcrun --sdk iphoneos --show-sdk-path)
+export DEVELOPER_DIR=$(xcode-select -p)
+export TOOLCHAIN="${DEVELOPER_DIR}/Toolchains/XcodeDefault.xctoolchain"
+export IOS_MIN_VERSION=17.0
+export ARCH=arm64
+export IOS_DEVICE_PREFIX="$(pwd)/../ios-deps"
+export CC="${TOOLCHAIN}/usr/bin/clang"
+export CFLAGS="-arch ${ARCH} -isysroot ${SDKPATH} -miphoneos-version-min=${IOS_MIN_VERSION} -target ${ARCH}-apple-ios${IOS_MIN_VERSION} -O2 -I${IOS_DEVICE_PREFIX}/include"
+export LDFLAGS="-arch ${ARCH} -isysroot ${SDKPATH} -miphoneos-version-min=${IOS_MIN_VERSION} -target ${ARCH}-apple-ios${IOS_MIN_VERSION} -L${IOS_DEVICE_PREFIX}/lib"
+export NATIVE_TOOLS="$(pwd)/../native-tools"
+
+echo "=== Building gnulib (lib) ==="
+make -C lib -j$(sysctl -n hw.ncpu)
+
+echo "=== Installing native build tools ==="
+mkdir -p lib-src
+cp -f "${NATIVE_TOOLS}/make-docfile" lib-src/
+cp -f "${NATIVE_TOOLS}/make-fingerprint" lib-src/
+
+echo "=== Building src with iOS Device SDK ==="
+make -C src -j$(sysctl -n hw.ncpu) LIBS_TERMCAP="" bootstrap-emacs
+
+echo "=== temacs compiled successfully for iOS Device ==="
+': (Build Emacs for iOS Device (temacs))
+=== Building gnulib (lib) ===
+make: Entering directory '/Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-device/lib'
+make -C .. lib/Makefile
+make[1]: Entering directory '/Users/jwintz/Syntropment/hyalo-feedstock-unified/emacs-build-ios-device'
+MAKE='make' ./config.status

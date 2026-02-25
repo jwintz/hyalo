@@ -1,0 +1,41 @@
+Task 7: Device Testing Evidence
+Date: Wed Feb 25 13:56:48 CET 2026
+
+Device Dependencies Status:
+  libxml2.a: OK (platform 2)
+  libjansson.a: OK (platform 2)
+  libgmp.a: OK (platform 2)
+  libnettle.a: MISSING
+  libtasn1.a: MISSING
+  libgnutls.a: MISSING
+  libtree-sitter.a: OK (platform 2)
+
+libemacs.a Status:
+  Build attempted: YES
+  Build completed: NO
+  Blocker: configure/build system hangs on CC_FOR_BUILD checks
+  Existing libemacs.a: Platform 7 (simulator), not suitable for device
+
+iOS App Build Status:
+  Build attempted: NO
+  Blocker: libemacs.a for device not available
+  Missing dependencies: nettle, libtasn1, gnutls
+
+Device Info:
+  Name: Ju's iPad Air
+  Model: iPad Air 13-inch (M2) (iPad14,10)
+  iOS: 26.3
+  UDID: 1D585B08-57FF-5083-AA20-45CC635A3782
+
+Next Steps Required:
+1. Fix CC_FOR_BUILD configuration in ios-env.sh
+2. Complete building nettle, libtasn1, gnutls for device
+3. Build libemacs.a for device (platform 2)
+4. Update project.yml with correct device paths
+5. Build HyaloApp for iphoneos
+6. Install on device and verify
+
+Blockers:
+- Nettle configure hangs during CC_FOR_BUILD detection
+- Emacs build system triggers autogen.sh/config.status which also hang
+- These hangs prevent complete device library and libemacs.a builds

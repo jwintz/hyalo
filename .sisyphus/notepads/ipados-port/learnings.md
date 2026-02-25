@@ -1144,3 +1144,47 @@ Now that Task 4 (GATE) is complete, proceed with Wave 3 and Wave 4:
 
 ---
 
+
+## [2026-02-25] Task 7: Device Testing - Partial Success
+
+### What Worked
+- Successfully built 4 of 7 device dependencies:
+  - libxml2.a (platform 2 - iOS)
+  - libjansson.a (platform 2 - iOS)
+  - libgmp.a (platform 2 - iOS)
+  - libtree-sitter.a (platform 2 - iOS)
+- Created cc-for-build.sh wrapper script for cross-compilation
+- Tree-sitter builds correctly using direct clang compilation
+
+### What Failed
+- **Nettle configure hangs**: The configure script hangs indefinitely when checking CC_FOR_BUILD
+- **libtasn1 not attempted**: Depends on nettle
+- **gnutls not attempted**: Depends on nettle and libtasn1
+- **libemacs.a build hangs**: The Emacs build triggers autogen.sh/config.status which also hang
+
+### Root Cause
+The CC_FOR_BUILD environment variable causes configure scripts to hang. This affects:
+1. Nettle's configure (checks build system compiler)
+2. Emacs' build system (triggers config.status regeneration)
+
+The issue appears to be that when CC_FOR_BUILD points to a script or specific compiler, the configure tests hang indefinitely, possibly waiting for input or stuck in a loop.
+
+### Evidence Saved
+- ~/Syntropment/hyalo-unified/.sisyphus/evidence/task-7-summary.txt
+- ~/Syntropment/hyalo-unified/.sisyphus/evidence/task-7-device-deps.log
+- ~/Syntropment/hyalo-unified/.sisyphus/evidence/task-7-emacs-build.log
+
+### Next Steps Required
+1. Fix the CC_FOR_BUILD issue in ios-env.sh
+   - Try setting CC_FOR_BUILD="/usr/bin/clang" directly instead of via script
+   - Or use --build parameter to configure to specify build host
+2. Complete nettle, libtasn1, gnutls builds for device
+3. Clean rebuild of libemacs.a for device (platform 2)
+4. Verify project.yml has correct device paths
+5. Build HyaloApp for iphoneos
+6. Install on iPad and verify Emacs boots
+## [2026-02-25] Task 17: Terminal Integration Assessment
+SwiftTerm HAS iOS support. TerminalView is open class TerminalView: UIScrollView.
+Platform: iOS 13+. Created UtilityAreaTerminalViewiOS UIViewRepresentable.
+No PTY on iOS — display-only terminal stub, no startProcess() call.
+Wired into HyaloiOSNavigationLayout via terminalContent closure.

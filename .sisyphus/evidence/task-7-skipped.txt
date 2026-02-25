@@ -1,0 +1,36 @@
+Task 7: Device Testing — SKIPPED
+Date: Wed Feb 25 2026
+
+Reason: Device libemacs.a build is blocked. Cannot proceed to device testing.
+
+Blocker Chain:
+  nettle 3.9.1 configure hangs indefinitely on CC_FOR_BUILD detection
+  → libtasn1 not attempted (depends on nettle)
+  → gnutls not attempted (depends on nettle + libtasn1)
+  → libemacs.a device build hangs (Emacs build system triggers config.status which also hangs)
+
+Device Dependencies Status (~/Syntropment/hyalo-feedstock-unified/ios-deps/lib/):
+  libxml2.a       - OK (platform 2, iOS device)
+  libjansson.a    - OK (platform 2, iOS device)
+  libgmp.a        - OK (platform 2, iOS device)
+  libtree-sitter.a - OK (platform 2, iOS device)
+  libnettle.a     - MISSING (configure hangs)
+  libtasn1.a      - MISSING (depends on nettle)
+  libgnutls.a     - MISSING (depends on nettle + libtasn1)
+
+Root Cause:
+  The CC_FOR_BUILD environment variable causes configure scripts to hang.
+  Setting CC_FOR_BUILD="/usr/bin/clang" or touch stamp-h workaround did not help
+  because the hang occurs before stamp-h is consulted.
+
+Device Info:
+  Name: Ju's iPad Air
+  Model: iPad Air 13-inch (M2) (iPad14,10)
+  iOS: 26.3
+  UDID: 1D585B08-57FF-5083-AA20-45CC635A3782
+  Status: Connected but cannot receive app (no device build)
+
+Per plan: "CONDITIONAL: Only proceed if Task 6 device build succeeded. If blocked on
+missing deps, skip this task." — Condition NOT met. Task skipped.
+
+Prior evidence: .sisyphus/evidence/task-7-summary.txt (full details)

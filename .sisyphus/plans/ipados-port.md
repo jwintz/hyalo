@@ -314,7 +314,7 @@ Max Concurrent: 4 (Wave 1)
 
 ## TODOs
 
-- [ ] 1. Build libemacs.a for iOS Simulator (Phase 5.2)
+- [x] 1. Build libemacs.a for iOS Simulator (Phase 5.2)
 
   **What to do**:
   - Navigate to `~/Syntropment/hyalo-feedstock-unified/emacs`
@@ -399,7 +399,7 @@ Max Concurrent: 4 (Wave 1)
 
   **Commit**: NO (feedstock build artifact, not in hyalo-unified git)
 
-- [ ] 2. Mock Data for Visual Testing (Phase 9.3)
+- [x] 2. Mock Data for Visual Testing (Phase 9.3)
 
   **What to do**:
   - Create `HyaloiOSModule.loadMockData()` method in `Sources/HyaloiOS/Core/HyaloiOSModule.swift`
@@ -481,7 +481,7 @@ Max Concurrent: 4 (Wave 1)
   - Files: `Sources/HyaloiOS/Core/HyaloiOSModule.swift`, `Sources/HyaloiOS/Window/HyaloiOSNavigationLayout.swift`
   - Pre-commit: `swift build --target Hyalo`
 
-- [ ] 3. Link Real libemacs.a in Simulator Build (Phase 5.3)
+- [x] 3. Link Real libemacs.a in Simulator Build (Phase 5.3)
 
   **What to do**:
   - Update `iOS/project.yml` simulator linker flags to link real libemacs.a instead of using stubs:
@@ -690,7 +690,7 @@ Max Concurrent: 4 (Wave 1)
   - Files: (no source changes expected -- verification task; commit only if build.sh or project.yml needed fixes)
   - Pre-commit: `swift build --target Hyalo`
 
-- [ ] 5. Device Library Verification (Phase 6.1)
+- [x] 5. Device Library Verification (Phase 6.1)
 
   **What to do**:
   - Verify `libemacs.a` architecture: `lipo -archs ~/Syntropment/hyalo-feedstock-unified/emacs/src/libemacs.a` (expect `arm64`)
@@ -764,7 +764,7 @@ Max Concurrent: 4 (Wave 1)
   **Commit**: NO (verification only, no code changes)
 
 
-- [ ] 6. Device Build Configuration (Phase 6.2)
+- [x] 6. Device Build Configuration (Phase 6.2)
 
   **What to do**:
   - Split `LIBRARY_SEARCH_PATHS` per-SDK in `iOS/project.yml`:
@@ -846,7 +846,7 @@ Max Concurrent: 4 (Wave 1)
   - Files: `iOS/project.yml`
   - Pre-commit: `cd iOS && swift run --package-path .. xcodegen generate`
 
-- [ ] 7. Device Testing (Phase 6.3)
+- [x] 7. Device Testing (Phase 6.3)
 
   **What to do**:
   - **CONDITIONAL**: Only proceed if Task 6 device build succeeded. If blocked on missing deps, skip this task.
@@ -1773,7 +1773,7 @@ Max Concurrent: 4 (Wave 1)
 
   **Commit**: NO (testing task — evidence files only)
 
-- [ ] 17. Terminal Integration Assessment — SwiftTerm on iPad
+- [x] 17. Terminal Integration Assessment — SwiftTerm on iPad
 
   **What to do**:
   - Check if SwiftTerm has a `SwiftUI.TerminalView` that works on iOS (not just AppKit `NSView`-based)
@@ -1889,7 +1889,7 @@ Max Concurrent: 4 (Wave 1)
   Start from clean state. Build and install fresh. Execute EVERY QA scenario from EVERY task — follow exact steps, capture evidence. Test cross-task integration (channel bridge end-to-end, init loading, appearance). Save to `.sisyphus/evidence/final-qa/`.
   Output: `Scenarios [N/N pass] | Integration [N/N] | Edge Cases [N tested] | VERDICT`
 
- [ ] F4. **Scope Fidelity Check** — `unspecified-high`
+ - [x] F4. **Scope Fidelity Check** — `unspecified-high`
   For each task: read "What to do", read actual changes. Verify 1:1 — everything specified was built (no missing), nothing beyond spec was built (no creep). Check "Must NOT do" compliance. Verify PLAN.md was NOT modified. Verify macOS HyaloMac/ sources unchanged. Flag unaccounted changes.
   Output: `Tasks [N/N compliant] | Scope [CLEAN/N issues] | Unaccounted [CLEAN/N files] | VERDICT`
 

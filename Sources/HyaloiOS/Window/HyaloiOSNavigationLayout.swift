@@ -40,7 +40,8 @@ struct HyaloiOSNavigationLayout: View {
                         Divider()
                         UtilityAreaView(
                             viewModel: utilityAreaViewModel,
-                            workspace: workspace
+                            workspace: workspace,
+                            terminalContent: { AnyView(UtilityAreaTerminalViewiOS()) }
                         )
                         .frame(height: workspace.utilityAreaHeight)
                     }

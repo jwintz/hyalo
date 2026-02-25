@@ -1,0 +1,19 @@
+Task 17: SwiftTerm iOS Assessment
+Date: Wed Feb 25 2026
+
+SwiftTerm iOS Support: YES
+
+Evidence:
+- Package.swift platforms: [.iOS(.v13), .macOS(.v13), .tvOS(.v13), .visionOS(.v1)]
+- TerminalView class: open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollViewDelegate, TerminalDelegate
+- File guard: #if os(iOS) || os(visionOS)
+- Location: .build/checkouts/SwiftTerm/Sources/SwiftTerm/iOS/iOSTerminalView.swift
+
+Implementation Decision: YES — implemented UtilityAreaTerminalViewiOS
+- Created: Sources/HyaloiOS/UtilityArea/UtilityAreaTerminalViewiOS.swift
+- Type: UIViewRepresentable wrapping SwiftTerm's TerminalView
+- Pattern: mirrors HyaloMac/UtilityArea/UtilityAreaTerminalView.swift (NSViewRepresentable)
+- No PTY: display-only stub, no startProcess() call
+- Wired into: HyaloiOSNavigationLayout.swift via terminalContent closure
+
+HyaloShared stub retained with TODO comment pointing to new implementation.
