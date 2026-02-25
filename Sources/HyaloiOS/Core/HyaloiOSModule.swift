@@ -21,6 +21,7 @@ public final class HyaloiOSModule {
     /// The EmacsView handed off from iosterm.m via ios_set_main_emacs_view.
     var emacsView: UIView?
     let editorTabViewModel = EditorTabViewModel()
+    let utilityAreaViewModel = UtilityAreaViewModel()
     let commandPaletteViewModel = CommandPaletteViewModel()
     let openQuicklyViewModel = OpenQuicklyViewModel()
 

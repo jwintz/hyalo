@@ -145,7 +145,8 @@ Background transparency in TTY mode is handled by iota-theme-transparent-mode."
                (not hyalo-theme--loading)
                (not hyalo-theme--user-theme-p))
       (unwind-protect
-          (let ((ns-system-appearance-change-functions nil))
+        (let ((ns-system-appearance-change-functions nil)
+              (ios-system-appearance-change-functions nil))
             (setq hyalo-theme--loading t)
             (mapc #'disable-theme custom-enabled-themes)
             (load-theme theme t)
@@ -194,6 +195,10 @@ Loads the initial theme matching the current system appearance."
   (when (boundp 'ns-system-appearance-change-functions)
     (add-hook 'ns-system-appearance-change-functions #'hyalo-theme-sync))
 
+  ;; iOS: hook system appearance changes
+  (when (boundp 'ios-system-appearance-change-functions)
+    (add-hook 'ios-system-appearance-change-functions #'hyalo-theme-sync))
+
   ;; Load initial theme for current system appearance
   (let ((current (cond
                   ;; GUI: use ns-system-appearance
@@ -202,6 +207,9 @@ Loads the initial theme matching the current system appearance."
                   ;; GUI: fallback to hyalo-get-system-appearance
                   ((fboundp 'hyalo-get-system-appearance)
                    (intern (hyalo-get-system-appearance)))
+                  ;; iOS: use ios-system-appearance
+                  ((and (boundp 'ios-system-appearance) ios-system-appearance)
+                   ios-system-appearance)
                   ;; TTY: detect via defaults command
                   ((not initial-window-system)
                    (hyalo-theme--system-appearance-tty))

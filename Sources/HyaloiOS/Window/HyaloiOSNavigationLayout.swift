@@ -189,6 +189,7 @@ public struct HyaloRootView: View {
                     workspace: module.workspace,
                     emacsView: module.emacsView,
                     editorTabViewModel: module.editorTabViewModel,
+                    utilityAreaViewModel: module.utilityAreaViewModel,
                     showCommandPalette: $module.showCommandPalette,
                     showOpenQuickly: $module.showOpenQuickly
                 )
