@@ -202,8 +202,13 @@ struct InspectorAppearanceView: View {
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .font(.system(size: 12))
-        .onChange(of: workspace.windowAppearance) { _, _ in
+        .onChange(of: workspace.windowAppearance) { _, newValue in
             workspace.saveAppearance()
+            #if canImport(UIKit)
+            if #available(iOS 26.0, *) {
+                DispatchRouter.shared.sendCommand(.appearanceChange, payload: ["mode": newValue])
+            }
+            #endif
         }
         .onChange(of: workspace.backgroundAlpha) { _, _ in
             workspace.saveAppearance()
