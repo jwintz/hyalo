@@ -63,11 +63,23 @@ Feedstock changes must be:
 - Reverse channel queue bounds: addressed in task 11 acceptance criteria
 
 
-### Current State (2026-02-23)
+### Current State (2026-02-25)
 
-**Wave 1 DONE**: T1 (libemacs.a built), T2 (mock data), T5 (device lib check), T14 (appearance)
+**Wave 1 DONE**: T1 (libemacs.a built), T2 (mock data removed -- real Emacs data used), T5 (device lib check), T14 (appearance)
 **Wave 2 DONE**: T3 (libemacs.a linked in simulator), T6 (device build config), T15 (multitasking test)
-**Wave 3 BLOCKED**: T4 (Emacs bootstrap) is the GATE task -- everything else depends on it.
+**Wave 3 DONE**: T4 (Emacs bootstrap -- boots and renders), T8-T13 (channel bridge tasks marked done), T16, T17
+**Wave FINAL DONE**: F1-F4 (verification wave)
+
+**Post-completion fixes applied:**
+- Toolbar rendering: removed nested NavigationStack, added explicit sidebar toggle, forced toolbar visibility
+- Mock data removed: real Emacs boots and provides actual data
+- Face rendering (two root causes):
+  1. `ios_set_foreground_color` / `ios_set_background_color` in feedstock `ios/iosfns.m` never wrote `FRAME_FOREGROUND_PIXEL(f)` / `FRAME_BACKGROUND_PIXEL(f)` -- `init_frame_faces` realized default face with fg=0x0 bg=0x0 (both black)
+  2. `default-frame-alist` in `init-appearance.el` set `(alpha-background . 0.0)` unconditionally -- on iOS this caused xfaces.c to encode transparent (0x0) background pixels
+- Alpha-background guarded behind `(when (eq window-system 'ns) ...)`
+- `f->alpha_background = 1.0` clamped in `ios/iosfns.m` frame creation
+
+**Current screenshot**: Text renders correctly (dark text on white background, nano theme applied). Toolbar visible with all items. Keyboard accessory bar functional.
 
 #### Task 4 Blocker: Unapplied Feedstock Patches
 
@@ -1946,3 +1958,170 @@ xcrun simctl launch --console $UDID org.gnu.hyalo 2>&1 | head -50  # Expected: n
 - [ ] Emacs boots and renders text
 - [ ] Channel bridge flows data both directions
 - [ ] Evidence screenshots saved in .sisyphus/evidence/
+
+---
+
+## Remaining Issues (2026-02-25)
+
+### Issue R1: Appearance Panel Not Visible (Inspector)
+
+**Symptom**: Tapping the `sidebar.right` inspector toggle button in the toolbar does not show the appearance panel. The inspector panel may open (via `.inspector(isPresented:)` modifier) but the appearance tab renders as `EmptyView()`.
+
+**Root Cause**: `Sources/HyaloShared/Inspector/InspectorTab.swift` line 35-40:
+```swift
+case .appearance:
+#if os(macOS)
+    InspectorAppearanceView()
+#else
+    EmptyView()  // <-- BUG: iOS appearance view exists but is not wired
+#endif
+```
+
+A fully functional `InspectorAppearanceView` for iOS exists at `Sources/HyaloShared/Inspector/InspectorAppearanceView.swift` (lines 162-212) with Theme, Appearance (Light/Dark/Auto), and Opacity controls. It takes a `workspace: HyaloWorkspaceState` parameter.
+
+**Fix Required**:
+1. Replace `EmptyView()` in `InspectorTab.swift` with the iOS `InspectorAppearanceView(workspace:)`
+2. The challenge: `InspectorTab.body` is a computed property on the enum with no stored state. The `workspace` must be injected. Options:
+   - Read `workspace` from `@Environment` (if it is in the environment -- `InspectorAreaView` sets `.environment(workspace)`)
+   - Use `@Environment(HyaloWorkspaceState.self)` in the iOS appearance view
+   - Or restructure `InspectorTab` to pass workspace through
+3. Verify the `.inspector()` modifier actually renders a visible panel on iPadOS (may need testing -- the modifier is iOS 17+)
+
+**Files to Change**:
+- `Sources/HyaloShared/Inspector/InspectorTab.swift` -- replace `EmptyView()` with iOS appearance view
+- `Sources/HyaloShared/Inspector/InspectorAppearanceView.swift` -- may need to read workspace from environment instead of init parameter
+
+**Verification**: After fix, toggle inspector via toolbar button, switch to Appearance tab, verify Theme/Appearance/Opacity controls render.
+
+---
+
+### Issue R2: BranchPickerView Inside Leftmost Toolbar Pill
+
+**Symptom**: The BranchPickerView (showing "Emacs" with folder icon) is grouped inside the same toolbar pill as the sidebar toggle button (`sidebar.left` icon). On macOS, BranchPickerView is a separate, standalone toolbar item.
+
+**Root Cause**: `Sources/HyaloiOS/Window/HyaloiOSNavigationLayout.swift` lines 124-136:
+```swift
+ToolbarItem(placement: .topBarLeading) {
+    HStack(spacing: 8) {
+        Button { ... } label: { Image(systemName: "sidebar.left") }
+        BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
+            .frame(minWidth: 80, maxWidth: 200)
+    }
+}
+```
+
+On macOS (`HyaloNavigationLayout.swift` line 113-115), BranchPickerView is its own `ToolbarItem(placement: .navigation)`.
+
+**Fix Required**:
+1. Separate the sidebar toggle and BranchPickerView into two distinct `ToolbarItem` entries
+2. Sidebar toggle: `ToolbarItem(placement: .topBarLeading)` with just the sidebar button
+3. BranchPickerView: separate `ToolbarItem(placement: .topBarLeading)` or `.automatic`
+4. Also consider splitting `ToolbarItemGroup(placement: .topBarTrailing)` into individual `ToolbarItem` entries (matching macOS pattern) to avoid iPadOS toolbar collapsing behavior
+
+**Reference (macOS layout order)**:
+1. BranchPickerView (`.navigation`)
+2. EnvironmentPillView (`.principal`)
+3. ToolbarSpacer(.flexible)
+4. KeycastView (priority: `.low`)
+5. PackageManagerView (priority: `.high`)
+6. ToolbarSpacer(.fixed)
+7. Inspector toggle (priority: `.user`)
+
+**Files to Change**:
+- `Sources/HyaloiOS/Window/HyaloiOSNavigationLayout.swift` -- restructure toolbar items
+
+**Verification**: After fix, verify sidebar toggle and BranchPickerView appear as separate items in toolbar. Verify no toolbar overflow in portrait orientation.
+
+---
+
+### Issue R3: Theme Falls Through to Dark on iOS
+
+**Symptom**: iOS always loads `nano-dark` theme because theme selection falls through to the `(t 'dark)` default.
+
+**Root Cause**: `hyalo-theme-setup` in `lisp/hyalo-themes.el` checks `ns-system-appearance` (NS-only, not bound on iOS) and `hyalo-get-system-appearance` (channel not yet wired for Phase 7). Both fail, so it falls through to `'dark`.
+
+**Fix Required**: Wire the system appearance channel so iOS can report light/dark mode to Emacs. This is part of the Phase 7 channel bridge work. Alternatively, add a simple check using the iOS window-system appearance if available.
+
+**Status**: Low priority -- dark theme renders correctly. Fix when channel bridge (Phase 7) is implemented.
+
+---
+
+## Phase 10: Device Testing
+
+### Context
+Device testing requires:
+- Physical iPad with iPadOS 26+
+- Apple Developer certificate for code signing
+- Device-specific `libemacs.a` (arm64-apple-ios, platform 2) -- currently only simulator version exists
+- Device dependencies in `ios-deps/lib/` (currently empty -- need gmp, gnutls, jansson, nettle, tasn1, xml2 for arm64-apple-ios)
+
+### 10.1 Build Device Dependencies
+
+**Status**: BLOCKED (requires manual feedstock work)
+
+**What to do**:
+- Build all 6 dependency libraries for device target (arm64-apple-ios26.0):
+  - libgmp, libgnutls, libjansson, libnettle, libtasn1, libxml2
+- Place in `~/Syntropment/hyalo-feedstock-unified/ios-deps/lib/`
+- Use the pixi task family: `pixi run ios_device_*`
+
+### 10.2 Build Device libemacs.a
+
+**Status**: BLOCKED on 10.1
+
+**What to do**:
+- Configure feedstock for device: `pixi run ios_device_configure`
+- Build: `pixi run ios_device_build`
+- Create archive: `pixi run ios_device_build_libemacs`
+- Verify: `otool -l libemacs-device.a | grep -A2 LC_BUILD_VERSION` shows platform 2 (ios)
+
+### 10.3 Device Build and Install
+
+**Status**: BLOCKED on 10.2
+
+**What to do**:
+- Build with device SDK: `xcodebuild -scheme HyaloApp -sdk iphoneos -configuration Debug`
+- Code sign (requires Apple Developer identity)
+- Install: `xcrun devicectl device install app --device <DEVICE_UDID> /path/to/Hyalo.app`
+- Launch: `xcrun devicectl device process launch --device <DEVICE_UDID> org.gnu.hyalo`
+
+### 10.4 Device Verification Checklist
+
+**Status**: BLOCKED on 10.3
+
+- [ ] App installs without code signing errors
+- [ ] App launches without dyld crash (HyaloKit.framework embedded)
+- [ ] `ios_emacs_init` runs (check device logs)
+- [ ] `ios_set_main_emacs_view` fires (EmacsView created)
+- [ ] Emacs renders text in UIView
+- [ ] Hardware keyboard input reaches Emacs
+- [ ] Toolbar renders correctly (all items visible)
+- [ ] Inspector panel toggles and shows appearance controls
+- [ ] Status bar updates from hooks
+- [ ] Touch interaction (tap to position cursor)
+- [ ] External keyboard modifier keys (Ctrl, Alt/Meta)
+- [ ] Memory usage acceptable (no unbounded growth)
+- [ ] App backgrounding and foregrounding (no crash)
+
+### 10.5 Device-Specific Issues to Watch
+
+- Code signing and provisioning profile configuration
+- Device ARM64 vs simulator ARM64 (platform slice differences)
+- Performance differences (no JIT on device, native comp disabled)
+- Memory pressure behavior (device has hard limits)
+- External keyboard vs on-screen keyboard handling
+- Stage Manager / multitasking on device
+
+---
+
+## Remaining Work Summary
+
+| ID | Description | Priority | Status | Blocked By |
+|----|-------------|----------|--------|------------|
+| R1 | Appearance panel renders EmptyView on iOS | High | OPEN | None |
+| R2 | BranchPickerView grouped with sidebar toggle | High | OPEN | None |
+| R3 | Theme always falls through to dark | Low | OPEN | Phase 7 channel bridge |
+| 10.1 | Build device dependencies | Medium | BLOCKED | Manual feedstock work |
+| 10.2 | Build device libemacs.a | Medium | BLOCKED | 10.1 |
+| 10.3 | Device build and install | Medium | BLOCKED | 10.2 |
+| 10.4 | Device verification checklist | Medium | BLOCKED | 10.3 |

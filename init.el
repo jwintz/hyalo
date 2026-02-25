@@ -102,6 +102,7 @@
 (when hyalo--needs-bootstrap
   (when (fboundp 'hyalo-set-loading-message) (hyalo-set-loading-message "Loading editor settings…") (sit-for 0.01)))
 (init--require-with-trace 'init-emacs)
+(init--require-with-trace 'init-tty)
 (init--require-with-trace 'init-appearance)
 (init--require-with-trace 'init-editing)
 (init--require-with-trace 'init-help)

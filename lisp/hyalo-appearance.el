@@ -178,43 +178,37 @@ background, plus an underline in the border color.  This renders
 the mode-line as a 1-2px horizontal rule.
 For nano-dark/nano-light, this is already set via custom-faces in the
 theme definition.  This function acts as a fallback for other themes.
-In TTY mode, resets mode-line background to unspecified so the
-terminal background shows through."
-  (if (display-graphic-p)
-      ;; GUI: nano-emacs thin-line approach
-      (let* ((bg (face-background 'default nil t))
-             (subtle (or (and (fboundp 'modus-themes-get-color-value)
-                              (modus-themes-get-color-value 'border))
-                         (face-foreground 'window-divider nil t)
-                         "#3f3f46")))
-        (set-face-attribute 'mode-line nil
+In TTY mode, no special handling is applied."
+  (when (display-graphic-p)
+    ;; GUI: nano-emacs thin-line approach
+    (let* ((bg (face-background 'default nil t))
+           (subtle (or (and (fboundp 'modus-themes-get-color-value)
+                            (modus-themes-get-color-value 'border))
+                       (face-foreground 'window-divider nil t)
+                       "#3f3f46")))
+      (set-face-attribute 'mode-line nil
+                          :height 0.1
+                          :foreground bg
+                          :background bg
+                          :underline subtle
+                          :overline nil
+                          :box nil)
+      (when (facep 'mode-line-active)
+        (set-face-attribute 'mode-line-active nil
                             :height 0.1
                             :foreground bg
                             :background bg
                             :underline subtle
                             :overline nil
-                            :box nil)
-        (when (facep 'mode-line-active)
-          (set-face-attribute 'mode-line-active nil
-                              :height 0.1
-                              :foreground bg
-                              :background bg
-                              :underline subtle
-                              :overline nil
-                              :box nil))
-        (set-face-attribute 'mode-line-inactive nil
-                            :height 0.1
-                            :foreground bg
-                            :background bg
-                            :underline subtle
-                            :overline nil
-                            :inherit nil
                             :box nil))
-    ;; TTY: keep default mode-line, just clear background
-    (set-face-attribute 'mode-line nil :background 'unspecified)
-    (when (facep 'mode-line-active)
-      (set-face-attribute 'mode-line-active nil :background 'unspecified))
-    (set-face-attribute 'mode-line-inactive nil :background 'unspecified)))
+      (set-face-attribute 'mode-line-inactive nil
+                          :height 0.1
+                          :foreground bg
+                          :background bg
+                          :underline subtle
+                          :overline nil
+                          :inherit nil
+                          :box nil))))
 
 ;;; Hook Functions
 

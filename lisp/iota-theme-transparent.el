@@ -90,14 +90,15 @@ When non-nil, log detailed messages about theme loading and face processing."
     magit-diff-context-highlight
     magit-diff-added-highlight
     magit-diff-removed-highlight
+    ;; Mode-line faces - must preserve background in TTY for visibility
+    mode-line mode-line-active mode-line-inactive
+    mode-line-buffer-id mode-line-emphasis mode-line-highlight
     ;; IOTA accent faces
     iota-accent-face iota-success-face
     iota-error-face iota-warning-face)
   "Faces to preserve background colors (UI elements).
 These faces need backgrounds for visibility and selection indication.
-Note: mode-line faces are NOT excluded because IOTA renders its own modeline
-      using box-drawing characters, so the built-in mode-line background must
-      be transparent to avoid showing through the minibuffer separator.
+Note: mode-line faces are now excluded to ensure proper visibility in TTY mode.
 Note: iota-box-face and iota-inactive-box-face are NOT excluded - they should be transparent.
 All other faces including default, borders, dividers will have backgrounds removed."
   :type '(repeat symbol)
@@ -114,13 +115,14 @@ These faces will have backgrounds removed even if the theme doesn't define them.
 
 (defcustom iota-theme-transparent-preserve-regions
   '((minibuffer . nil)  ; NO backgrounds allowed
-    (modeline . nil)    ; NO backgrounds allowed
+    (modeline . t)      ; PRESERVE mode-line backgrounds for TTY visibility
     (header . nil)      ; NO backgrounds allowed
     (fringe . t)        ; Fringe can have background
     (hl-line . t)       ; hl-line needs background for visibility
     (region . t))       ; Region MUST have background for selection visibility
   "Control which regions preserve backgrounds in transparency mode.
-Note: IOTA faces should NOT have backgrounds - only foreground colors."
+Note: IOTA faces should NOT have backgrounds - only foreground colors.
+Note: modeline is now preserved for TTY visibility."
   :type '(alist :key-type symbol :value-type boolean)
   :group 'iota-theme-transparent)
 

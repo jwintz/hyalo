@@ -37,33 +37,37 @@ Sets foreground colors from nano/modus semantic colors and removes backgrounds."
 (defun hyalo-gutter--define-thin-bitmaps (&rest _)
   "Define sleek thin bar bitmaps for diff-hl fringe indicators.
 Replaces the default chunky bitmaps with half-width solid bars
-similar to VSCode/Sublime Text git-gutter."
-  (let* ((scale (if (and (boundp 'text-scale-mode-amount)
-                         (numberp text-scale-mode-amount))
-                    (expt text-scale-mode-step text-scale-mode-amount)
-                  1))
-         (spacing (or (and (display-graphic-p) (default-value 'line-spacing)) 0))
-         (total-spacing (pcase spacing
-                          ((pred numberp) spacing)
-                          (`(,above . ,below) (+ above below))))
-         (h (+ (ceiling (* (frame-char-height) scale))
-               (if (floatp total-spacing)
-                   (truncate (* (frame-char-height) total-spacing))
-                 total-spacing)))
-         (w (min (or (frame-parameter nil (intern (format "%s-fringe" diff-hl-side))) 8)
-                 (if (boundp 'diff-hl-bmp-max-width) diff-hl-bmp-max-width 8)
-                 8)))
-    ;; Ensure minimum width
-    (when (or (null w) (zerop w))
-      (setq w 8))
-    ;; Create thin bitmap: half-width filled rectangle
-    (define-fringe-bitmap 'diff-hl-bmp-middle
-      (make-vector
-       h (string-to-number (let ((half-w (max 1 (1- (/ w 2)))))
-                             (concat (make-string half-w ?1)
-                                     (make-string (- w half-w) ?0)))
-                           2))
-      nil nil 'center)))
+similar to VSCode/Sublime Text git-gutter.
+In TTY mode, this function does nothing as fringes are not available."
+  ;; Fringes only exist in GUI mode
+  (when (display-graphic-p)
+    (let* ((scale (if (and (boundp 'text-scale-mode-amount)
+                           (numberp text-scale-mode-amount))
+                      (expt text-scale-mode-step text-scale-mode-amount)
+                    1))
+           (char-height (or (frame-char-height) 16))  ; fallback for TTY safety
+           (spacing (or (default-value 'line-spacing) 0))
+           (total-spacing (pcase spacing
+                            ((pred numberp) spacing)
+                            (`(,above . ,below) (+ above below))))
+           (h (+ (ceiling (* char-height scale))
+                 (if (floatp total-spacing)
+                     (truncate (* char-height total-spacing))
+                   total-spacing)))
+           (w (min (or (frame-parameter nil (intern (format "%s-fringe" diff-hl-side))) 8)
+                   (if (boundp 'diff-hl-bmp-max-width) diff-hl-bmp-max-width 8)
+                   8)))
+      ;; Ensure minimum width
+      (when (or (null w) (zerop w))
+        (setq w 8))
+      ;; Create thin bitmap: half-width filled rectangle
+      (define-fringe-bitmap 'diff-hl-bmp-middle
+        (make-vector
+         h (string-to-number (let ((half-w (max 1 (1- (/ w 2)))))
+                               (concat (make-string half-w ?1)
+                                       (make-string (- w half-w) ?0)))
+                             2))
+        nil nil 'center))))
 
 (defun hyalo-gutter--type-at-pos-fn (type _pos)
   "Return bitmap symbol for diff TYPE at position.
@@ -122,11 +126,16 @@ Called from evil-insert-state-exit-hook."
 
 (defun hyalo-gutter--setup-flycheck ()
   "Configure flycheck to use right fringe to avoid overlap with diff-hl.
-Must be called after flycheck is loaded."
-  (setq flycheck-indication-mode 'right-fringe)
-  ;; Define a subtle left-pointing arrow for flycheck errors
-  (define-fringe-bitmap 'flycheck-fringe-bitmap-double-arrow
-    [16 48 112 240 112 48 16] nil nil 'center))
+Must be called after flycheck is loaded.
+In TTY mode, configures flycheck to use margin instead of fringe."
+  (if (display-graphic-p)
+      (progn
+        (setq flycheck-indication-mode 'right-fringe)
+        ;; Define a subtle left-pointing arrow for flycheck errors
+        (define-fringe-bitmap 'flycheck-fringe-bitmap-double-arrow
+          [16 48 112 240 112 48 16] nil nil 'center))
+    ;; TTY: use margin instead of fringe
+    (setq flycheck-indication-mode 'left-margin)))
 
 ;;
 ;;; UX Enhancements
@@ -166,15 +175,16 @@ This function assumes fringes are already visible."
   (hyalo-gutter--update-faces)
   (add-hook 'enable-theme-functions #'hyalo-gutter--update-faces)
 
-  ;; Ensure bitmaps are defined (call original first, then our thin versions)
-  (diff-hl-define-bitmaps)
-  (hyalo-gutter--define-thin-bitmaps)
+  ;; Bitmap setup is GUI-only (fringes don't exist in TTY)
+  (when (display-graphic-p)
+    ;; Ensure bitmaps are defined (call original first, then our thin versions)
+    (diff-hl-define-bitmaps)
+    (hyalo-gutter--define-thin-bitmaps)
+    ;; Define thin bitmaps after diff-hl loads (for later resize events)
+    (advice-add #'diff-hl-define-bitmaps :after #'hyalo-gutter--define-thin-bitmaps)
+    ;; Use thin bitmap function
+    (setq diff-hl-fringe-bmp-function #'hyalo-gutter--type-at-pos-fn))
 
-  ;; Define thin bitmaps after diff-hl loads (for later resize events)
-  (advice-add #'diff-hl-define-bitmaps :after #'hyalo-gutter--define-thin-bitmaps)
-
-  ;; Use thin bitmap function
-  (setq diff-hl-fringe-bmp-function #'hyalo-gutter--type-at-pos-fn)
   (setq diff-hl-draw-borders nil)
 
   ;; Performance settings
