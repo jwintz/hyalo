@@ -36,8 +36,19 @@ public enum InspectorTab: String, CaseIterable, HyaloPanelTab {
 #if os(macOS)
             InspectorAppearanceView()
 #else
-            EmptyView()
+            AppearanceTabContent()
 #endif
         }
     }
 }
+
+#if !os(macOS)
+@available(iOS 26.0, *)
+private struct AppearanceTabContent: View {
+    @Environment(HyaloWorkspaceState.self) private var workspace
+
+    var body: some View {
+        InspectorAppearanceView(workspace: workspace)
+    }
+}
+#endif

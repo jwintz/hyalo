@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Migrate `GlassEffectContainer` from `.background(.ultraThinMaterial).clipShape()` to `.glassEffect(in:)` (Liquid Glass API, macOS 26). Remove redundant title header tint overlay; glass handles its own surface rendering.
 - Remove orphaned `Sources/Hyalo/` directory (72 Swift files with no corresponding Package.swift target; dead code shadowing `Sources/HyaloMac/`)
 
+- Fix inspector appearance panel not shown on iPadOS: `InspectorTab.appearance.body` is a computed property on an enum — `@Environment` cannot be a stored property. Add a private `AppearanceTabContent` helper struct (iOS-only, guarded with `#if !os(macOS)`) that reads `@Environment(HyaloWorkspaceState.self)` and renders `InspectorAppearanceView(workspace:)`.
+- Fix iPadOS toolbar layout: sidebar toggle and branch picker were bundled in an `HStack` inside a single `ToolbarItem(placement: .topBarLeading)`. Split into two separate `ToolbarItem` entries so each receives its own independent tap target and layout slot.
 ### Fixed
 
 - Fix SwiftUI shell never appearing on iPadOS: feedstock `ios_connect_frame_to_window` replaced the SwiftUI hosting controller with `EmacsViewController`, destroying the shell hierarchy. Add weak `ios_has_swiftui_host()` callback in feedstock; Swift overrides via `@_cdecl` to return `true`, causing `ios_connect_frame_to_window` to skip rootVC replacement. Move frame resize notification into `EmacsView.layoutSubviews` so it works without `EmacsViewController`. Make `EmacsContainerViewiOS.layoutSubviews` synchronous and defer `becomeFirstResponder` to next run-loop iteration.

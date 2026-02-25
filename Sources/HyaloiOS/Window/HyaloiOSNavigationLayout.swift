@@ -122,17 +122,17 @@ struct HyaloiOSNavigationLayout: View {
         .toolbarVisibility(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                HStack(spacing: 8) {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            workspace.navigatorVisible.toggle()
-                        }
-                    } label: {
-                        Image(systemName: "sidebar.left")
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        workspace.navigatorVisible.toggle()
                     }
-                    BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
-                        .frame(minWidth: 80, maxWidth: 200)
+                } label: {
+                    Image(systemName: "sidebar.left")
                 }
+            }
+            ToolbarItem(placement: .topBarLeading) {
+                BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
+                    .frame(minWidth: 80, maxWidth: 200)
             }
             ToolbarItem(placement: .principal) {
                 EnvironmentPillView(workspace: workspace)
