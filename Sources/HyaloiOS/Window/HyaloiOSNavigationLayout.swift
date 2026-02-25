@@ -117,7 +117,6 @@ struct HyaloiOSNavigationLayout: View {
             InspectorAreaView(workspace: workspace)
                 .inspectorColumnWidth(min: 242, ideal: 300, max: 600)
         }
-        .navigationTitle("Hyalo")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarVisibility(.visible, for: .navigationBar)
         .toolbar {
@@ -130,15 +129,9 @@ struct HyaloiOSNavigationLayout: View {
                     Image(systemName: "sidebar.left")
                 }
             }
-            ToolbarItem(placement: .topBarLeading) {
-                BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
-                    .frame(minWidth: 80, maxWidth: 200)
-                    .buttonStyle(.plain)
-            }
             ToolbarItem(placement: .principal) {
-                EnvironmentPillView(workspace: workspace)
-                    .frame(minWidth: 120)
-                    .fixedSize(horizontal: true, vertical: false)
+                BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
+                    .frame(minWidth: 80, maxWidth: 260)
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 KeycastView(viewModel: ToolbarManager.shared.viewModel)

@@ -204,15 +204,23 @@ struct InspectorAppearanceView: View {
         .font(.system(size: 12))
         .onChange(of: workspace.windowAppearance) { _, newValue in
             workspace.saveAppearance()
-            #if canImport(UIKit)
-            if #available(iOS 26.0, *) {
-                DispatchRouter.shared.sendCommand(.appearanceChange, payload: ["mode": newValue])
-            }
-            #endif
+            InspectorAppearanceCallbacksiOS.onAppearanceModeChanged?(newValue)
         }
         .onChange(of: workspace.backgroundAlpha) { _, _ in
             workspace.saveAppearance()
         }
     }
+}
+
+// MARK: - iOS Appearance Callbacks (wired from HyaloiOS at startup)
+
+/// Static closures injected by HyaloiOS at module init time.
+/// HyaloShared cannot import HyaloiOS (circular), so the iOS-specific
+/// side-effects (DispatchRouter commands) are invoked via these callbacks.
+@available(iOS 26.0, *)
+public enum InspectorAppearanceCallbacksiOS {
+    /// Called when the user changes light/dark/auto appearance mode.
+    /// Receives the new mode string ("light", "dark", "auto").
+    public static var onAppearanceModeChanged: ((String) -> Void)?
 }
 #endif

@@ -37,6 +37,12 @@ public final class HyaloiOSModule {
         platformWakeEmacs = {
             ios_signal_event_available()
         }
+        // Wire HyaloShared appearance callback → DispatchRouter
+        if #available(iOS 26.0, *) {
+            InspectorAppearanceCallbacksiOS.onAppearanceModeChanged = { mode in
+                DispatchRouter.shared.sendCommand(.appearanceChange, payload: ["mode": mode])
+            }
+        }
     }
 
     /// Start Emacs and set up channels.
