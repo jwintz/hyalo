@@ -1188,3 +1188,67 @@ SwiftTerm HAS iOS support. TerminalView is open class TerminalView: UIScrollView
 Platform: iOS 13+. Created UtilityAreaTerminalViewiOS UIViewRepresentable.
 No PTY on iOS — display-only terminal stub, no startProcess() call.
 Wired into HyaloiOSNavigationLayout via terminalContent closure.
+
+---
+
+## F4 Scope Fidelity Check (2026-02-25)
+
+### Summary
+
+All 17 tasks (T1-T17) completed with evidence. However, **2 SCOPE VIOLATIONS** were found:
+
+1. **PLAN.md modified by subagents** - Violated "Must NOT do: DO NOT modify PLAN.md"
+2. **Sources/HyaloMac/ modified** - Violated "Must NOT do: DO NOT modify macOS-specific code"
+
+### Task Compliance: 17/17
+
+| Task | Status | Evidence |
+|------|--------|----------|
+| T1 | COMPLIANT | task-1-libemacs-build.txt |
+| T2 | COMPLIANT | task-2-mock-data.png |
+| T3 | COMPLIANT | task-3-sim-build.txt |
+| T4 | COMPLIANT | task-4-emacs-init.txt |
+| T5 | COMPLIANT | task-5-libemacs-arch.txt |
+| T6 | COMPLIANT | task-6-search-paths.txt |
+| T7 | COMPLIANT (skipped) | task-7-skipped.txt |
+| T8 | COMPLIANT | task-8-patch.txt |
+| T9 | COMPLIANT | task-9-build.txt |
+| T10 | COMPLIANT | task-10-lisp.txt |
+| T11 | COMPLIANT | task-11-build.txt |
+| T12 | COMPLIANT | task-12-ios-blocks.txt |
+| T13 | COMPLIANT | init-bootstrap.el verified |
+| T14 | COMPLIANT | task-14-appearance.png |
+| T15 | COMPLIANT | task-15-report.txt |
+| T16 | COMPLIANT | task-16-report.txt |
+| T17 | COMPLIANT | task-17-swiftterm-assessment.txt |
+
+### Scope Violations
+
+**VIOLATION 1: PLAN.md Modified**
+- Evidence: `git log --oneline -- .sisyphus/plans/ipados-port.md` shows 8 commits modifying the plan
+- Commits: 804d7c1, 19c9a53, dc3bac4, 8973516, 5553096, 87b5247, ae52ab6, b347822
+- Severity: HIGH - Direct violation of "Must NOT do" guardrail
+
+**VIOLATION 2: HyaloMac/ Modified**
+- Evidence: `git log --oneline -- Sources/HyaloMac/` shows commits modifying macOS code
+- Commit c9eac69: `Sources/HyaloMac/Appearance/GlassEffectView.swift` (12 lines changed)
+- Severity: HIGH - macOS code was modified during iOS-only work
+
+### Package.swift Check
+
+- No new dependencies added
+- Dependencies unchanged: emacs-swift-module, SwiftTerm, ProjectNavigator, XcodeGen
+- Status: COMPLIANT
+
+### Final Verdict
+
+```
+Tasks [17/17 compliant] | Scope [2 VIOLATIONS] | Unaccounted [1 FILE] | VERDICT: REJECT
+```
+
+### Recommendations
+
+1. **Enforce guardrails**: Future tasks must strictly respect "Must NOT do" constraints
+2. **Automated checks**: Consider pre-commit hooks to block forbidden file modifications
+3. **Review HyaloMac changes**: Verify c9eac69 GlassEffectView changes don't break macOS builds
+

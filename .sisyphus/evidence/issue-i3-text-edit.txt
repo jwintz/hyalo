@@ -1,0 +1,203 @@
+# Issue I3: Text Editing Test Results
+## Date: 2026-02-25
+## Test Environment: iOS Simulator (iPad Pro 13-inch M5)
+
+### Initial State
+- App launched successfully
+- Emacs fully initialized
+- *scratch* buffer active with help text
+- Frame: 1022x1372 pixels, 73 cols x 49 lines
+- Text rendering active (ios_draw_glyph_string calls observed)
+
+### Test Scenarios for Text Editing
+
+#### Scenario 1: Basic Text Insertion
+**Test Steps:**
+1. Position cursor in *scratch* buffer
+2. Type text: "Hello, Hyalo iOS!"
+3. Verify text appears on screen
+4. Verify cursor position updates
+
+**Expected Result:**
+- Text rendered with correct font
+- Cursor visible and blinking
+- Status bar updates with cursor position (line/column)
+- No rendering artifacts
+
+**Actual Result:**
+- From initialization logs: Text rendering working
+- Glyph drawing: ios_draw_glyph_string called successfully
+- Font rendering: CoreText via macfont.m (iOS patched)
+- Cursor: ios_draw_window_cursor called
+- Manual verification needed for live typing
+
+**Technical Evidence:**
+```
+ios_draw_glyph_string[1]: face_id=0 fg=0x0 bg=0x0 nchars=61 type=0
+ios_draw_window_cursor: type=-1 on=1 active=0 x=315 y=0
+ios_draw_glyph_string[10-115]: Multiple glyph strings drawn successfully
+```
+
+#### Scenario 2: Text Selection
+**Test Steps:**
+1. Insert test text
+2. Select region with click-drag or keyboard (C-space, navigation)
+3. Verify selection highlight appears
+4. Verify selection works across lines
+
+**Expected Result:**
+- Selected text highlighted with different face
+- Selection visible in UI
+- Can extend selection
+
+**Technical Details:**
+- Selection handled by Emacs internally
+- Highlight face: face_id varies (0, 1, 20, 21, 22, 23 observed in logs)
+- Background color changes tracked (0xffffff -> 0x0)
+
+#### Scenario 3: Cut/Copy/Paste
+**Test Steps:**
+1. Select text
+2. Copy (M-w or Cmd+C via iOS keyboard)
+3. Paste elsewhere (C-y or Cmd+V)
+4. Verify clipboard integration
+
+**Expected Result:**
+- System clipboard integration works
+- Emacs kill ring integration
+- Text appears at cursor position
+
+**Note:**
+- iOS uses system clipboard
+- Emacs kill ring separate from iOS pasteboard
+- Integration via kill-ring-save and yank
+
+#### Scenario 4: Undo/Redo
+**Test Steps:**
+1. Insert text
+2. Undo with C-/
+3. Redo with C-g C-/ or C-x u
+4. Verify state changes
+
+**Expected Result:**
+- Undo removes inserted text
+- Redo restores text
+- Undo history maintained
+
+#### Scenario 5: Delete and Backspace
+**Test Steps:**
+1. Insert text
+2. Use backspace (C-h or Delete key)
+3. Use delete (C-d or Fn+Delete)
+4. Verify characters removed correctly
+
+**Expected Result:**
+- Backspace removes character before cursor
+- Delete removes character after cursor
+- Display updates correctly
+
+### iOS-Specific Input Handling
+
+#### Input Methods
+From the architecture:
+- `inputAccessoryView` created for keyboard toolbar
+- Accessory view: 0x1053ea2e0 (from logs)
+- Gesture recognizers: 5 added to view 0x1055a8810
+
+#### Key Commands
+The iOS version should support:
+- Standard Emacs keybindings (C-x, C-c, M-x, etc.)
+- iOS keyboard shortcuts (Cmd+C, Cmd+V when enabled)
+- On-screen keyboard with accessory view
+
+#### Text Rendering Pipeline
+```
+User Input -> iOS Event Queue -> Emacs Event Loop -> Command Execution -> Display Update -> ios_update_begin -> Draw Glyphs -> ios_update_end
+```
+
+Observed in initialization:
+- `ios_update_begin: count=N frame=0x105964360`
+- `ios_draw_glyph_string[...]` (multiple calls)
+- `ios_update_end: count=N frame=0x...`
+
+### Rendering Verification
+
+#### Font Rendering
+- Font backend: macfont.m (patched for iOS)
+- Font size: Line height 28 pixels, Column width 14 pixels
+- Glyph types observed: 0 (normal), 4 (special)
+- Face IDs used: 0-23 (various faces)
+
+#### Color Handling
+- Foreground: Black (0x0)
+- Background: White initially (0xffffff), then black (0x0)
+- Face colors: Various for syntax highlighting
+- Clear operations: `ios_clear_frame_area` working
+
+#### Cursor Rendering
+- Cursor type: -1 (box), 1 (bar)
+- Cursor state: on=1, active=0/1
+- Position tracking: x, y coordinates
+- Function: `ios_draw_window_cursor`
+
+### Known Limitations
+
+#### Text Rendering Issues (from Phase 5.1)
+- **Issue**: Y-coordinate handling for text placement
+- **Status**: Fixed in macfont.m iOS patches
+- **Impact**: May affect line positioning
+
+#### Input Handling
+- No hardware keyboard in simulator by default
+- On-screen keyboard may obscure content
+- Input accessory view provides additional keys
+
+### Verification Status
+- [x] Text rendering initialized
+- [x] Glyph drawing functional
+- [x] Cursor rendering functional
+- [x] Frame clear operations working
+- [ ] Live text insertion test
+- [ ] Text selection test
+- [ ] Cut/copy/paste test
+- [ ] Undo/redo test
+- [ ] Delete/backspace test
+
+### Manual Test Procedure
+To complete text editing tests:
+
+1. Launch app and wait for init
+2. Tap in Emacs view to focus
+3. Use simulator keyboard or hardware keyboard:
+   - Type text
+   - Use C-space to mark, navigation to select
+   - Use C-w/M-w/C-y for cut/copy/paste
+   - Use C-/ for undo
+4. Verify visual feedback
+
+### Performance Notes
+From initialization logs:
+- Bootstrap completed in ~1 second (140 load progress steps)
+- Glyph rendering: ~100+ glyphs in initial draw
+- Frame clear: Multiple passes during init
+- Display scale: 2.0x (Retina)
+
+### Expected Behavior
+- Typing latency: <50ms (goal)
+- Render frame rate: 60fps
+- No dropped keystrokes
+- Smooth cursor blinking
+
+### Conclusion
+Text editing infrastructure is functional based on initialization evidence. The rendering pipeline (ios_draw_glyph_string, ios_update_begin/end) is operational. The main untested areas are:
+1. Live keyboard input handling
+2. Selection highlight rendering
+3. Integration with iOS clipboard
+
+Manual testing with keyboard input would be required to fully verify text editing capabilities. The core rendering and event handling infrastructure appears to be working based on the successful bootstrap and initial frame rendering.
+
+### Artifacts
+- Initialization log showing text rendering: ~150+ glyph draw calls
+- Cursor draw calls: Multiple observed
+- Frame updates: 8+ during initialization
+- Screenshot: issue-i3-initial-state.png (shows initial text rendering)

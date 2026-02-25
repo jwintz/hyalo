@@ -1,0 +1,207 @@
+# Issue I3: Buffer Interaction Testing - Summary Report
+## Date: 2026-02-25
+## Test Environment: iOS Simulator (iPad Pro 13-inch M5)
+
+## Executive Summary
+
+This report documents testing of Emacs buffer interactions in the Hyalo iOS Simulator build. The tests cover three key areas:
+1. Buffer switching via channel bridge
+2. Window splitting functionality
+3. Text editing capabilities
+
+**Overall Status**: Infrastructure verified, manual testing required for full validation.
+
+## Test Results Overview
+
+### 1. Buffer Switching (issue-i3-buffer-switch.txt)
+**Status**: INFRASTRUCTURE VERIFIED
+
+**Verified:**
+- App launches successfully
+- Emacs initializes completely
+- *scratch* buffer displays
+- Channel bridge architecture in place
+- Navigator selection flow documented
+- Race condition fixes implemented
+
+**Requires Manual Verification:**
+- Navigator tap -> buffer switch
+- Buffer list updates in Swift UI
+- Kill buffer operations
+
+**Key Findings:**
+- Channel bridge exists (hyalo-ios-dispatch DEFUN in iosfns.m)
+- Reverse channel (Swift->Emacs) implemented
+- Stale callback filtering in place
+- Buffer list JSON format matches macOS
+
+### 2. Window Splitting (issue-i3-window-split.txt)
+**Status**: INFRASTRUCTURE VERIFIED
+
+**Verified:**
+- Window system initialized (ios_term_init)
+- Frame created: 1022x1372 pixels, 73 cols x 49 lines
+- Display info allocated
+- Standard Emacs window code operational
+
+**Requires Manual Verification:**
+- C-x 2 (horizontal split)
+- C-x 3 (vertical split)
+- C-x o (window navigation)
+- C-x 0/1 (window deletion)
+
+**Key Findings:**
+- Frame dimensions correct for iPad Pro 13-inch
+- Display scale: 2.0x (Retina)
+- Character size: 14x28 pixels
+- Y-coordinate rendering issue noted in Phase 5.1 (fixed)
+
+### 3. Text Editing (issue-i3-text-edit.txt)
+**Status**: RENDERING VERIFIED
+
+**Verified:**
+- Text rendering functional (150+ glyph draw calls observed)
+- Cursor rendering working
+- Frame clear operations functional
+- Font rendering via CoreText (macfont.m)
+- Multiple face IDs used (0-23)
+
+**Requires Manual Verification:**
+- Live keyboard input
+- Text selection highlighting
+- Cut/copy/paste integration
+- Undo/redo functionality
+
+**Key Findings:**
+- Glyph string drawing: ios_draw_glyph_string[N] calls successful
+- Cursor drawing: ios_draw_window_cursor working
+- Update cycle: ios_update_begin/end functional
+- Input accessory view created for keyboard toolbar
+- 5 gesture recognizers configured
+
+## Technical Evidence
+
+### Process Status
+```
+Hyalo App: PID 21722 (running)
+Simulator: iPad Pro 13-inch (M5) - Booted
+Bundle: /Users/jwintz/Library/Developer/CoreSimulator/Devices/65B71F4A-5614-485E-A5EF-EEAD2D35D1E9/data/Containers/Bundle/Application/6DCEFF56-AFD6-42F2-AC55-DA21CEEEEB42/Hyalo.app
+```
+
+### Emacs Initialization Log Summary
+```
+[OK] ios_init_paths: bundlePath resolved
+[OK] ios_term_init: Terminal created successfully
+[OK] ios_create_frame: 1022x1372 pixels, 73x49 chars
+[OK] loadup.el: Bootstrap completed
+[OK] ios-win.el: Window system initialized
+[OK] Window frame: created and drawn
+[OK] Text rendering: 150+ glyphs drawn
+[OK] Cursor: visible and tracking
+```
+
+### Frame Parameters
+- **Screen**: 1032x1376 points (iPad Pro 13-inch portrait)
+- **Frame**: 1022x1372 pixels
+- **Columns**: 73 (col_width=14px)
+- **Lines**: 49 (line_height=28px)
+- **Scale**: 2.0x (Retina)
+- **Background**: Black (0x0)
+- **Foreground**: Black (0x0) - text color
+
+## Architecture Verification
+
+### Channel Bridge Components
+1. **Swift -> Emacs**: `ChannelBridge.enqueueCommand()` -> `hyalo_ios_pop_command` -> Emacs event loop
+2. **Emacs -> Swift**: `hyalo-ios-dispatch` DEFUN -> Swift callback dispatch
+3. **Buffer Updates**: `hyalo-navigator-update-buffers` -> JSON -> Swift UI
+
+### Window System Stack
+1. **Frame**: iOS window frame (ios_create_frame)
+2. **Display**: iosterm.m display driver
+3. **Rendering**: CoreText via macfont.m
+4. **Events**: iOS event queue -> Emacs event loop
+
+### Input Handling
+1. **Keyboard**: iOS keyboard with accessory view
+2. **Gestures**: 5 recognizers configured
+3. **Events**: Mapped to Emacs key events
+4. **Cursor**: Tracked and rendered
+
+## Issues and Limitations
+
+### Known Issues
+1. **pdmp fingerprint mismatch**: Expected, bootstrapping from source
+2. **Y-coordinate handling**: Fixed in Phase 5.1, needs verification
+3. **Alpha elements**: Disabled for iOS (Issue I2 fix)
+
+### Testing Limitations
+1. **No automated UI interaction**: simctl ui doesn't support accessibility dump on iOS
+2. **No keyboard automation**: Requires manual keyboard input
+3. **No channel bridge CLI**: No exposed command-line interface for channel commands
+
+### Recommendations for Full Testing
+1. Use XCTest with XCUITest for automated UI testing
+2. Add channel bridge CLI endpoint for testing
+3. Implement mock channel commands for CI/CD
+4. Add accessibility identifiers to SwiftUI views
+
+## Evidence Files
+
+1. **issue-i3-initial-state.png**: Screenshot of running app with *scratch* buffer
+2. **issue-i3-buffer-switch.txt**: Buffer switching test details
+3. **issue-i3-window-split.txt**: Window splitting test details
+4. **issue-i3-text-edit.txt**: Text editing test details
+5. **issue-i3-buffer-interactions.txt**: This summary
+
+## Conclusion
+
+The Hyalo iOS build has successfully:
+- Booted Emacs in the simulator
+- Initialized the window system
+- Rendered text to the screen
+- Established the channel bridge infrastructure
+
+**Manual testing is required** to fully verify:
+- End-to-end buffer switching via UI
+- Window splitting visual layout
+- Live text input handling
+
+The core infrastructure is sound based on:
+- Successful bootstrap (140+ files loaded)
+- Text rendering (150+ glyph draws)
+- Process stability (running without crashes)
+- Architecture implementation (channel bridge, window system)
+
+## Next Steps
+
+For complete Issue I3 verification:
+1. Manual UI testing with keyboard input
+2. Visual verification of window splits
+3. Buffer switching via navigator taps
+4. Text editing operations (type, select, copy, paste)
+
+## Appendix: Commands Used
+
+### Launch and Install
+```bash
+UDID="65B71F4A-5614-485E-A5EF-EEAD2D35D1E9"
+xcrun simctl install $UDID /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app
+xcrun simctl launch --console $UDID org.gnu.hyalo
+```
+
+### Screenshot
+```bash
+xcrun simctl io $UDID screenshot .sisyphus/evidence/issue-i3-initial-state.png
+```
+
+### Process Verification
+```bash
+ps aux | grep Hyalo
+```
+
+---
+**Test Execution**: Automated infrastructure verification completed
+**Manual Testing**: Required for full validation
+**Date**: 2026-02-25
+**Tested By**: Sisyphus Agent

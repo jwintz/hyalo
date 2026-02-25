@@ -24,84 +24,9 @@ struct HyaloiOSNavigationLayout: View {
             NavigatorAreaView(workspace: workspace)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 280, max: 400)
         } detail: {
-            NavigationStack {
-                VStack(spacing: 0) {
-                    if let editorTabViewModel {
-                        EditorTabBarView(
-                            viewModel: editorTabViewModel,
-                            workspace: workspace
-                        )
-                    }
-
-                    EmacsUIViewRepresentable(emacsView: emacsView)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    if let utilityAreaViewModel, workspace.utilityAreaVisible {
-                        Divider()
-                        UtilityAreaView(
-                            viewModel: utilityAreaViewModel,
-                            workspace: workspace,
-                            terminalContent: { AnyView(UtilityAreaTerminalViewiOS()) }
-                        )
-                        .frame(height: workspace.utilityAreaHeight)
-                    }
-
-                    StatusBarView(
-                        viewModel: StatusBarManager.shared.viewModel,
-                        workspace: workspace
-                    )
-                }
-                .inspector(isPresented: $workspace.inspectorVisible) {
-                    InspectorAreaView(workspace: workspace)
-                        .inspectorColumnWidth(min: 242, ideal: 300, max: 600)
-                }
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
-                    }
-                    ToolbarItem(placement: .principal) {
-                        EnvironmentPillView(workspace: workspace)
-                            .frame(minWidth: 120)
-                            .fixedSize(horizontal: true, vertical: false)
-                    }
-                    ToolbarItemGroup(placement: .topBarTrailing) {
-                        KeycastView(viewModel: ToolbarManager.shared.viewModel)
-                        PackageManagerView(viewModel: ToolbarManager.shared.viewModel)
-                        Button {
-                            showOpenQuickly = true
-                        } label: {
-                            Image(systemName: "doc.text.magnifyingglass")
-                        }
-                        .keyboardShortcut("o", modifiers: .command)
-
-                        Button {
-                            showCommandPalette = true
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                        }
-                        .keyboardShortcut("p", modifiers: .command)
-
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                workspace.inspectorVisible.toggle()
-                            }
-                        } label: {
-                            Image(systemName: "sidebar.right")
-                        }
-
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                workspace.utilityAreaVisible.toggle()
-                            }
-                        } label: {
-                            Image(systemName: "square.bottomthird.inset.filled")
-                        }
-                    }
-                }
-            }
+            detailContent
         }
+        .navigationSplitViewStyle(.balanced)
         .sheet(isPresented: $showOpenQuickly) {
             OpenQuicklyView(
                 viewModel: HyaloiOSModule.shared.openQuicklyViewModel,
@@ -155,6 +80,88 @@ struct HyaloiOSNavigationLayout: View {
             let isVisible = (newValue == .all || newValue == .doubleColumn)
             if workspace.navigatorVisible != isVisible {
                 workspace.navigatorVisible = isVisible
+            }
+        }
+    }
+
+    // MARK: - Detail Content
+
+    private var detailContent: some View {
+        VStack(spacing: 0) {
+            if let editorTabViewModel {
+                EditorTabBarView(
+                    viewModel: editorTabViewModel,
+                    workspace: workspace
+                )
+            }
+
+            EmacsUIViewRepresentable(emacsView: emacsView)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            if let utilityAreaViewModel, workspace.utilityAreaVisible {
+                Divider()
+                UtilityAreaView(
+                    viewModel: utilityAreaViewModel,
+                    workspace: workspace,
+                    terminalContent: { AnyView(UtilityAreaTerminalViewiOS()) }
+                )
+                .frame(height: workspace.utilityAreaHeight)
+            }
+
+            StatusBarView(
+                viewModel: StatusBarManager.shared.viewModel,
+                workspace: workspace
+            )
+        }
+        .inspector(isPresented: $workspace.inspectorVisible) {
+            InspectorAreaView(workspace: workspace)
+                .inspectorColumnWidth(min: 242, ideal: 300, max: 600)
+        }
+        .navigationTitle("Hyalo")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarVisibility(.visible, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
+                    .frame(minWidth: 80, maxWidth: 200)
+            }
+            ToolbarItem(placement: .principal) {
+                EnvironmentPillView(workspace: workspace)
+                    .frame(minWidth: 120)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                KeycastView(viewModel: ToolbarManager.shared.viewModel)
+                PackageManagerView(viewModel: ToolbarManager.shared.viewModel)
+                Button {
+                    showOpenQuickly = true
+                } label: {
+                    Image(systemName: "doc.text.magnifyingglass")
+                }
+                .keyboardShortcut("o", modifiers: .command)
+
+                Button {
+                    showCommandPalette = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .keyboardShortcut("p", modifiers: .command)
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        workspace.inspectorVisible.toggle()
+                    }
+                } label: {
+                    Image(systemName: "sidebar.right")
+                }
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        workspace.utilityAreaVisible.toggle()
+                    }
+                } label: {
+                    Image(systemName: "square.bottomthird.inset.filled")
+                }
             }
         }
     }

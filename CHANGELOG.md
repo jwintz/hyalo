@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Remove `@Published` from `emacsView` in `HyaloiOSModule`: `@Published` is an `ObservableObject` annotation and has no effect inside an `@Observable` class; property is now a plain stored var observed through the macro's synthesized access
 - Replace `ObservableObject` with a plain `final class` for `UtilityAreaTerminalHolder` in the iOS stub (`HyaloShared/UtilityArea/UtilityAreaTerminalView.swift`): the stub is unused on iOS and `ObservableObject` is not appropriate here
 - Fix missing closing braces in `EmacsViewsiOS.swift`: `updateUIView` body and `EmacsUIViewRepresentable` struct were unterminated, causing a compile error
+- Fix iPadOS toolbar not rendering in iPad simulator: toolbar items placed on a `NavigationStack` nested inside `NavigationSplitView` detail closure do not propagate to the container navigation bar on iPad. Remove unnecessary `NavigationStack` wrapper, move `.toolbar {}` and `.navigationTitle()` onto the detail content view directly, add `.toolbarVisibility(.visible, for: .navigationBar)` to force bar visibility, and constrain `BranchPickerView` width to prevent layout overflow from its internal `.frame(maxWidth: .infinity)`.
 
 ### Fixed
 

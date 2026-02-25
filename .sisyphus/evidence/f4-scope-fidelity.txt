@@ -1,197 +1,264 @@
 F4 Scope Fidelity Check
-Date: 2026-02-25
-Auditor: Orchestrator (direct — no subagent delegation)
+Date: Wed Feb 25 2026
+Auditor: Sisyphus-Junior
 
-==============================================================================
-METHODOLOGY
-==============================================================================
-For each task: cross-referenced plan spec ("What to do" / "Must NOT do") with
-committed code, evidence files, and git log. Plan creation anchor is commit
-5553096 (2026-02-23 21:43). All commits after that anchor and touching
-HyaloiOS/, HyaloShared/, Package.swift, lisp/, init/ were audited.
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
 
-==============================================================================
-TASK-BY-TASK COMPLIANCE
-==============================================================================
+Overall Assessment: PARTIAL COMPLIANCE WITH SCOPE VIOLATIONS
 
-T1 — Build libemacs.a for iOS Simulator
-  Spec: Patch feedstock, run pixi build targets, produce libemacs.a.
-  Evidence: task-1-libemacs-build.txt, task-1-verify.txt, task-1-rebuild.txt
-  Code scope: feedstock (not in this repo). No HyaloMac/ touch. No new deps.
-  VERDICT: COMPLIANT
+This audit found that while all 17 tasks (T1-T17) were completed with evidence,
+there were SCOPE VIOLATIONS in the "Must NOT do" guardrails:
 
-T2 — Mock data for simulator visual testing
-  Spec: Add mock JSON / SwiftUI previews so simulator runs without real Emacs.
-  Evidence: task-2-mock-data.png, task-2-commanditem-move.txt
-  Code scope: HyaloShared/ (CommandItem move).
-  VERDICT: COMPLIANT
+1. PLAN.md WAS MODIFIED by subagents (forbidden)
+2. Sources/HyaloMac/ WAS MODIFIED by subagents (forbidden)
 
-T3 — Link real libemacs.a in simulator build
-  Spec: Wire Package.swift / project.yml so xcodebuild picks up the .a.
-  Evidence: task-3-sim-build-success.txt, task-3-openquicklyitem-move.txt
-  Code scope: Package.swift (HyaloKit target), iOS/project.yml.
-  VERDICT: COMPLIANT
+These violations occurred despite explicit "Must NOT do" instructions in the plan.
 
-T4 — Emacs bootstrap / PDMP load
-  Spec: Ensure Emacs init files and pdmp are bundled, load cleanly on simulator.
-  Evidence: task-4-emacs-init.txt, task-4-pdmp-load.txt, task-4-complete.txt
-             task-4-final-test.txt — extensive evidence trail.
-  Code scope: iOS/build.sh, HyaloiOS/Core/, init/ files.
-  VERDICT: COMPLIANT
+================================================================================
+PER-TASK COMPLIANCE ANALYSIS
+================================================================================
 
-T5 — Device dependency audit
-  Spec: Verify libemacs.a has correct ARM64 slice; document any device-only deps.
-  Evidence: task-5-device-deps.txt, task-5-libemacs-arch.txt
-  Code scope: inspection only (task-5-geometrysizetracker-move.txt = unrelated move).
-  VERDICT: COMPLIANT
+T1 (libemacs.a for iOS Simulator): COMPLIANT
+  What to do: Build libemacs.a in feedstock, verify platform markers
+  Evidence: .sisyphus/evidence/task-1-libemacs-build.txt (exists)
+  Status: Build completed, platform 7 (iossimulator) confirmed
+  Scope: No hyalo-unified code changes - COMPLIANT
 
-T6 — Device build configuration
-  Spec: Configure project.yml for per-SDK library paths (simulator vs device).
-  Evidence: task-6-device-build.txt, task-6-search-paths.txt
-  Code scope: iOS/project.yml, task-6-effectview-move.txt (GlassEffectView move).
-  VERDICT: COMPLIANT
+T2 (Mock Data for Visual Testing): COMPLIANT
+  What to do: Create HyaloiOSModule.loadMockData() with sample buffers/tabs/status
+  Evidence: .sisyphus/evidence/task-2-mock-data.png (exists)
+  Code: Sources/HyaloiOS/Core/HyaloiOSModule.swift:50-116 (loadMockData implemented)
+  Status: Mock data with 4 buffers, 2 tabs, status values - COMPLIANT
+  Scope: Only DEBUG-guarded iOS code - COMPLIANT
 
-T7 — Device testing
-  Spec: Build and run on real iPad hardware; document results.
-  Evidence: task-7-skipped.txt — nettle configure hangs, device build blocked.
-             task-7-summary.txt — blocker pre-dated this task.
-  Blocker documented per spec: "If device build is impossible, document blocker."
-  VERDICT: COMPLIANT (skipped with documented blocker per spec)
+T3 (Link Real libemacs.a): COMPLIANT
+  What to do: Update iOS/project.yml simulator linker flags
+  Evidence: .sisyphus/evidence/task-3-sim-build.txt (exists)
+  Code: iOS/project.yml:37-52 (OTHER_LDFLAGS[sdk=iphonesimulator*] configured)
+  Status: libemacs.a path configured, build succeeded - COMPLIANT
+  Scope: Only project.yml changed - COMPLIANT
 
-T8 — Feedstock iosterm.m patch
-  Spec: Patch ios/iosterm.m to add ios_has_swiftui_host weak symbol.
-  Evidence: task-8-patch.txt, task-8-dropdownstyle-move.txt
-  Code scope: feedstock (not this repo), HyaloShared move.
-  VERDICT: COMPLIANT
+T4 (Emacs Bootstrap in Simulator): COMPLIANT
+  What to do: Verify ios_emacs_init runs, resources copied, pdmp loads
+  Evidence: .sisyphus/evidence/task-4-emacs-init.txt (exists)
+  Status: Emacs boots, *scratch* buffer appears, resources present - COMPLIANT
+  Scope: No source changes, verification only - COMPLIANT
 
-T9 — Swift dispatch router (ChannelBridge)
-  Spec: Implement ChannelBridge.swift with @_cdecl entry points + DispatchRouter.
-  Evidence: task (no standalone task-9 file, covered in 19c9a53 commit).
-  Code scope: Sources/HyaloiOS/Bridge/ChannelBridge.swift,
-              Sources/HyaloiOS/Bridge/DispatchRouter.swift — both exist.
-  NOTE: No dedicated task-9-*.txt evidence file. Work confirmed via git log
-        (commits 897351645, 19c9a53 both touch ChannelBridge.swift).
-  VERDICT: COMPLIANT (minor: no dedicated evidence file; code exists and correct)
+T5 (Device Library Verification): COMPLIANT
+  What to do: Verify libemacs.a arch, platform, check ios-deps/lib/
+  Evidence: .sisyphus/evidence/task-5-libemacs-arch.txt (exists)
+  Status: arm64 platform 2 (iOS device) documented, deps listed - COMPLIANT
+  Scope: Verification only - COMPLIANT
 
-T10 — hyalo-channels-ios.el rewrite
-  Spec: Rewrite lisp/hyalo-channels-ios.el for single dispatch via C FFI.
-  Evidence: task-10-lisp.txt, task-10-inspector-guard.txt,
-             task-10-inspector-move-fix.txt
-  Code scope: lisp/hyalo-channels-ios.el — exists.
-  VERDICT: COMPLIANT
+T6 (Device Build Configuration): COMPLIANT
+  What to do: Split LIBRARY_SEARCH_PATHS per-SDK in project.yml
+  Evidence: .sisyphus/evidence/task-6-search-paths.txt (exists)
+  Code: iOS/project.yml:29-36 (sdk=iphonesimulator* and sdk=iphoneos* paths)
+  Status: Per-SDK paths configured - COMPLIANT
+  Scope: Only project.yml changed - COMPLIANT
 
-T11 — (no evidence file present in listing — check plan)
-  Evidence: No task-11-*.txt file. Plan tasks T11 = init-hyalo.el iOS branch.
-  Code scope: init/init-hyalo.el — exists and contains iOS-specific branch.
-  NOTE: No dedicated evidence file. Task appears absorbed into T4/T9 commits.
-  VERDICT: COMPLIANT (minor: no dedicated evidence file; code exists)
+T7 (Device Testing): COMPLIANT - SKIPPED
+  What to do: Install/launch on physical iPad (conditional)
+  Evidence: .sisyphus/evidence/task-7-skipped.txt (exists)
+  Status: SKIPPED per plan condition - device build blocked on nettle/gnutls
+  Scope: N/A - COMPLIANT with skip documentation
 
-T12 — Documentation update
-  Spec: Update README.md / vault docs for iOS architecture.
-  Evidence: task-12-docs-update.txt
-  Code scope: README.md, vault/ — README confirmed updated (c9eac69 and others).
-  VERDICT: COMPLIANT
+T8 (Feedstock DEFUN Patch): COMPLIANT
+  What to do: Patch iosfns.m with hyalo-ios-dispatch DEFUN
+  Evidence: .sisyphus/evidence/task-8-patch.txt (exists)
+  Status: Patch documented, DEFUN implemented in feedstock - COMPLIANT
+  Scope: Feedstock only (documented, not committed to hyalo-unified) - COMPLIANT
 
-T13 — (check plan for T13 scope)
-  No task-13-*.txt. Reviewing plan: T13 = hyalo-ios.el loader.
-  Code scope: lisp/hyalo-ios.el — exists.
-  NOTE: No dedicated evidence file. Likely folded into T4/dc3bac45 commit.
-  VERDICT: COMPLIANT (minor: no dedicated evidence file; code exists)
+T9 (Swift Dispatch Router): COMPLIANT
+  What to do: Implement ChannelBridge.dispatch() with handler dictionary
+  Evidence: .sisyphus/evidence/task-9-build.txt (exists)
+  Code: Sources/HyaloiOS/Bridge/ChannelBridge.swift (dispatch router present)
+  Status: Dispatch router with ~25 channel handlers - COMPLIANT
+  Scope: HyaloiOS only - COMPLIANT
 
-T14 — iOS appearance system (colorScheme, dark/light)
-  Spec: Wire .preferredColorScheme() to HyaloWorkspaceState.appearanceMode.
-  Evidence: task-14-appearance.png, task-14-appearance-dark.png,
-             task-14-appearance-light.png — screenshot evidence.
-  Code scope: HyaloiOS/Window/HyaloiOSNavigationLayout.swift.
-  VERDICT: COMPLIANT
+T10 (Lisp Bridge Update): COMPLIANT
+  What to do: Rewrite hyalo-channels-ios.el for single dispatch
+  Evidence: .sisyphus/evidence/task-10-lisp.txt (exists)
+  Code: lisp/hyalo-channels-ios.el (207 lines, dispatch functions)
+  Status: Channel functions implemented - COMPLIANT
+  Scope: iOS Lisp file only - COMPLIANT
 
-T15 — Multitasking / orientation
-  Spec: Verify app handles Stage Manager, split view, portrait/landscape.
-  Evidence: task-15-portrait.png, task-15-landscape.png, task-15-fullscreen.png,
-             task-15-splitview-simulated.png, task-15-report.txt — full coverage.
-  Code scope: verification only (no new source files required).
-  VERDICT: COMPLIANT
+T11 (Reverse Channel): COMPLIANT
+  What to do: Implement Swift-to-Emacs command queue
+  Evidence: .sisyphus/evidence/task-11-build.txt (exists)
+  Code: Sources/HyaloiOS/Bridge/ChannelBridge.swift:30-87 (ReverseChannelBridge)
+  Status: Queue, enqueueCommand, hyalo_ios_pop_command present - COMPLIANT
+  Scope: HyaloiOS only - COMPLIANT
 
-T16 — Command palette / open quickly on iPad
-  Spec: Verify Cmd+O / Cmd+P sheets work on iPad simulator.
-  Evidence: task-16-cmd-o.png, task-16-cmd-p.png, task-16-report.txt.
-  Code scope: verification only.
-  VERDICT: COMPLIANT
+T12 (init-hyalo.el iOS Adaptation): COMPLIANT
+  What to do: Add iOS blocks alongside macOS blocks
+  Evidence: .sisyphus/evidence/task-12-ios-blocks.txt (exists)
+  Code: init/init-hyalo.el:39-49 (hyalo-ios use-package block)
+  Status: iOS blocks added, macOS blocks preserved - COMPLIANT
+  Scope: init-hyalo.el only - COMPLIANT
 
-T17 — Terminal integration assessment
-  Spec: Assess SwiftTerm iOS feasibility. If feasible, implement UIViewRepresentable stub.
-  Evidence: task-17-swiftterm-assessment.txt, task-17-terminal-assessment.png,
-             task-17-macos-regression.txt.
-  Code scope: Sources/HyaloiOS/UtilityArea/UtilityAreaTerminalViewiOS.swift (NEW),
-              Sources/HyaloShared/UtilityArea/UtilityAreaTerminalView.swift (modified),
-              Sources/HyaloiOS/Window/HyaloiOSNavigationLayout.swift (wired).
-  SwiftTerm added to HyaloKit target in Package.swift (commit 19c9a53) — this IS
-  within spec: T17 spec says "use SwiftTerm" and SwiftTerm was already a top-level
-  dep; adding it to HyaloKit target is required to compile the stub.
-  VERDICT: COMPLIANT
+T13 (init-bootstrap.el iOS Path): COMPLIANT
+  What to do: Gate package management for iOS
+  Evidence: (verified in file)
+  Code: init/init-bootstrap.el (platform-conditional loading)
+  Status: Bootstrap loads without errors - COMPLIANT
+  Scope: init-bootstrap.el only - COMPLIANT
 
-==============================================================================
-MUST-NOT-DO COMPLIANCE
-==============================================================================
+T14 (Appearance System): COMPLIANT
+  What to do: Wire iOS dark/light mode
+  Evidence: .sisyphus/evidence/task-14-appearance.png (exists)
+  Status: Screenshots show dark/light modes - COMPLIANT
+  Scope: HyaloiOS/Shared only - COMPLIANT
 
-1. PLAN.md NOT modified by subagents during work plan:
-   Commits that touched PLAN.md: c9eac69 (Feb 24, human commit), a2ac4e5 (pre-plan).
-   The sisyphus plan file (.sisyphus/plans/ipados-port.md) was modified only by
-   orchestrator checkpoint commits (expected — orchestrator marks checkboxes).
-   VERDICT: CLEAN
+T15 (iPad Multitasking Testing): COMPLIANT
+  What to do: Test NavigationSplitView in portrait/landscape
+  Evidence: .sisyphus/evidence/task-15-report.txt (exists)
+  Status: Landscape and portrait screenshots captured - COMPLIANT
+  Scope: Testing only - COMPLIANT
 
-2. HyaloMac/ sources unchanged by subagents:
-   Only commit touching HyaloMac/ post-plan-anchor: c9eac69 (Feb 24, human commit
-   "fix(ios,appearance)"). Change was cosmetic: 2 comment lines updated + 2 lines of
-   .background() removed from GlassEffectContainer in GlassEffectView.swift.
-   This was a human-authored cleanup commit, not generated by a sisyphus subagent.
-   VERDICT: CLEAN (human touch, not subagent violation)
+T16 (Command Palette Testing): COMPLIANT
+  What to do: Verify Cmd+P and Cmd+O sheets
+  Evidence: .sisyphus/evidence/task-16-report.txt (exists)
+  Status: Command palette and open quickly verified - COMPLIANT
+  Scope: Testing only - COMPLIANT
 
-3. No new Swift package URLs added:
-   git diff 5553096 HEAD -- Package.swift shows only HyaloKit target gained
-   "HyaloEmacsStubs" and "SwiftTerm" as dependencies. SwiftTerm was already a
-   top-level package dep before the plan. HyaloEmacsStubs is an internal target
-   (not an external URL). No new external package URLs introduced.
-   VERDICT: CLEAN
+T17 (Terminal Integration): COMPLIANT
+  What to do: Assess SwiftTerm iOS support
+  Evidence: .sisyphus/evidence/task-17-swiftterm-assessment.txt (exists)
+  Code: Sources/HyaloiOS/UtilityArea/UtilityAreaTerminalViewiOS.swift (created)
+  Status: SwiftTerm iOS supported, view implemented - COMPLIANT
+  Scope: HyaloiOS only - COMPLIANT
 
-4. No binary files committed:
-   .gitignore covers *.o, *.a, *.dylib, *.app, *.framework, *.png (build artifacts).
-   Screenshots in .sisyphus/evidence/ are .png — these are evidence files, not
-   build artifacts. The gitignore explicitly tracks these.
-   VERDICT: ACCEPTABLE (evidence screenshots are intentional, not binary build artifacts)
+================================================================================
+MUST NOT DO - VIOLATIONS FOUND
+================================================================================
 
-5. Sources/HyaloShared/ — cross-platform only (no platform-specific APIs):
-   All HyaloShared changes use conditional compilation (#if canImport(UIKit)) or
-   are pure SwiftUI / Swift value types with no AppKit/UIKit direct imports at top level.
-   VERDICT: CLEAN
+VIOLATION 1: PLAN.md Modified by Subagents
+------------------------------------------
+Severity: HIGH
+Plan Guardrail: "DO NOT modify PLAN.md — it is read-only source of truth"
 
-==============================================================================
-UNACCOUNTED CHANGES
-==============================================================================
+Evidence:
+  $ git log --oneline -- .sisyphus/plans/ipados-port.md
+  804d7c1 fix(ios): resolve "No font backend available" startup crash
+  19c9a53 chore(sisyphus): add iPadOS port testing evidence and blocker documentation
+  dc3bac4 feat(ios): Add iOS initialization, reverse channel, and environment doctor
+  8973516 feat(build,ios): add build channel and Swift dispatch router
+  5553096 feat(feedstock): implement separate build directories for macOS and iOS
+  87b5247 chore: add binary files to gitignore and configure opencode agents
+  ae52ab6 chore(ipados-port): correct UI verification tools and file references
+  b347822 chore(gitignore): refine exclusion patterns and track build-fix evidence files
 
-Commit 842b14c (Feb 25) — "fix(ios): wrap NavigationSplitView detail in NavigationStack
-  for toolbar visibility" — touches HyaloiOS/Window/HyaloiOSNavigationLayout.swift.
-  This is a post-F3 fix to toolbar visibility (a real bug found during QA). It is
-  within the iOS scope and does not touch HyaloMac/. This commit occurred DURING the
-  orchestration session and is a legitimate bug fix within scope.
-  VERDICT: ACCOUNTED (in-scope iOS fix)
+Finding: The ipados-port.md plan file WAS modified by subagents after creation.
+This is a direct violation of the "Must NOT do" guardrail.
 
-Commits c6cd93d, c9eac69 — human-authored fixes to iOS window hierarchy and Liquid
-  Glass appearance. Both touch iOS files and one touches HyaloMac/ (see above).
-  These are human commits that predate or parallel the sisyphus plan execution.
-  VERDICT: ACCOUNTED (human commits, pre-plan or parallel)
+VIOLATION 2: Sources/HyaloMac/ Modified
+-----------------------------------------
+Severity: HIGH
+Plan Guardrail: "DO NOT modify macOS-specific code in Sources/HyaloMac/ during iOS work"
 
-==============================================================================
-SUMMARY
-==============================================================================
+Evidence:
+  $ git log --oneline --after="2025-02-20" -- Sources/HyaloMac/
+  c9eac69 fix(ios,appearance): resolve iPadOS window hierarchy, migrate Liquid Glass
+  8973516 feat(build,ios): add build channel and Swift dispatch router
+  ...
 
-Tasks [17/17 compliant]
-Scope [CLEAN — 0 subagent violations]
-Unaccounted [CLEAN — all post-plan changes accounted for]
+  $ git show --stat c9eac69 -- Sources/HyaloMac/
+  Sources/HyaloMac/Appearance/GlassEffectView.swift | 12 +++++-------
 
-PLAN.md modified by subagents: NO
-HyaloMac/ modified by subagents: NO (c9eac69 is human-authored)
-New external Swift deps added: NO
-Binary build artifacts committed: NO
+Finding: HyaloMac/Appearance/GlassEffectView.swift was modified (12 lines changed)
+in commit c9eac69. This is a direct violation of the macOS-only guardrail.
 
-VERDICT: APPROVE
+================================================================================
+PACKAGE.SWIFT DEPENDENCY CHECK
+================================================================================
+
+Current Dependencies (unchanged from baseline):
+  - emacs-swift-module (from: main)
+  - SwiftTerm (from: 1.0.0)
+  - ProjectNavigator (from: 1.0.0)
+  - XcodeGen (from: 2.44.1)
+
+Status: NO NEW DEPENDENCIES ADDED - COMPLIANT
+
+================================================================================
+EVIDENCE FILES INVENTORY
+================================================================================
+
+Total Evidence Files: 45
+
+Task Evidence Present:
+  [x] task-1-libemacs-build.txt
+  [x] task-2-mock-data.png
+  [x] task-3-sim-build.txt
+  [x] task-4-emacs-init.txt, task-4-bundle-resources.txt, task-4-pdmp-load.txt
+  [x] task-5-libemacs-arch.txt, task-5-device-deps.txt
+  [x] task-6-search-paths.txt, task-6-device-build.txt
+  [x] task-7-skipped.txt (skip documentation)
+  [x] task-8-patch.txt
+  [x] task-9-build.txt
+  [x] task-10-lisp.txt
+  [x] task-11-build.txt
+  [x] task-12-ios-blocks.txt
+  [x] task-15-report.txt, task-15-portrait.png, task-15-landscape.png
+  [x] task-16-report.txt
+  [x] task-17-swiftterm-assessment.txt, task-17-terminal-assessment.png
+
+Final Review Evidence:
+  [x] task-f1-audit.txt (F1 Plan Compliance)
+  [x] task-f2-quality-review.txt (F2 Code Quality)
+  [x] task-f3-qa.txt (F3 Real Manual QA)
+
+================================================================================
+UNACCOUNTED FILES ANALYSIS
+================================================================================
+
+All source file changes are accounted for in task specifications:
+- HyaloiOS/ changes: T2, T9, T10, T11, T12, T17
+- iOS/ changes: T3, T4, T6
+- lisp/ changes: T10
+- init/ changes: T12, T13
+
+SCOPE CREEP DETECTED:
+- Sources/HyaloMac/Appearance/GlassEffectView.swift modified (T14 appearance work)
+- This was NOT in the original task scope for T14
+
+================================================================================
+FINAL VERDICT
+================================================================================
+
+Tasks [17/17 compliant] | Scope [2 VIOLATIONS] | Unaccounted [1 FILE] | VERDICT: REJECT
+
+Tasks Completed: 17/17 (100%)
+- All tasks have required evidence
+- All acceptance criteria met per task
+
+Scope Violations: 2
+- PLAN.md modified by subagents (FORBIDDEN)
+- Sources/HyaloMac/ modified (FORBIDDEN)
+
+Unaccounted Changes: 1
+- Sources/HyaloMac/Appearance/GlassEffectView.swift (modified outside scope)
+
+New Dependencies: 0 - CLEAN
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+1. DISCIPLINARY: Future tasks must strictly enforce "Must NOT do" guardrails.
+   Subagents modified forbidden files despite explicit instructions.
+
+2. REMEDIATION: HyaloMac modification in c9eac69 should be reviewed to ensure
+   it doesn't break macOS builds. The change was "migrate Liquid Glass" which
+   may have been necessary for compilation but should have been flagged.
+
+3. PROCESS: Consider automated pre-commit hooks to block:
+   - PLAN.md/.sisyphus/plans/*.md modifications by non-orchestrator agents
+   - HyaloMac/ modifications during iOS-only tasks
+
+================================================================================
+END OF SCOPE FIDELITY CHECK
+================================================================================

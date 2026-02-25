@@ -2,10 +2,10 @@
     "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
     "agents": {
 	"sisyphus": {
-	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	    "model": "anthropic/claude-opus-4-6"
 	},
 	"hephaestus": {
-	    "disable": true
+	    "model": "github-copilot/gpt-5.2-codex"
 	},
 	"oracle": {
 	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
@@ -20,7 +20,7 @@
 	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
 	},
 	"prometheus": {
-	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	    "model": "github-copilot/claude-opus-4.6"
 	},
 	"metis": {
 	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
@@ -29,7 +29,7 @@
 	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
 	},
 	"atlas": {
-	    "model": "synthetic/hf:nvidia/Kimi-K2.5-NVFP4"
+	    "model": "github-copilot/claude-sonnet-4.6"
 	}
     },
     "categories": {

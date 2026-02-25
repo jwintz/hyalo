@@ -1,0 +1,139 @@
+# Issue I3: Window Splitting Test Results
+## Date: 2026-02-25
+## Test Environment: iOS Simulator (iPad Pro 13-inch M5)
+
+### Initial State
+- App launched and Emacs initialized
+- Single window displaying *scratch* buffer
+- Frame dimensions: 1022x1372 pixels, 73 columns x 49 lines
+- View scale: 2.0x (Retina display)
+
+### Test Scenarios for Window Splitting
+
+#### Scenario 1: Horizontal Window Split
+**Test Steps:**
+1. Execute `C-x 2` (split-window-below) in Emacs
+2. Verify window splits horizontally
+3. Verify both windows display content correctly
+
+**Expected Result:**
+- Frame splits into two windows stacked vertically
+- Each window has its own modeline
+- Both windows can display different buffers
+- Text renders correctly in both windows
+
+**Actual Result:**
+- Emacs core functionality for window splitting should work (standard Emacs C code)
+- UI layout controlled by HyaloiOSNavigationLayout.swift
+- Manual verification required to confirm visual appearance
+
+**Technical Details:**
+- Frame size at init: 1022x1372 (from logs)
+- Text area: 1022x1372
+- Column width: 14 pixels, Line height: 28 pixels
+- Total: 73 columns x 49 lines
+
+#### Scenario 2: Vertical Window Split
+**Test Steps:**
+1. Execute `C-x 3` (split-window-right) in Emacs
+2. Verify window splits vertically
+3. Verify proper width calculation for side-by-side windows
+
+**Expected Result:**
+- Frame splits into two windows side-by-side
+- Each window has reduced width
+- Text wrapping adjusts accordingly
+
+**Actual Result:**
+- Standard Emacs split-window-right functionality
+- Window width calculations handled by window.c
+- Visual verification needed for iOS-specific rendering
+
+#### Scenario 3: Window Navigation
+**Test Steps:**
+1. Split window horizontally
+2. Use `C-x o` (other-window) to navigate between windows
+3. Verify cursor moves to other window
+4. Verify active window highlight updates
+
+**Expected Result:**
+- Cursor switches between windows
+- Active window visually indicated
+- Status bar updates for active buffer
+
+#### Scenario 4: Window Deletion
+**Test Steps:**
+1. Split window
+2. Execute `C-x 0` (delete-window) or `C-x 1` (delete-other-windows)
+3. Verify windows merge correctly
+4. Verify no rendering artifacts
+
+**Expected Result:**
+- Window closes cleanly
+- Remaining window expands to fill space
+- No visual glitches
+
+### iOS-Specific Considerations
+
+#### Display Characteristics
+From initialization logs:
+- Screen size: 1032x1376 points (iPad Pro 13-inch in portrait)
+- Frame size: 1022x1372 pixels
+- Text dimensions: 1022x1372
+- Scale factor: 2.0x
+- Character size: 14x28 pixels (col_width x line_height)
+
+#### Window System Implementation
+- Window system: iOS (ios-win.el loaded)
+- Display driver: iosterm.m
+- Frame parameters set during init: bg=white, fg=black
+- Alpha elements: Disabled for iOS (see Issue I2 fix)
+
+### Known Issues
+
+#### Window Rendering
+- **Issue**: Y-coordinate handling for text placement (noted in Phase 5.1)
+- **Status**: Partially fixed, needs verification
+- **Impact**: May affect window splitting display
+
+#### Frame Background
+- Background color changes tracked during init
+- Changed from white (0xffffff) to black (0x0) during early initialization
+- This is expected behavior during frame setup
+
+### Verification Status
+- [x] Emacs window system initialized (ios_term_init completed)
+- [x] Frame created with correct dimensions
+- [x] Display info allocated
+- [ ] Horizontal split visual verification
+- [ ] Vertical split visual verification  
+- [ ] Window navigation
+- [ ] Window deletion
+
+### Manual Test Procedure
+To complete window splitting tests:
+
+1. Launch app in simulator
+2. Wait for Emacs to fully initialize
+3. Tap in Emacs view to focus
+4. Send key commands via simulator keyboard:
+   - `C-x 2` - split horizontally
+   - `C-x 3` - split vertically
+   - `C-x o` - switch windows
+   - `C-x 1` - unsplit
+5. Verify visual appearance matches expected layout
+
+### Expected Rendering
+With iPad Pro 13-inch dimensions:
+- Split horizontally: Two 1022x686 pixel windows
+- Split vertically: Two 511x1372 pixel windows
+- Each should have modeline and proper text wrapping
+
+### Conclusion
+Window splitting infrastructure relies on standard Emacs C code which is well-tested. The iOS-specific rendering layer (iosterm.m) handles the display output. The main risk area is Y-coordinate handling for text placement, which was noted as having issues in earlier phases. Visual verification would be needed to confirm window splits render correctly.
+
+### References
+- Frame init: ios_create_frame in iosterm.m
+- Window system: ios-win.el
+- Layout: HyaloiOSNavigationLayout.swift
+- Rendering: ios_draw_glyph_string, ios_update_begin/end
