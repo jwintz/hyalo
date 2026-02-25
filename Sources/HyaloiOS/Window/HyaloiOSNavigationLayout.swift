@@ -122,8 +122,17 @@ struct HyaloiOSNavigationLayout: View {
         .toolbarVisibility(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
-                    .frame(minWidth: 80, maxWidth: 200)
+                HStack(spacing: 8) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            workspace.navigatorVisible.toggle()
+                        }
+                    } label: {
+                        Image(systemName: "sidebar.left")
+                    }
+                    BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
+                        .frame(minWidth: 80, maxWidth: 200)
+                }
             }
             ToolbarItem(placement: .principal) {
                 EnvironmentPillView(workspace: workspace)
@@ -203,14 +212,6 @@ public struct HyaloRootView: View {
             }
         }
         .onAppear {
-            #if DEBUG
-            // Load mock data for visual testing when no real Emacs is running
-            if case .running = module.lifecycle.state {
-                // Emacs is running, don't load mock data
-            } else {
-                module.loadMockData()
-            }
-            #endif
             module.start()
         }
         .onChange(of: scenePhase) { _, phase in

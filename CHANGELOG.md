@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Replace `ObservableObject` with a plain `final class` for `UtilityAreaTerminalHolder` in the iOS stub (`HyaloShared/UtilityArea/UtilityAreaTerminalView.swift`): the stub is unused on iOS and `ObservableObject` is not appropriate here
 - Fix missing closing braces in `EmacsViewsiOS.swift`: `updateUIView` body and `EmacsUIViewRepresentable` struct were unterminated, causing a compile error
 - Fix iPadOS toolbar not rendering in iPad simulator: toolbar items placed on a `NavigationStack` nested inside `NavigationSplitView` detail closure do not propagate to the container navigation bar on iPad. Remove unnecessary `NavigationStack` wrapper, move `.toolbar {}` and `.navigationTitle()` onto the detail content view directly, add `.toolbarVisibility(.visible, for: .navigationBar)` to force bar visibility, and constrain `BranchPickerView` width to prevent layout overflow from its internal `.frame(maxWidth: .infinity)`.
+- Add explicit sidebar toggle button (`sidebar.left` icon) to iPadOS toolbar leading edge: `NavigationSplitView`'s automatic toggle is displaced when custom items occupy `.topBarLeading`. Place the toggle in an `HStack` alongside the branch picker for consistent navigator show/hide.
+- Remove mock data (`loadMockData()`) from iPadOS module: Emacs boots and reaches `.running` state, so fake buffers, tabs, and status bar values are misleading. Views now show real defaults (empty navigator, no tabs, zero status) until the channel bridge (Phase 7) wires Emacs data push.
 
 ### Fixed
 
