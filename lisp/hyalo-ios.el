@@ -222,6 +222,8 @@ On iOS, always succeeds."
 (hyalo--ios-function hyalo-set-background-color
   "Set background color.")
 
+(hyalo--ios-function hyalo-set-current-theme-name
+  "Set current theme name.")
 (hyalo--ios-function hyalo-show-appearance-panel
   "Show appearance panel.")
 

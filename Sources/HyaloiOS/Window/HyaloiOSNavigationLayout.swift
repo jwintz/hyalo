@@ -133,6 +133,7 @@ struct HyaloiOSNavigationLayout: View {
             ToolbarItem(placement: .topBarLeading) {
                 BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
                     .frame(minWidth: 80, maxWidth: 200)
+                    .buttonStyle(.plain)
             }
             ToolbarItem(placement: .principal) {
                 EnvironmentPillView(workspace: workspace)

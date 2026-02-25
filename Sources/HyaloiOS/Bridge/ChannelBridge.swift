@@ -198,6 +198,16 @@ func bridgeAppearanceSetMode(_ modeCString: UnsafePointer<CChar>) {
     }
 }
 
+@_cdecl("hyalo_ios_set_current_theme_name")
+func bridgeSetCurrentThemeName(_ nameCString: UnsafePointer<CChar>) {
+    let name = String(cString: nameCString)
+    DispatchQueue.main.async {
+        if #available(iOS 26.0, *) {
+            HyaloiOSModule.shared.workspace.currentThemeName = name
+        }
+    }
+}
+
 // MARK: - Command Palette Channel
 
 @_cdecl("hyalo_ios_update_open_quickly_items")

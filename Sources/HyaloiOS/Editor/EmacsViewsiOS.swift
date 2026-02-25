@@ -37,15 +37,18 @@ class EmacsContainerViewiOS: UIView {
     override func didMoveToWindow() {
         super.didMoveToWindow()
         guard window != nil, let emacsView else { return }
+        // Re-apply Retina scale after reparenting into SwiftUI host.
+        let scale = window?.screen.scale ?? UIScreen.main.scale
+        emacsView.layer.contentsScale = scale
+        emacsView.contentScaleFactor = scale
         // Defer becomeFirstResponder to the next run-loop iteration so
         // the layout pass has completed and the view has non-zero bounds.
-        // becomeFirstResponder fails on a zero-size view.
         DispatchQueue.main.async { [weak emacsView] in
             emacsView?.becomeFirstResponder()
         }
-    }
 }
 
+}
 /// SwiftUI bridge for the Emacs UIView.
 @available(iOS 26.0, *)
 struct EmacsUIViewRepresentable: UIViewRepresentable {
