@@ -69,20 +69,20 @@
 ;;;; Frame Defaults
 
 (setq default-frame-alist
-      (append (list
-               '(min-height . 1)
-               '(height     . 45)
-               '(min-width  . 1)
-               '(width      . 81)
-               '(vertical-scroll-bars . nil)
-               '(horizontal-scroll-bars . nil)
-               '(tool-bar-lines . 0)
-               ;; Transparent background for Liquid Glass pass-through.
-               ;; ns-alpha-elements controls which elements use alpha.
-               '(alpha-background . 0.0)
-               '(ns-alpha-elements . (ns-alpha-default
-                                      ns-alpha-glyphs)))))
+      '((min-height . 1)
+        (height     . 45)
+        (min-width  . 1)
+        (width      . 81)
+        (vertical-scroll-bars . nil)
+        (horizontal-scroll-bars . nil)
+        (tool-bar-lines . 0)))
 
+;; Transparent background for Liquid Glass pass-through.
+;; Only on macOS (ns): iOS has no vibrancy material beneath the frame.
+(when (eq window-system 'ns)
+  (push '(alpha-background . 0.0) default-frame-alist)
+  (push '(ns-alpha-elements . (ns-alpha-default ns-alpha-glyphs))
+        default-frame-alist))
 (setq widget-image-enable nil)
 
 ;;;; Fringe Configuration

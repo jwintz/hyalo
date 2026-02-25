@@ -84,21 +84,21 @@ The iOS build uses XcodeGen to generate `HyaloApp.xcodeproj` from `iOS/project.y
 
 ### iPadOS Simulator Test Loop
 
-Full rebuild-install-verify cycle. `UDID` is the target iPad simulator device.
+Full rebuild-install-verify cycle. All commands run from the repo root unless noted.
 
 ```bash
-# 0. Find simulator UDID (run once)
-xcrun simctl list devices available | grep "iPad Pro 13"
-UDID="<paste UDID here>"
+# 0. Find and set simulator UDID (run once per shell session)
+UDID=$(xcrun simctl list devices available | grep 'iPad Pro 13' | head -1 | grep -oE '[A-F0-9-]{36}')
+echo "UDID=$UDID"  # verify it is non-empty
 
 # 1. Boot simulator (if not running)
 xcrun simctl boot $UDID
 
-# 2. Regenerate Xcode project after any project.yml change
+# 2. Regenerate Xcode project after any project.yml change (run from iOS/)
 cd iOS
 swift run --package-path .. xcodegen generate
 
-# 3. Build
+# 3. Build (must be inside iOS/)
 xcodebuild -project HyaloApp.xcodeproj -scheme HyaloApp \
   -destination "platform=iOS Simulator,id=$UDID" \
   -derivedDataPath /tmp/hyalo-ios-build \
@@ -108,24 +108,25 @@ xcodebuild -project HyaloApp.xcodeproj -scheme HyaloApp \
 xcrun simctl install $UDID /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app
 xcrun simctl launch $UDID org.gnu.hyalo
 
-# 5. Screenshot (wait 5s for bootstrap)
-sleep 5
+# 5. Screenshot (wait 20s for Emacs bootstrap to complete)
+sleep 20
 xcrun simctl io $UDID screenshot /tmp/hyalo-verify.png
 open /tmp/hyalo-verify.png
 
 # 6. Logs (Hyalo-specific NSLog output)
 xcrun simctl spawn $UDID log show \
-  --predicate 'process == "Hyalo"' \
-  --last 30s --style compact 2>&1 | grep -v " Df "
+  --predicate 'processImagePath CONTAINS "Hyalo"' \
+  --last 30s --style compact 2>&1 | grep 'HyaloKit\|ios_term\|ios_clear\|ios_update'
 
 # 7. Crash reports (if app died)
 ls -lt ~/Library/Logs/DiagnosticReports/Hyalo-*.ips 2>/dev/null | head -3
 ```
 
-**Expected screenshot**: iPad screen showing SwiftUI NavigationSplitView with:
-- Tab bar at top with editor tabs
-- Back/forward navigation arrows (< >) at top-left
-- Emacs content rendering in the center area
+**Note:** Steps 3–7 require `UDID` to be set (step 0). If `xcodebuild` prints its help text instead of building, `UDID` is empty or the command is not being run from inside `iOS/`.
+
+**Expected screenshot**: iPad screen showing SwiftUI `NavigationSplitView` with:
+- Toolbar: `sidebar.left` toggle + branch picker ("Emacs") at the left, environment pill (user@host / No env) in the center, action buttons (PackageManager, OpenQuickly, CommandPalette, Inspector, UtilityArea) at the right
+- Emacs content area rendering the startup screen (`*GNU Emacs*` with keybinding hints)
 - Keyboard accessory bar at the bottom (Esc, Ctrl, Alt, Tab, arrows)
 
 ### Feedstock iosterm.m Patch + Rebuild
