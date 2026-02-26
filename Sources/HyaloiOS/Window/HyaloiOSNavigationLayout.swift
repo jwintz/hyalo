@@ -117,53 +117,36 @@ struct HyaloiOSNavigationLayout: View {
             InspectorAreaView(workspace: workspace)
                 .inspectorColumnWidth(min: 242, ideal: 300, max: 600)
         }
+        .toolbar(removing: .sidebarToggle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarVisibility(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        workspace.navigatorVisible.toggle()
+                HStack(spacing: 8) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            workspace.navigatorVisible.toggle()
+                        }
+                    } label: {
+                        Image(systemName: "sidebar.left")
                     }
-                } label: {
-                    Image(systemName: "sidebar.left")
+                    BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
+                        .frame(minWidth: 80, maxWidth: 200)
+                        .buttonStyle(.plain)
                 }
             }
             ToolbarItem(placement: .principal) {
-                BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
-                    .frame(minWidth: 80, maxWidth: 260)
+                EnvironmentPillView(workspace: workspace)
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 KeycastView(viewModel: ToolbarManager.shared.viewModel)
                 PackageManagerView(viewModel: ToolbarManager.shared.viewModel)
-                Button {
-                    showOpenQuickly = true
-                } label: {
-                    Image(systemName: "doc.text.magnifyingglass")
-                }
-                .keyboardShortcut("o", modifiers: .command)
-
-                Button {
-                    showCommandPalette = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                }
-                .keyboardShortcut("p", modifiers: .command)
-
                 Button {
                     withAnimation(.easeInOut(duration: 0.15)) {
                         workspace.inspectorVisible.toggle()
                     }
                 } label: {
                     Image(systemName: "sidebar.right")
-                }
-
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        workspace.utilityAreaVisible.toggle()
-                    }
-                } label: {
-                    Image(systemName: "square.bottomthird.inset.filled")
                 }
             }
         }
