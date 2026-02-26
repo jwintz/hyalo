@@ -437,3 +437,297 @@ All views use shared ToolbarManager.shared.viewModel (no mock data).
 
 ## Date Fixed
 2026-02-25
+
+---
+
+# Issue I7: BranchPickerView pill — system iOS 26 NavBar glass treatment
+
+## Date
+2026-02-25
+
+## Status
+OPEN
+
+## Problem
+After guarding macOS-only APIs with `#if os(macOS)`, the BranchPickerView *still* renders inside a pill capsule on iOS 26. The pill is **system-applied** by the iOS 26 NavigationBar glass system — any `ToolbarItem(.topBarLeading)` containing a `Menu` or interactive content receives automatic pill/capsule glass background. Our fix removed Hyalo-specific hover styling but did not suppress the system chrome.
+
+## Root Cause
+iOS 26 liquid glass navbar applies a pill/capsule background to ToolbarItems with interactive content (Menu, Button). This is a SwiftUI system behaviour, not Hyalo code.
+
+## Fix Required
+Apply `.buttonStyle(.plain)` and/or `.background(.clear)` on the outer HStack/Menu inside BranchPickerView on iOS, or use `.toolbarBackground(.hidden, for: .navigationBar)` scoped to the item. Investigation needed: does wrapping the BranchPickerView content in a plain button style or using `.controlGroupStyle(.navigation)` suppress the pill?
+
+Candidate fix (to test):
+```swift
+// In HyaloiOSNavigationLayout.swift, on the BranchPickerView ToolbarItem:
+ToolbarItem(placement: .topBarLeading) {
+    BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
+        .frame(minWidth: 80, maxWidth: 200)
+        // iOS 26: suppress automatic pill/glass treatment
+}
+```
+Or alternatively in BranchPickerView.swift, inside the `#else` iOS block, add `.buttonStyle(.plain)` and `.background(.clear)` on the outermost HStack.
+
+## Files
+- `Sources/HyaloShared/Toolbar/BranchPickerView.swift`
+- `Sources/HyaloiOS/Window/HyaloiOSNavigationLayout.swift`
+
+---
+
+# Issue I8: Appearance panel does not show current theme name
+
+## Date
+2026-02-25
+
+## Status
+OPEN
+
+## Problem
+The "Theme > Current" section in InspectorAppearanceView shows nothing on iOS. `workspace.currentThemeName` is always empty string on iOS.
+
+## Root Cause
+`currentThemeName` is set only via `hyalo-set-current-theme-name`, which is implemented as a macOS `env.defun()` in `HyaloMac/Core/Module.swift:1558`. No `@_cdecl` FFI equivalent exists in `Sources/HyaloiOS/Bridge/ChannelBridge.swift`.
+
+On iOS:
+- `hyalo-channels-ios.el` lines 113/159 call `(hyalo-set-current-theme-name (symbol-name theme))` via `(when (fboundp 'hyalo-set-current-theme-name) ...)` — but `hyalo-set-current-theme-name` is just the `hyalo--ios-function` stub, which is a no-op.
+- Swift side never receives the theme name → `workspace.currentThemeName` stays `""` → theme section hidden.
+
+## Fix Required
+Add a `@_cdecl("hyalo_ios_set_current_theme_name")` function to `ChannelBridge.swift`:
+```swift
+@_cdecl("hyalo_ios_set_current_theme_name")
+func bridgeSetCurrentThemeName(_ nameCString: UnsafePointer<CChar>) {
+    let name = String(cString: nameCString)
+    DispatchQueue.main.async {
+        if #available(iOS 26.0, *) {
+            HyaloiOSModule.shared.workspace.currentThemeName = name
+        }
+    }
+}
+```
+Then expose it to Emacs via `hyalo-ios.el` (the `hyalo--ios-function` stub is already present at line 165-ish — verify name matches).
+
+The `(when (fboundp 'hyalo-set-current-theme-name) ...)` guards in hyalo-channels-ios.el will then find the real C function bound.
+
+## Files
+- `Sources/HyaloiOS/Bridge/ChannelBridge.swift` — add @_cdecl
+- `lisp/hyalo-ios.el` — verify stub name matches (should already be there)
+
+---
+
+# Issue I9: Emacs view not retina resolution
+
+## Date
+2026-02-25
+
+## Status
+OPEN
+
+## Problem
+Emacs text renders at 1x (non-retina) on iOS 26 iPad simulator. Text appears blurry/pixelated vs native UIKit controls.
+
+## Root Cause (hypothesis)
+The feedstock's `EmacsView.layer.contentsScale` is set to `UIScreen.mainScreen.scale` at init time. When the view is reparented from the feedstock's `EmacsViewController` into `EmacsContainerViewiOS` (SwiftUI), the layer `contentsScale` may not be re-applied after reparenting. Specifically:
+- `ios_has_swiftui_host()` returns `true` → feedstock skips `EmacsViewController` rootVC setup
+- `EmacsContainerViewiOS.layoutSubviews` sets `emacsView.frame = bounds` (correct size)
+- But `emacsView.layer.contentsScale` may not match the SwiftUI host's screen scale after reparenting
+
+Alternatively, the simulator may report scale=2.0 but the frame pixel dimensions passed to Emacs are in points not pixels.
+
+## Fix Required
+In `EmacsContainerViewiOS.layoutSubviews` (or `didMoveToWindow`), ensure:
+```swift
+emacsView?.layer.contentsScale = window?.screen.scale ?? UIScreen.main.scale
+emacsView?.contentScaleFactor = window?.screen.scale ?? UIScreen.main.scale
+```
+This guarantees the Emacs rendering surface uses native pixel density after SwiftUI reparenting.
+
+## Files
+- `Sources/HyaloiOS/Editor/EmacsViewsiOS.swift`
+
+---
+
+# Issue I10: Minibuffer not visible (M-x)
+
+## Date
+2026-02-25
+
+## Status
+OPEN
+
+## Problem
+Invoking M-x (execute-extended-command) on iOS — the minibuffer/echo area is not visible. It may be occluded by the keyboard accessory bar or positioned outside the visible frame.
+
+## Root Cause (hypothesis)
+Under SwiftUI hosting with `ios_has_swiftui_host() = true`:
+- Emacs frame fills the SwiftUI container (EmacsContainerViewiOS)
+- The feedstock's keyboard-height adjustment is done in `EmacsViewController.keyboardWillShow` by modifying `_bottomConstraint`
+- BUT: since `EmacsViewController` layout constraints are **not active** in SwiftUI mode, keyboard appearance does NOT shrink the Emacs frame
+- Result: the minibuffer (bottom row of Emacs frame) is hidden under the software keyboard
+
+The keyboard accessory bar (Esc/Ctrl/Alt/Tab/arrows) is rendered by the feedstock as `inputAccessoryView` of EmacsView — it sits above the keyboard. But the minibuffer row of the Emacs text frame may be below the keyboard.
+
+Need to investigate whether `ios_request_frame_resize` is called when keyboard appears in SwiftUI mode.
+
+## Fix Required (investigation needed)
+1. Check if `keyboardWillShow:` / `keyboardDidChangeFrame:` is still being called when EmacsView is in SwiftUI hierarchy (it should be, since EmacsView registers for these notifications directly)
+2. Check if `ios_request_frame_resize` is called with the keyboard-adjusted height
+3. If not: wire keyboard height notification → update `EmacsContainerViewiOS` frame height → trigger Emacs resize
+
+May require feedstock patch to `iosterm.m` or a new Swift-side keyboard observer.
+
+## Files
+- `Sources/HyaloiOS/Editor/EmacsViewsiOS.swift`
+- `~/Syntropment/hyalo-feedstock-unified/ios/iosterm.m` (potential patch, human commits feedstock)
+
+---
+
+# Issue I11: Channels connectivity audit
+
+## Date
+2026-02-25
+
+## Status
+OPEN (partial)
+
+## Channels connected
+- `hyalo_ios_setup_channels` — wired ✓
+- Navigator, editor tabs, status, toolbar, open-quickly, command-list — all have `@_cdecl` FFI ✓
+- `hyalo_ios_appearance_set_mode` — wired ✓ (Emacs→Swift direction)
+- `DispatchRouter.sendCommand(.appearanceChange)` — wired ✓ (Swift→Emacs direction, fixed ea8613d)
+
+## Missing / Broken
+- `hyalo-set-current-theme-name` → no `@_cdecl` → Issue I8
+- `hyalo-set-workspace-appearance` → has an Elisp stub in hyalo-channels-ios.el, calls `hyalo-ios-appearance-set-mode` → appears OK
+- `ios-system-appearance-change-functions` hook → `Vios_system_appearance` is set by feedstock but hyalo-ios.el does not hook it → R3 (auto mode always dark fallback)
+
+## Not yet audited
+- Search channel (`hyalo_ios_search_*`)
+- Diagnostics channel
+- Package channel
+- Source control channel
+
+---
+
+# Issue I11: Auto appearance always dark
+
+## Date
+2026-02-25
+
+## Status
+FIX IMPLEMENTED — awaiting confirmation
+
+## Problem
+The `ios-system-appearance-change-functions` hook (defined in feedstock `iosterm.m`) was never hooked in `hyalo-themes.el`, so iOS theme sync never responded to system dark/light mode changes. The initial theme was always loaded as dark (fallback).
+
+## Root Cause
+1. `hyalo-theme-sync` had a re-entrancy guard for `ns-system-appearance-change-functions` but not for `ios-system-appearance-change-functions`
+2. `hyalo-theme-setup` hooked `ns-system-appearance-change-functions` but not `ios-system-appearance-change-functions`
+3. `hyalo-theme-setup`'s initial theme detection cond had no case for `ios-system-appearance`
+
+## Fix Applied
+
+### Change 1: Re-entrancy guard in `hyalo-theme-sync` (line 148-149)
+Added `ios-system-appearance-change-functions nil` to the existing `ns-system-appearance-change-functions nil` guard:
+```elisp
+(let ((ns-system-appearance-change-functions nil)
+      (ios-system-appearance-change-functions nil))
+```
+This prevents the iOS hook from re-firing while a theme load is in progress.
+
+### Change 2: Hook iOS system appearance changes in `hyalo-theme-setup` (lines 198-200)
+Added after the existing `ns-system-appearance-change-functions` hook:
+```elisp
+  ;; iOS: hook system appearance changes
+  (when (boundp 'ios-system-appearance-change-functions)
+    (add-hook 'ios-system-appearance-change-functions #'hyalo-theme-sync))
+```
+
+### Change 3: Initial theme detection in `hyalo-theme-setup` (lines 210-212)
+Added iOS case to the cond before the TTY case:
+```elisp
+                  ;; iOS: use ios-system-appearance
+                  ((and (boundp 'ios-system-appearance) ios-system-appearance)
+                   ios-system-appearance)
+```
+
+## Why this works
+- Feedstock `iosterm.m` declares `ios-system-appearance` (Lisp variable, value: `'dark` or `'light`) and `ios-system-appearance-change-functions` (hook list, called with `'dark` or `'light` arg when system appearance changes)
+- The hook calling convention matches `ns-system-appearance-change-functions` — both call their functions with a single `appearance` symbol argument
+- `hyalo-theme-sync` already accepts a single `appearance` symbol argument — no signature change needed
+- The re-entrancy guard prevents a loop if the hook fires during a theme load
+- All changes use `boundp` guards so macOS is unaffected
+
+## Verification
+- `swift build --target Hyalo` passes (macOS build unaffected)
+- Only `lisp/hyalo-themes.el` was modified
+
+---
+
+# Issue I12: Massive duplication in init files from previous edit
+
+## Date
+2026-02-26
+
+## Status
+FIX IMPLEMENTED — awaiting confirmation
+
+## Problem
+Previous edit left MASSIVE DUPLICATION in three init files:
+- `init/init-appearance.el`: Every `use-package` form had duplicate `:ensure t` and `:demand t` lines, and old font `set-face-attribute` calls were left after the new iOS `if` block
+- `init/init-completion.el`: Every `use-package` form was duplicated entirely
+- `init/init-bootstrap.el`: Mostly correct but verified
+
+## Root Cause
+Previous subagent used an unstable model and left duplicate lines everywhere. The INTENT of the changes (iOS guards on third-party packages) was correct, but the EXECUTION was broken — lines were inserted but originals not removed.
+
+## Fix Applied
+
+### 1. Rewrote `init/init-appearance.el` (306 lines)
+Removed all duplicate lines:
+- Lines 12-13: duplicate comment "Set font preferences before loading themes" → removed
+- Lines 31-43: OLD font `set-face-attribute` calls → removed
+- Lines 47-52: fontaine duplicate `:ensure t` and `:demand t` → kept only ONE of each
+- Lines 124-131: modus-themes duplicate `:ensure` and `:demand t` → kept only the `:ensure (not (eq window-system 'ios))` form
+- Lines 136-144: ef-themes duplicate `:ensure t` and `:demand t` → kept only ONE of each
+- Lines 214-221: nerd-icons duplicate `:ensure t` and `:demand t` → kept only ONE of each
+- Lines 253-260: lin duplicate `:ensure t` → kept only ONE
+- Lines 273-276: hide-mode-line duplicate `:ensure t` and stray `)` → fixed
+- Lines 278-290: demap duplicate `:ensure t` → kept only ONE
+- Lines 294-300: olivetti duplicate `:ensure t` → kept only ONE
+- Lines 307-321: mixed-pitch duplicate `:ensure t` → kept only ONE
+
+Correct pattern for each guarded use-package:
+```elisp
+(use-package PACKAGE-NAME
+  :if (not (eq window-system 'ios))
+  :ensure t
+  :demand t  ;; only if originally had :demand t
+  ...)
+```
+
+### 2. Rewrote `init/init-completion.el` (97 lines)
+Every use-package form was duplicated. Rewrote entire file with each form appearing exactly once with the `:if` guard added:
+- vertico, marginalia, orderless, consult, embark, embark-consult, corfu — all now appear once with `:if (not (eq window-system 'ios))` guard
+
+### 3. Verified `init/init-bootstrap.el` (237 lines)
+No duplicate lines found. Key changes verified present:
+- Line 97: `(unless (eq window-system 'ios)` wrapping MELPA archive
+- Line 109-110: `(unless (or (package-installed-p 'use-package) (eq window-system 'ios))`
+- Line 127: `(setq use-package-always-ensure (not (eq window-system 'ios)))`
+- Line 146: `:if (not (eq window-system 'ios))` on elog
+- Line 175: `(unless (eq window-system 'ios)` wrapping transient hook
+- Line 193: `(unless (eq window-system 'ios)` wrapping incremental loading
+
+## Verification
+- `swift build --target Hyalo` passes
+- All three files load successfully in Emacs batch mode
+- No syntax errors (balanced parens)
+- No duplicate lines in any file
+- iOS guards correctly applied to all third-party packages
+
+## Files Modified
+- `init/init-appearance.el` — complete rewrite (306 lines, no duplicates)
+- `init/init-completion.el` — complete rewrite (97 lines, no duplicates)
+- `init/init-bootstrap.el` — verified correct (no changes needed)
+

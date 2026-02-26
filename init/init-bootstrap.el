@@ -94,7 +94,8 @@
 ;;; ===========================================================================
 
 (require 'package)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(unless (eq window-system 'ios)
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
 ;; Some packages (e.g. modus-themes) have autoload files that call their own
 ;; macros before those macros are loaded.  debug-on-error t would enter the
 ;; debugger on those benign errors.  Silence them during package-initialize.
@@ -105,7 +106,8 @@
 ;; package-install via a transient hook.  See below, after hyalo-lib
 ;; is loaded (transient hook macro lives there).
 
-(unless (package-installed-p 'use-package)
+(unless (or (package-installed-p 'use-package)
+            (eq window-system 'ios))
   ;; The global message redirect (installed in init.el) forwards all
   ;; `message' output to the loading proxy.  We only need explicit
   ;; step messages here for key milestones.
@@ -122,7 +124,7 @@
               (error-message-string err)))))
 
 (require 'use-package)
-(setq use-package-always-ensure t)
+(setq use-package-always-ensure (not (eq window-system 'ios)))
 
 ;;; ===========================================================================
 ;;; Logging (elog)
@@ -141,6 +143,7 @@ Uses elog if available, otherwise falls back to message."
 
 (use-package elog
   :ensure t
+  :if (not (eq window-system 'ios))
   :vc (:url "https://github.com/Kinneyzhang/elog" :rev :newest)
   :demand t
   :config
@@ -169,28 +172,30 @@ Uses elog if available, otherwise falls back to message."
 ;; Avoids blocking startup with network I/O when the cache is stale.
 ;; The Swift package manager panel calls hyalo-package--refresh for
 ;; explicit manual refresh.
-(hyalo-add-transient-hook 'package-install
-  (let ((last-refresh-file (expand-file-name "elpa/.last-package-refresh"
-                                             user-emacs-directory))
-        (refresh-interval (* 24 60 60)))
-    (when (or (not (file-exists-p last-refresh-file))
-              (> (- (float-time)
-                    (float-time (file-attribute-modification-time
-                                 (file-attributes last-refresh-file))))
-                 refresh-interval))
-      (message "Refreshing package contents...")
-      (package-refresh-contents)
-      (write-region "" nil last-refresh-file))))
+(unless (eq window-system 'ios)
+  (hyalo-add-transient-hook 'package-install
+    (let ((last-refresh-file (expand-file-name "elpa/.last-package-refresh"
+                                               user-emacs-directory))
+          (refresh-interval (* 24 60 60)))
+      (when (or (not (file-exists-p last-refresh-file))
+                (> (- (float-time)
+                      (float-time (file-attribute-modification-time
+                                   (file-attributes last-refresh-file))))
+                   refresh-interval))
+        (message "Refreshing package contents...")
+        (package-refresh-contents)
+        (write-region "" nil last-refresh-file)))))
 
 ;; Register heavy packages for incremental idle loading.
 ;; These are deferred at init but preloaded during idle time so first
 ;; use is instant.  Loading starts 2s after startup, one package per
 ;; 0.75s idle interval, pausing if the user types.
-(hyalo-load-packages-incrementally
- '(magit magit-git magit-process magit-section
-   vertico consult orderless marginalia
-   corfu markdown-mode diff-hl which-key
-   eglot project))
+(unless (eq window-system 'ios)
+  (hyalo-load-packages-incrementally
+   '(magit magit-git magit-process magit-section
+     vertico consult orderless marginalia
+     corfu markdown-mode diff-hl which-key
+     eglot project)))
 
 ;;; ===========================================================================
 ;;; Environment & Shell

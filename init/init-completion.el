@@ -6,17 +6,20 @@
 ;;; Code:
 
 (use-package vertico
+  :if (not (eq window-system 'ios))
   :ensure t
   :init
   (vertico-mode))
 
 (use-package marginalia
+  :if (not (eq window-system 'ios))
   :ensure t
   :after vertico
   :init
   (marginalia-mode))
 
 (use-package orderless
+  :if (not (eq window-system 'ios))
   :ensure t
   :custom
   (completion-styles '(basic partial-completion orderless))
@@ -25,6 +28,7 @@
   (orderless-component-separator #'orderless-escapable-split-on-space))
 
 (use-package consult
+  :if (not (eq window-system 'ios))
   :ensure t
   :bind (("C-x b" . consult-buffer)
          ("C-x C-r" . consult-recent-file)
@@ -37,6 +41,7 @@
   (setq consult-preview-key nil))
 
 (use-package embark
+  :if (not (eq window-system 'ios))
   :ensure t
   :bind (("C-." . embark-act)
          ("C-;" . embark-dwim)
@@ -50,6 +55,7 @@
                  (window-parameters (mode-line-format . none)))))
 
 (use-package embark-consult
+  :if (not (eq window-system 'ios))
   :ensure t
   :hook (embark-collect-mode . consult-preview-at-point-mode))
 
@@ -62,16 +68,17 @@
     (eshell-send-input)))
 
 (use-package corfu
+  :if (not (eq window-system 'ios))
   :ensure t
   :init
   (global-corfu-mode)
-  (corfu-echo-mode)              ;; Show candidates in echo area
+  (corfu-echo-mode)
   :custom
-  (corfu-cycle t)                ;; Enable cycling for "fast" completion
-  (corfu-auto nil)               ;; Disable auto completion
-  (corfu-separator ?\s)          ;; Orderless field separator
-  (corfu-preview-current t)      ;; Enable inline preview
-  (corfu-min-width 1)            ;; Minimal width
+  (corfu-cycle t)
+  (corfu-auto nil)
+  (corfu-separator ?\s)
+  (corfu-preview-current t)
+  (corfu-min-width 1)
   :bind
   (:map corfu-map
         ("TAB" . corfu-next)

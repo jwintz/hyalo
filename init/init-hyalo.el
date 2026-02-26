@@ -131,8 +131,8 @@
 (use-package hyalo-keycast
   :ensure nil
   :if (memq window-system '(ns ios))
-  :commands (hyalo-keycast-mode)
-  :init (hyalo-keycast-mode))
+  :commands (hyalo-keycast-mode))
+; :init (hyalo-keycast-mode))
 
 ;;;; Hyalo Appearance
 

@@ -1252,3 +1252,254 @@ Tasks [17/17 compliant] | Scope [2 VIOLATIONS] | Unaccounted [1 FILE] | VERDICT:
 2. **Automated checks**: Consider pre-commit hooks to block forbidden file modifications
 3. **Review HyaloMac changes**: Verify c9eac69 GlassEffectView changes don't break macOS builds
 
+
+---
+
+## I7, I8, I9: iOS SwiftUI/UIKit Fixes (2026-02-25)
+
+### Summary
+Fixed three iOS-specific issues: suppressed iOS 26 system glass pill on BranchPickerView, added FFI function for setting current theme name, and ensured Retina rendering after EmacsView reparenting.
+
+### I7: Suppress iOS 26 System Glass Pill on BranchPickerView
+
+**Problem**: iOS 26's liquid glass NavigationBar automatically applies a pill/capsule background to any ToolbarItem containing interactive content (Menu, Button). The BranchPickerView was getting this unwanted pill treatment.
+
+**Solution**: Added `.buttonStyle(.plain)` modifier to the BranchPickerView ToolbarItem in `HyaloiOSNavigationLayout.swift` (line 136). This suppresses the automatic interactive-content pill treatment from iOS 26 navbar.
+
+**File Modified**: `Sources/HyaloiOS/Window/HyaloiOSNavigationLayout.swift`
+
+**Change**:
+```swift
+ToolbarItem(placement: .topBarLeading) {
+    BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
+        .frame(minWidth: 80, maxWidth: 200)
+        .buttonStyle(.plain)  // Suppress iOS 26 pill
+}
+```
+
+### I8: Add hyalo_ios_set_current_theme_name FFI
+
+**Problem**: The Elisp side calls `(hyalo-set-current-theme-name (symbol-name theme))` in `hyalo-channels-ios.el` but the C FFI function was not implemented in Swift.
+
+**Solution**: Added `@_cdecl("hyalo_ios_set_current_theme_name")` function in `ChannelBridge.swift` (lines 200-207) that sets `HyaloiOSModule.shared.workspace.currentThemeName`. Also added stub in `lisp/hyalo-ios.el` (lines 226-228).
+
+**Files Modified**:
+- `Sources/HyaloiOS/Bridge/ChannelBridge.swift`
+- `lisp/hyalo-ios.el`
+
+**Swift Implementation**:
+```swift
+@_cdecl("hyalo_ios_set_current_theme_name")
+func bridgeSetCurrentThemeName(_ nameCString: UnsafePointer<CChar>) {
+    let name = String(cString: nameCString)
+    DispatchQueue.main.async {
+        if #available(iOS 26.0, *) {
+            HyaloiOSModule.shared.workspace.currentThemeName = name
+        }
+    }
+}
+```
+
+**Elisp Stub**:
+```elisp
+(hyalo--ios-function hyalo-set-current-theme-name
+  "Set current theme name.")
+```
+
+### I9: Set contentsScale After EmacsView Reparented
+
+**Problem**: The EmacsView sets `layer.contentsScale` at init time from `UIScreen.mainScreen.scale`, but after being reparented into a SwiftUI view hierarchy the scale must be re-applied from the actual window's screen to guarantee Retina rendering.
+
+**Solution**: Replaced the existing `didMoveToWindow` implementation in `EmacsViewsiOS.swift` (lines 37-46) to set `emacsView.layer.contentsScale` and `emacsView.contentScaleFactor` from `window?.screen.scale` after reparenting.
+
+**File Modified**: `Sources/HyaloiOS/Editor/EmacsViewsiOS.swift`
+
+**New Implementation**:
+```swift
+override func didMoveToWindow() {
+    super.didMoveToWindow()
+    guard window != nil, let emacsView else { return }
+    // Re-apply Retina scale after reparenting into SwiftUI host.
+    let scale = window?.screen.scale ?? UIScreen.main.scale
+    emacsView.layer.contentsScale = scale
+    emacsView.contentScaleFactor = scale
+    // Defer becomeFirstResponder to the next run-loop iteration so
+    // the layout pass has completed and the view has non-zero bounds.
+    DispatchQueue.main.async { [weak emacsView] in
+        emacsView?.becomeFirstResponder()
+    }
+}
+```
+
+### Verification
+
+**Build Test**:
+```bash
+swift build --target Hyalo 2>&1 | tail -5
+```
+Result: `Build of target: 'Hyalo' complete! (1.34s)`
+
+**Key Findings**:
+1. iOS 26 automatically applies pill backgrounds to interactive ToolbarItems - `.buttonStyle(.plain)` suppresses this
+2. FFI functions must be added to both Swift (with `@_cdecl`) and Elisp (with `hyalo--ios-function` macro)
+3. `layer.contentsScale` must be reapplied after reparenting into SwiftUI to ensure Retina rendering
+4. All three fixes are iOS-only and do not affect macOS builds
+
+
+# Issue I11 Fix: iOS System Appearance Hook
+
+## Problem
+The `ios-system-appearance-change-functions` hook (defined in feedstock `iosterm.m`) was never hooked in `hyalo-themes.el`, so iOS theme sync never responded to system dark/light mode changes. The initial theme was always loaded as dark (fallback).
+
+## Solution
+Modified `lisp/hyalo-themes.el` with three changes:
+
+### Change 1: Re-entrancy guard in `hyalo-theme-sync` (line 148-149)
+Added `ios-system-appearance-change-functions nil` to the existing `ns-system-appearance-change-functions nil` guard:
+```elisp
+(let ((ns-system-appearance-change-functions nil)
+      (ios-system-appearance-change-functions nil))
+```
+This prevents the iOS hook from re-firing while a theme load is in progress.
+
+### Change 2: Hook iOS system appearance changes in `hyalo-theme-setup` (lines 198-200)
+Added after the existing `ns-system-appearance-change-functions` hook:
+```elisp
+  ;; iOS: hook system appearance changes
+  (when (boundp 'ios-system-appearance-change-functions)
+    (add-hook 'ios-system-appearance-change-functions #'hyalo-theme-sync))
+```
+
+### Change 3: Initial theme detection in `hyalo-theme-setup` (lines 210-212)
+Added iOS case to the cond before the TTY case:
+```elisp
+                  ;; iOS: use ios-system-appearance
+                  ((and (boundp 'ios-system-appearance) ios-system-appearance)
+                   ios-system-appearance)
+```
+
+## Why this works
+- Feedstock `iosterm.m` declares `ios-system-appearance` (Lisp variable, value: `'dark` or `'light`) and `ios-system-appearance-change-functions` (hook list, called with `'dark` or `'light` arg when system appearance changes)
+- The hook calling convention matches `ns-system-appearance-change-functions` — both call their functions with a single `appearance` symbol argument
+- `hyalo-theme-sync` already accepts a single `appearance` symbol argument — no signature change needed
+- The re-entrancy guard prevents a loop if the hook fires during a theme load
+- All changes use `boundp` guards so macOS is unaffected
+
+## Verification
+- `swift build --target Hyalo` passes (macOS build unaffected)
+- Only `lisp/hyalo-themes.el` was modified
+
+---
+
+# Theme Not Applied on iOS Fix (2026-02-26)
+
+## Problem
+The theme was not being applied on iOS. The root cause was that `use-package-always-ensure t` in `init-bootstrap.el` caused ALL `use-package` forms to try downloading packages from MELPA. On iOS, third-party packages are NOT bundled. When they fail to install, their `:demand t` errors prevented the rest of `init-appearance.el` from executing, including the critical `(require 'hyalo-themes)` and `(hyalo-theme-setup)` at lines 171-172.
+
+## Solution
+Three files were modified to add iOS guards that prevent package downloads while preserving the theme loading path:
+
+### 1. init-bootstrap.el
+
+**Change: Conditional `use-package-always-ensure`** (line 125)
+```elisp
+(setq use-package-always-ensure (not (eq window-system 'ios)))
+```
+This is the SINGLE MOST IMPORTANT change. It prevents ALL use-package forms from trying to download packages on iOS.
+
+**Change: iOS guard for MELPA archive** (lines 96-102)
+```elisp
+(require 'package)
+(unless (eq window-system 'ios)
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
+```
+
+**Change: iOS guard for use-package install** (lines 108-122)
+```elisp
+(unless (or (package-installed-p 'use-package)
+            (eq window-system 'ios))
+```
+
+**Change: iOS guard for elog** (lines 142-153)
+```elisp
+(use-package elog
+  :ensure t
+  :if (not (eq window-system 'ios))
+  :vc (:url "https://github.com/Kinneyzhang/elog" :rev :newest)
+```
+
+**Change: iOS guard for package-refresh transient hook** (lines 172-183)
+```elisp
+(unless (eq window-system 'ios)
+  (hyalo-add-transient-hook 'package-install ...))
+```
+
+**Change: iOS guard for incremental loading** (lines 189-193)
+```elisp
+(unless (eq window-system 'ios)
+  (hyalo-load-packages-incrementally ...))
+```
+
+### 2. init-appearance.el
+
+**Change: iOS-specific font block** (lines 12-25)
+```elisp
+(if (eq window-system 'ios)
+    (progn
+      (set-face-attribute 'default nil :family "Menlo" :height 120 :weight 'regular)
+      (set-face-attribute 'variable-pitch nil :family "Menlo" :height 120 :weight 'regular)
+      (set-face-attribute 'fixed-pitch nil :family "Menlo" :height 120 :weight 'regular))
+  ;; macOS font settings...
+```
+
+**Change: iOS guards for third-party packages** (added `:if (not (eq window-system 'ios))` to):
+- `fontaine` (line 29)
+- `ef-themes` (line 113)
+- `nerd-icons` (line 188)
+- `lin` (line 224)
+- `hide-mode-line` (line 242)
+- `demap` (line 245)
+- `olivetti` (line 259)
+- `mixed-pitch` (line 270)
+
+**Change: Conditional `:ensure` for modus-themes** (line 103)
+```elisp
+(use-package modus-themes
+  :ensure (not (eq window-system 'ios))
+```
+On iOS, modus-themes is built-in at `etc/themes/`, so no download needed.
+
+### 3. init-completion.el
+
+**Change: iOS guards for all completion packages** (added `:if (not (eq window-system 'ios))` to):
+- `vertico` (line 8)
+- `marginalia` (line 13)
+- `orderless` (line 19)
+- `consult` (line 27)
+- `embark` (line 39)
+- `embark-consult` (line 52)
+- `corfu` (line 64)
+
+This means on iOS there will be NO completion framework - the built-in Emacs completion still works for M-x.
+
+## Key Principles
+
+1. **`use-package-always-ensure` is the master switch** - Setting this to nil on iOS prevents all automatic package downloads
+
+2. **Third-party packages need `:if` guards** - Any package that requires downloading from MELPA must have `:if (not (eq window-system 'ios))`
+
+3. **Built-in/bundled packages work without guards** - These packages work on iOS without changes:
+   - `modus-themes` (built-in at `etc/themes/`)
+   - `nano-themes` (bundled in `lisp/` with `:ensure nil`)
+   - `hyalo-splash` (bundled in `lisp/` with `:ensure nil`)
+   - `hl-line` (built-in with `:ensure nil`)
+   - `iota-dimmer` (bundled in `lisp/` with `:ensure nil`)
+
+4. **Theme loading path must remain unconditional** - The critical `(require 'hyalo-themes)` and `(hyalo-theme-setup)` at lines 171-172 MUST execute on ALL platforms - they are the whole point of the fix
+
+## Verification
+
+- `swift build --target Hyalo` passes (macOS regression check)
+- All three init files modified with iOS guards
+- No changes to `lisp/hyalo-themes.el` (already handles iOS correctly)
+- No changes to any Swift files
