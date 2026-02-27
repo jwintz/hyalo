@@ -105,9 +105,14 @@
 ;;;; Theme Dependencies
 
 ;; modus-themes: accessibility-focused base theme engine (required by nano-themes)
+;; On iOS, modus-themes.el lives in etc/themes/ (bundled with Emacs), not in
+;; ELPA. Add etc/themes/ to load-path so (require 'modus-themes) works.
+(when (eq window-system 'ios)
+  (add-to-list 'load-path
+               (expand-file-name "themes" data-directory)))
+
 (use-package modus-themes
-  :if (not (eq window-system 'ios))
-  :ensure t
+  :ensure (not (eq window-system 'ios))
   :demand t
   :config
   (setq modus-themes-italic-constructs t)

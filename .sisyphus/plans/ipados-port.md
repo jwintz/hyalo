@@ -2121,6 +2121,8 @@ Device testing requires:
 | R1 | Appearance panel renders EmptyView on iOS | High | OPEN | None |
 | R2 | BranchPickerView grouped with sidebar toggle | High | OPEN | None |
 | R3 | Theme always falls through to dark | Low | OPEN | Phase 7 channel bridge |
+| R4 | modus-themes not loading on iOS (etc/themes/ not on load-path) | High | Fix implemented — awaiting confirmation | None |
+| R5 | No minibuffer completion on iOS (all packages disabled) | High | Fix implemented — awaiting confirmation | None |
 | 10.1 | Build device dependencies | Medium | BLOCKED | Manual feedstock work |
 | 10.2 | Build device libemacs.a | Medium | BLOCKED | 10.1 |
 | 10.3 | Device build and install | Medium | BLOCKED | 10.2 |

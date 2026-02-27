@@ -2,8 +2,20 @@
 
 ;; Description: Vertico, Consult, Marginalia, Orderless configuration
 ;; Part of the Hyalo Emacs configuration
+;; On iOS: uses built-in fido-vertical-mode (no external packages available)
 
 ;;; Code:
+
+;;;; iOS: Built-in Completion
+
+;; On iOS, external packages (vertico, orderless, etc.) are not bundled.
+;; Use Emacs's built-in fido-vertical-mode which provides vertical
+;; minibuffer completion similar to vertico, with flex matching.
+(when (eq window-system 'ios)
+  (fido-vertical-mode 1)
+  (setq completions-detailed t))
+
+;;;; Desktop: External Completion Stack
 
 (use-package vertico
   :if (not (eq window-system 'ios))
