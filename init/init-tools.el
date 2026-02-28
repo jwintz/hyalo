@@ -173,12 +173,12 @@ Falls back to prin1 if pretty-printing fails."
 Respond with ONLY the commit message, no explanation, no markdown, no quotes."
     "System message for commit message generation.")
 
-  (defcustom magit-commit-provider "synthetic"
+  (defcustom magit-commit-provider "github-copilot"
     "AI provider for commit message generation."
     :type 'string
     :group 'magit)
 
-  (defcustom magit-commit-model "hf:MiniMaxAI/MiniMax-M2.1"
+  (defcustom magit-commit-model "gpt-5-mini"
     "Model ID for commit message generation."
     :type 'string
     :group 'magit)
