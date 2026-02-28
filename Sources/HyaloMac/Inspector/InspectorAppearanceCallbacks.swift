@@ -11,6 +11,16 @@ enum InspectorAppearanceCallbackWirer {
             }
             for ws in HyaloModule.allWorkspaces {
                 ws.windowAppearance = mode
+                // Update the color theme's isDark flag to match the resolved
+                // appearance. platformIsDarkMode() reads NSApp.effectiveAppearance
+                // which reflects the *system* mode, not the per-window override.
+                // When the user explicitly picks light/dark, we must set isDark
+                // directly so all @Observable SwiftUI views re-render.
+                switch mode {
+                case "light": ws.colorTheme.isDark = false
+                case "dark":  ws.colorTheme.isDark = true
+                default:      ws.colorTheme.refreshAppearance()
+                }
             }
             HyaloModule.onAppearanceModeChanged?(mode)
             HyaloModule.wakeEmacs()

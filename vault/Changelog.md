@@ -19,6 +19,10 @@ All notable changes to Hyalo are documented here. The format follows [Keep a Cha
 
 ## Unreleased
 
+### Fixed
+
+- Fix Emacs initialization error: `use-package` failed to parse `modus-themes` because `:ensure` requires a symbol or boolean, not a lisp expression. Replaced `:ensure (not (eq window-system 'ios))` with `:ensure t` and `:if (not (eq window-system 'ios))`.
+
 ### Added
 
 - Initial revision: native macOS Emacs with SwiftUI chrome, NavigationSplitView layout, bidirectional Swift/Emacs Lisp channels, and integrated package/activity/terminal UI.

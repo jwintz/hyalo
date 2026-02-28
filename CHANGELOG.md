@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Fix appearance mode switching from inspector panel not updating SwiftUI views. `colorTheme.isDark` was only refreshed on system appearance changes (via `platformIsDarkMode()` which reads `NSApp.effectiveAppearance`), but never updated when the user manually picks Light/Dark in the inspector. Now the `onAppearanceModeChanged` callback sets `colorTheme.isDark` directly based on the resolved mode ("light" → false, "dark" → true, "auto" → `refreshAppearance()`).
+
+- Fix Emacs initialization error: `use-package` failed to parse `modus-themes` because `:ensure` requires a symbol or boolean, not a lisp expression. Replaced `:ensure (not (eq window-system 'ios))` with `:ensure t` and `:if (not (eq window-system 'ios))`.
+
 - Fix iPadOS themes not applying: `modus-themes` was disabled on iOS via `:if` guard, but `nano-themes` and `hyalo-themes` depend on it. Remove the `:if` guard, use `:ensure` conditional (ELPA on macOS, bundled `etc/themes/` on iOS), and add `etc/themes/` to `load-path` on iOS so `(require 'modus-themes)` resolves
 - Fix iPadOS minibuffer completion not available: all completion packages (vertico, orderless, etc.) were disabled on iOS. Add built-in `fido-vertical-mode` for iOS which provides vertical minibuffer completion without external packages
 

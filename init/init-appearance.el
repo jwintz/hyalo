@@ -112,7 +112,8 @@
                (expand-file-name "themes" data-directory)))
 
 (use-package modus-themes
-  :ensure (not (eq window-system 'ios))
+  :ensure t
+  :if (not (eq window-system 'ios))
   :demand t
   :config
   (setq modus-themes-italic-constructs t)
