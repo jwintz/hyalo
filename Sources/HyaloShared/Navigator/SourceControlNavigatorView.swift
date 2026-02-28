@@ -6,7 +6,10 @@ import SwiftUI
 @available(macOS 26.0, iOS 26.0, *)
 public struct SourceControlNavigatorView: View {
     @State private var selectedSegment: Int = 0
-    private var viewModel: NavigatorViewModel { NavigatorManager.shared.viewModel }
+    @Environment(\.sourceControlViewModel) private var envSCVM
+    @Environment(\.navigatorManager) private var envManager
+
+    private var scVM: SourceControlViewModel { envSCVM ?? NavigatorManager.shared.sourceControlViewModel }
 
     public var body: some View {
         VStack(spacing: 0) {
@@ -22,8 +25,8 @@ public struct SourceControlNavigatorView: View {
             PanelDivider()
 
             switch selectedSegment {
-            case 0: SourceControlChangesView(changedFiles: viewModel.changedFiles)
-            case 1: SourceControlHistoryView(commits: viewModel.commitHistory)
+            case 0: SourceControlChangesView(changedFiles: scVM.changedFiles)
+            case 1: SourceControlHistoryView(commits: scVM.commitHistory)
             case 2:
                 HyaloContentUnavailableView(
                     "Repository",
@@ -42,6 +45,7 @@ public struct SourceControlNavigatorView: View {
 private struct SourceControlChangesView: View {
     let changedFiles: [GitChangedFile]
     @Environment(\.colorTheme) private var theme
+    @Environment(\.navigatorManager) private var envManager
 
     var body: some View {
         if changedFiles.isEmpty {
@@ -67,9 +71,12 @@ private struct SourceControlChangesView: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    NavigatorManager.shared.onChangedFileSelect?(file.filePath)
+                    (envManager ?? NavigatorManager.shared).onChangedFileSelect?(file.filePath)
                     wakeEmacs()
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(file.fileName), \(file.status)")
+                .accessibilityAddTraits(.isButton)
                 .contextMenu {
                     Button("Reveal in Finder") {
                         platformRevealInFinder([file.filePath])
@@ -103,6 +110,7 @@ private struct SourceControlChangesView: View {
 @available(macOS 26.0, iOS 26.0, *)
 private struct SourceControlHistoryView: View {
     let commits: [GitCommitEntry]
+    @Environment(\.navigatorManager) private var envManager
 
     var body: some View {
         if commits.isEmpty {
@@ -116,9 +124,12 @@ private struct SourceControlHistoryView: View {
                 CommitHistoryRow(commit: commit)
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        NavigatorManager.shared.onCommitSelect?(commit.fullHash)
+                        (envManager ?? NavigatorManager.shared).onCommitSelect?(commit.fullHash)
                         wakeEmacs()
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Commit by \(commit.author): \(commit.message)")
+                    .accessibilityAddTraits(.isButton)
                     .contextMenu {
                         Button("Copy Commit Message") {
                             platformCopyToClipboard(commit.message)
@@ -214,31 +225,11 @@ public struct CommitHistoryRow: View {
                             .fill(Color(platformColor: .quaternaryLabel))
                     )
 
-                Text(relativeDate(from: commit.date))
+                Text(DateFormatting.relativeDate(from: commit.date))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 4)
-    }
-
-    /// Convert ISO date string to relative format
-    private func relativeDate(from isoDate: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: isoDate) {
-            let relative = RelativeDateTimeFormatter()
-            relative.unitsStyle = .abbreviated
-            return relative.localizedString(for: date, relativeTo: Date())
-        }
-        // Fallback: try without fractional seconds
-        formatter.formatOptions = [.withInternetDateTime]
-        if let date = formatter.date(from: isoDate) {
-            let relative = RelativeDateTimeFormatter()
-            relative.unitsStyle = .abbreviated
-            return relative.localizedString(for: date, relativeTo: Date())
-        }
-        // Truncate to first 16 chars as fallback
-        return String(isoDate.prefix(16))
     }
 }

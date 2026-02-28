@@ -7,10 +7,14 @@ import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
 public struct BufferListView: View {
-    @State private var viewModel = NavigatorManager.shared.bufferListViewModel
+    @Environment(\.bufferListViewModel) private var envVM
     @State private var selection: String?
     @State private var hoveredBufferId: String?
     @Environment(\.colorTheme) private var theme
+
+    private var viewModel: BufferListViewModel {
+        envVM ?? NavigatorManager.shared.bufferListViewModel
+    }
 
     public var body: some View {
         VStack(spacing: 0) {
@@ -44,7 +48,7 @@ public struct BufferListView: View {
             HStack(spacing: 5) {
                 HyaloPaneTextField(
                     "Filter",
-                    text: $viewModel.filter,
+                    text: Bindable(viewModel).filter,
                     leadingAccessories: {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 11))
@@ -90,6 +94,7 @@ public struct BufferListView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Close buffer: \(buffer.name)")
             } else if buffer.modified {
                 Circle()
                     .fill(theme.accent)
@@ -100,6 +105,9 @@ public struct BufferListView: View {
             hoveredBufferId = hovering ? buffer.id : nil
         }
         .contextMenu { bufferContextMenu(buffer) }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(buffer.name)
+        .accessibilityValue(buffer.modified ? "Modified" : "")
     }
 
     // MARK: - Context Menu

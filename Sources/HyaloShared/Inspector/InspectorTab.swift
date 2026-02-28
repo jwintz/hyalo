@@ -30,14 +30,30 @@ public enum InspectorTab: String, CaseIterable, HyaloPanelTab {
 
     public var body: some View {
         switch self {
-        case .file: FileInspectorView(viewModel: InspectorManager.shared.viewModel)
-        case .history: HistoryInspectorView(viewModel: InspectorManager.shared.viewModel)
+        case .file: InspectorTabContent(tab: .file)
+        case .history: InspectorTabContent(tab: .history)
         case .appearance:
 #if os(macOS)
             InspectorAppearanceView()
 #else
             AppearanceTabContent()
 #endif
+        }
+    }
+}
+
+@available(macOS 26.0, iOS 26.0, *)
+private struct InspectorTabContent: View {
+    let tab: InspectorTab
+    @Environment(\.inspectorViewModel) private var envVM
+
+    private var viewModel: InspectorViewModel { envVM ?? InspectorManager.shared.viewModel }
+
+    var body: some View {
+        switch tab {
+        case .file: FileInspectorView(viewModel: viewModel)
+        case .history: HistoryInspectorView(viewModel: viewModel)
+        default: EmptyView()
         }
     }
 }

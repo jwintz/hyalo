@@ -43,7 +43,7 @@ public struct EnvironmentDropDownView: View {
         .padding(.vertical, 6)
         .background(
             Capsule()
-                .fill(colorScheme == .dark ? Color.white : Color.black)
+                .fill(Color.primary)
                 .opacity(isHovering || isPopoverPresented ? 0.05 : 0)
         )
         .onHover { isHovering = $0 }

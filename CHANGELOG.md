@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Complete NavigatorViewModel migration: remove 15 deprecated properties (`bufferFilter`, `bufferList`, `selectedBuffer`, `activeBuffer`, `searchQuery`, `searchResults`, `findStatus`, `searchResultCount`, `searchFileCount`, `changedFiles`, `commitHistory`), route all NavigatorManager updates exclusively to focused ViewModels (`BufferListViewModel`, `SearchViewModel`, `SourceControlViewModel`)
+- Migrate `SourceControlNavigatorView` from legacy `NavigatorViewModel` to `SourceControlViewModel` as data source
+- Move `groupedResults` computed property from `FindNavigatorView` to `SearchViewModel` to keep collection transforms out of view bodies
+- Change `BufferListView` from `@State` to `@Bindable` for singleton ViewModel reference (correct ownership semantics)
+- Split `Module.swift` (2,403 lines) into 9 domain-specific files: `EmacsFFI.swift`, `Module+WindowSetup.swift`, `Module+Navigator.swift`, `Module+Panels.swift`, `Module+Editor.swift`, `Module+StatusBar.swift`, `Module+Appearance.swift`, `Module+Build.swift`; `Init()` reduced to 10-line dispatcher
+- Replace 10+ hardcoded colors (`Color.white`, `Color.black`, `.gray`) across 8 files with semantic alternatives (`Color.primary`, `.secondary`, `Color(platformColor: .separator)`)
+- Remove 8 unused stored properties from `HyaloWorkspaceState` (reduced from 25 to 17)
+- Delete dead-code duplicate `InstantPopoverModifier.swift` from HyaloMac (shared version is superset)
+- Remove unnecessary `import SwiftUI` from `ChannelBridge.swift`
+
+### Added
+
+- Add `DateFormatting` utility (`Sources/HyaloShared/Shared/DateFormatting.swift`) with cached `ISO8601DateFormatter` and `RelativeDateTimeFormatter` instances, replacing inline allocations in `HistoryInspectorView`, `SourceControlNavigatorView`, and `ToolbarManager`
+- Add accessibility labels to `EditorTabBarView`, `CommandPaletteView`, `ProjectNavigatorView`, `SourceControlNavigatorView`, `BufferListView`
+- Add `@Environment`-based dependency injection for navigator and inspector subsystems: `SourceControlViewModelKey`, `NavigatorManagerKey`, `InspectorManagerKey` in `EnvironmentKeys.swift`; parent views inject sub-VMs; child views use `@Environment` with singleton fallback
+- Add Liquid Glass `.glassEffect(.regular, in: .rect)` to `WorkspacePanelTabBar` top layout for navigator/inspector tab bar headers
+- Add `HyaloSharedTests` test target with 17 tests: `DateFormattingTests` (7) and `FuzzyMatcherTests` (10)
+
+### Fixed
+
+- Remove duplicate `relativeDate(from:)` implementations from `HistoryInspectorView` and `SourceControlNavigatorView` (now uses shared `DateFormatting.relativeDate(from:)`)
+- Remove duplicate `import SwiftUI` in `InspectorAppearanceView.swift` iOS section
+
 ### Fixed
 
 - Fix appearance mode switching from inspector panel not updating SwiftUI views. `colorTheme.isDark` was only refreshed on system appearance changes (via `platformIsDarkMode()` which reads `NSApp.effectiveAppearance`), but never updated when the user manually picks Light/Dark in the inspector. Now the `onAppearanceModeChanged` callback sets `colorTheme.isDark` directly based on the resolved mode ("light" → false, "dark" → true, "auto" → `refreshAppearance()`).

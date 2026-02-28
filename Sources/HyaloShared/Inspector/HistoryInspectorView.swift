@@ -6,6 +6,7 @@ import SwiftUI
 @available(macOS 26.0, iOS 26.0, *)
 struct HistoryInspectorView: View {
     @Bindable var viewModel: InspectorViewModel
+    @Environment(\.inspectorManager) private var envManager
 
     var body: some View {
         if viewModel.commits.isEmpty {
@@ -20,7 +21,7 @@ struct HistoryInspectorView: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         let hash = commit.fullHash ?? commit.hash
-                        InspectorManager.shared.onCommitSelect?(hash)
+                        (envManager ?? InspectorManager.shared).onCommitSelect?(hash)
                         wakeEmacs()
                     }
                     .contextMenu {
@@ -121,29 +122,11 @@ private struct InspectorCommitRow: View {
                             .fill(Color(platformColor: .quaternaryLabel))
                     )
 
-                Text(relativeDate(from: commit.date))
+                Text(DateFormatting.relativeDate(from: commit.date))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 4)
-    }
-
-    /// Convert ISO date string to relative format
-    private func relativeDate(from isoDate: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: isoDate) {
-            let relative = RelativeDateTimeFormatter()
-            relative.unitsStyle = .abbreviated
-            return relative.localizedString(for: date, relativeTo: Date())
-        }
-        formatter.formatOptions = [.withInternetDateTime]
-        if let date = formatter.date(from: isoDate) {
-            let relative = RelativeDateTimeFormatter()
-            relative.unitsStyle = .abbreviated
-            return relative.localizedString(for: date, relativeTo: Date())
-        }
-        return String(isoDate.prefix(16))
     }
 }

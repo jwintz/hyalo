@@ -4,7 +4,6 @@
 // Emacs calls these functions directly (linked at build time from libemacs.a).
 
 import Foundation
-import SwiftUI
 import HyaloShared
 
 // MARK: - Channel Bridge Singleton

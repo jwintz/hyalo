@@ -24,6 +24,13 @@ public final class SearchViewModel {
     public var resultCount: Int = 0
     public var fileCount: Int = 0
     
+    /// Results grouped by file (moved from FindNavigatorView per AUDIT H4)
+    public var groupedResults: [(file: String, results: [SearchResult])] {
+        let dict = Dictionary(grouping: results, by: \.file)
+        return dict.map { (file: $0.key, results: $0.value) }
+            .sorted { $0.file < $1.file }
+    }
+
     // MARK: - Dependencies
     
     public var onSearchExecute: ((String) -> Void)?

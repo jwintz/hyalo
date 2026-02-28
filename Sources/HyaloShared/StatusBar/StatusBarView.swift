@@ -168,7 +168,7 @@ public struct StatusBarView: View {
 
     private var topDivider: some View {
         Divider()
-            .overlay(colorScheme == .dark ? Color.black : Color.clear)
+            .overlay(colorScheme == .dark ? Color(platformColor: .separator) : Color.clear)
     }
 
     // MARK: - Helpers

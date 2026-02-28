@@ -12,7 +12,7 @@ struct DropdownItemStyleModifier: ViewModifier {
                     ? AnyView(RoundedRectangle(cornerRadius: 6).fill(Color.accentColor))
                     : AnyView(Color.clear)
             )
-            .foregroundStyle(isHovering ? Color.white : Color.primary)
+            .foregroundStyle(isHovering ? .white : Color.primary)
             .clipShape(RoundedRectangle(cornerRadius: 6))
             .onHover { isHovering = $0 }
     }

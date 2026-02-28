@@ -29,6 +29,7 @@ public struct EditorTabBarView: View {
                     }
                     .buttonStyle(TabNavigationButtonStyle())
                     .disabled(viewModel.tabs.isEmpty)
+                    .accessibilityLabel("Navigate Back")
 
                     Button {
                         viewModel.onNavigateForward?()
@@ -39,6 +40,7 @@ public struct EditorTabBarView: View {
                     }
                     .buttonStyle(TabNavigationButtonStyle())
                     .disabled(viewModel.tabs.isEmpty)
+                    .accessibilityLabel("Navigate Forward")
                 }
                 .padding(.leading, 8)
                 .padding(.trailing, 4)
@@ -148,6 +150,7 @@ private struct EditorTabItemView: View {
                         }
                         .buttonStyle(.plain)
                         .opacity(isHovering ? 1 : 0)
+                        .accessibilityLabel("Close tab: \(tab.name)")
                     }
                 }
                 .frame(width: 16)
@@ -162,5 +165,9 @@ private struct EditorTabItemView: View {
         .padding(.vertical, 2)
         .padding(.horizontal, 2)
         .onHover { isHovering = $0 }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Tab: \(tab.name)")
+        .accessibilityValue(isSelected ? "Selected" : "")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

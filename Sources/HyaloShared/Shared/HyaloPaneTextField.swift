@@ -60,17 +60,13 @@ struct HyaloPaneTextField<LeadingAccessories: View, TrailingAccessories: View>: 
                 Color(UIColor.secondarySystemBackground)
                 #endif
             } else {
-                if colorScheme == .light {
-                    Color.black.opacity(0.06)
-                } else {
-                    Color.white.opacity(0.24)
-                }
+                Color(platformColor: .separator).opacity(0.3)
             }
         } else {
             if colorScheme == .light {
                 Color.clear
             } else {
-                Color.white.opacity(0.14)
+                Color(platformColor: .separator).opacity(0.3)
             }
         }
     }
@@ -115,6 +111,7 @@ struct HyaloPaneTextField<LeadingAccessories: View, TrailingAccessories: View>: 
                 .frame(width: 20, height: 20)
                 .opacity(text.isEmpty ? 0 : 1)
                 .disabled(text.isEmpty)
+                .accessibilityLabel("Clear text")
             }
             if let trailing = trailingAccessories {
                 trailing

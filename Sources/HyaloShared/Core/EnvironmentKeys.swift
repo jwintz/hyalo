@@ -18,10 +18,27 @@ private struct SearchViewModelKey: EnvironmentKey {
     static let defaultValue: SearchViewModel? = nil
 }
 
+@available(macOS 26.0, iOS 26.0, *)
+private struct SourceControlViewModelKey: @preconcurrency EnvironmentKey {
+    @MainActor static let defaultValue: SourceControlViewModel? = nil
+}
+
+// MARK: - Navigator Manager (for callbacks only)
+
+@available(macOS 26.0, iOS 26.0, *)
+private struct NavigatorManagerKey: @preconcurrency EnvironmentKey {
+    @MainActor static let defaultValue: NavigatorManager? = nil
+}
+
 // MARK: - Inspector View Model
 
 private struct InspectorViewModelKey: EnvironmentKey {
     static let defaultValue: InspectorViewModel? = nil
+}
+
+@available(macOS 26.0, iOS 26.0, *)
+private struct InspectorManagerKey: @preconcurrency EnvironmentKey {
+    @MainActor static let defaultValue: InspectorManager? = nil
 }
 
 // MARK: - Color Theme
@@ -52,6 +69,24 @@ public extension EnvironmentValues {
     var inspectorViewModel: InspectorViewModel? {
         get { self[InspectorViewModelKey.self] }
         set { self[InspectorViewModelKey.self] = newValue }
+    }
+
+    @available(macOS 26.0, iOS 26.0, *)
+    var sourceControlViewModel: SourceControlViewModel? {
+        get { self[SourceControlViewModelKey.self] }
+        set { self[SourceControlViewModelKey.self] = newValue }
+    }
+
+    @available(macOS 26.0, iOS 26.0, *)
+    var navigatorManager: NavigatorManager? {
+        get { self[NavigatorManagerKey.self] }
+        set { self[NavigatorManagerKey.self] = newValue }
+    }
+
+    @available(macOS 26.0, iOS 26.0, *)
+    var inspectorManager: InspectorManager? {
+        get { self[InspectorManagerKey.self] }
+        set { self[InspectorManagerKey.self] = newValue }
     }
 
     @available(macOS 26.0, iOS 26.0, *)

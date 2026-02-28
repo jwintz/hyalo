@@ -68,7 +68,7 @@ struct GlassEffectContainer<Content: View>: View {
                 .padding(HyaloDesign.Padding.compact)
         }
         .glassEffect(in: .rect(cornerRadius: HyaloDesign.CornerRadius.glass))
-        .shadow(color: .black.opacity(0.15), radius: 20, y: 10)
+        .shadow(color: .primary.opacity(0.15), radius: 20, y: 10)
         .padding(HyaloDesign.Padding.outer)
     }
 }

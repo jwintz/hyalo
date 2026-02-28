@@ -6,13 +6,10 @@ import SwiftUI
 
 @available(macOS 26.0, iOS 26.0, *)
 struct PanelDivider: View {
-    @Environment(\.colorScheme)
-    private var colorScheme
-
     var body: some View {
         Divider()
             .overlay(
-                Color.black.opacity(colorScheme == .dark ? 0.65 : 0.13)
+                Color(platformColor: .separator)
             )
     }
 }

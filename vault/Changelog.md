@@ -19,8 +19,30 @@ All notable changes to Hyalo are documented here. The format follows [Keep a Cha
 
 ## Unreleased
 
+### Changed
+
+- Complete NavigatorViewModel migration: remove deprecated properties, route all updates to focused ViewModels
+- Migrate `SourceControlNavigatorView` from legacy `NavigatorViewModel` to `SourceControlViewModel`
+- Move `groupedResults` from `FindNavigatorView` to `SearchViewModel`
+- Fix `BufferListView` property wrapper from `@State` to `@Bindable`
+- Split `Module.swift` (2,403 → 216 lines) into 9 domain-specific extension files
+- Replace hardcoded colors across 8 files with semantic alternatives
+- Remove 8 unused stored properties from `HyaloWorkspaceState`
+- Delete dead-code duplicate `InstantPopoverModifier.swift` from HyaloMac
+- Remove unnecessary `import SwiftUI` from `ChannelBridge.swift`
+
+### Added
+
+- Add `DateFormatting` utility with cached formatters for ISO 8601 date parsing and relative formatting
+- Add accessibility labels to editor tab bar, command palette, project navigator, source control, buffer list
+- Add `@Environment`-based dependency injection for navigator and inspector subsystems (EnvironmentKeys, parent injection, child fallback pattern)
+- Add Liquid Glass `.glassEffect()` to panel tab bar headers
+- Add `HyaloSharedTests` test target with 17 tests (DateFormatting + FuzzyMatcher)
+
 ### Fixed
 
+- Remove duplicate `relativeDate(from:)` implementations (now shared via `DateFormatting`)
+- Remove duplicate `import SwiftUI` in `InspectorAppearanceView`
 - Fix Emacs initialization error: `use-package` failed to parse `modus-themes` because `:ensure` requires a symbol or boolean, not a lisp expression. Replaced `:ensure (not (eq window-system 'ios))` with `:ensure t` and `:if (not (eq window-system 'ios))`.
 
 ### Added

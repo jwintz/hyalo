@@ -54,7 +54,7 @@ struct HyaloPanelView<Tab: HyaloPanelTab>: View {
 
     private var dividerColor: Color {
         if darkDivider && colorScheme == .dark {
-            return Color.black
+            return Color(platformColor: .separator)
         }
         return Color.clear
     }

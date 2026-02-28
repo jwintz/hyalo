@@ -70,6 +70,9 @@ public struct ProjectNavigatorView: View {
                             .buttonStyle(.plain)
                             .frame(width: 18, height: 20)
                             .help("Sort Folders on Top")
+                            .accessibilityLabel("Sort Folders on Top")
+                            .accessibilityValue(viewModel.sortFoldersOnTop ? "On" : "Off")
+                            .accessibilityAddTraits(.isToggle)
 
                             Button {
                                 viewModel.sourceControlFilter.toggle()
@@ -83,6 +86,9 @@ public struct ProjectNavigatorView: View {
                             .buttonStyle(.plain)
                             .frame(width: 18, height: 20)
                             .help("Source Control Filter (Changes Only)")
+                            .accessibilityLabel("Source Control Filter")
+                            .accessibilityValue(viewModel.sourceControlFilter ? "On" : "Off")
+                            .accessibilityAddTraits(.isToggle)
                         }
                         .padding(.trailing, 4)
                     },

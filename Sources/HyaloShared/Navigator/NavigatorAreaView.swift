@@ -16,12 +16,18 @@ public struct NavigatorAreaView: View {
     }
 
     public var body: some View {
+        let manager = NavigatorManager.shared
         HyaloPanelView(
             selectedTab: $viewModel.selectedTab,
             tabItems: $viewModel.tabItems,
             tabBarPosition: .top,
             darkDivider: true
         )
+        .environment(\.navigatorManager, manager)
+        .environment(\.searchViewModel, manager.searchViewModel)
+        .environment(\.bufferListViewModel, manager.bufferListViewModel)
+        .environment(\.projectNavigatorViewModel, manager.projectNavigatorViewModel)
+        .environment(\.sourceControlViewModel, manager.sourceControlViewModel)
         .background {
             Color(platformColor: workspace.backgroundColor)
                 .opacity(Double(workspace.backgroundAlpha))

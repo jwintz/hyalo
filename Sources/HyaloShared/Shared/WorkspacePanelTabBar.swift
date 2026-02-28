@@ -38,12 +38,12 @@ struct WorkspacePanelTabBar<Tab: HyaloPanelTab>: View {
         GeometryReader { proxy in
             iconsView(size: proxy.size)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                // AUDIT.md #7: Respect Reduce Motion
                 .animation(reduceMotion ? nil : .default, value: items)
         }
         .clipped()
         .frame(maxWidth: .infinity, idealHeight: 27)
         .fixedSize(horizontal: false, vertical: true)
+        .glassEffect(.regular, in: .rect)
     }
 
     private var sideBody: some View {

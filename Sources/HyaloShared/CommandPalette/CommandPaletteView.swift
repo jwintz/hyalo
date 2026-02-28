@@ -51,6 +51,7 @@ public struct CommandPaletteView: View {
                     .font(.system(size: 20, weight: .light))
                     .textFieldStyle(.plain)
                     .focused($isSearchFocused)
+                     .accessibilityLabel("Command search")
             }
             .padding(.vertical, 12)
             .foregroundColor(.primary.opacity(0.85))
@@ -71,6 +72,10 @@ public struct CommandPaletteView: View {
                         .onTapGesture {
                             commitCommand(command)
                         }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(command.name)
+                        .accessibilityHint(command.description)
+                        .accessibilityAddTraits(.isButton)
                 }
                 .id(viewModel.searchText)
                 .listStyle(.plain)

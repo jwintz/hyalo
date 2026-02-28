@@ -67,9 +67,9 @@ public struct BranchPickerView: View {
                         Text(viewModel.currentBranch)
                             .font(.subheadline)
                             #if os(macOS)
-                            .foregroundColor(controlActive == .inactive ? inactiveColor : .gray)
+                            .foregroundColor(controlActive == .inactive ? inactiveColor : .secondary)
 #else
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
 #endif
                             .frame(height: 11)
                     }

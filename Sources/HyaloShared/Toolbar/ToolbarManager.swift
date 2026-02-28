@@ -85,13 +85,7 @@ public final class ToolbarManager {
             viewModel.upgradablePackages = payload.upgradable
             viewModel.vcPackages = payload.vcPackages
             if let ts = payload.lastChecked {
-                let formatter = ISO8601DateFormatter()
-                formatter.formatOptions = [
-                    .withFullDate, .withTime,
-                    .withDashSeparatorInDate, .withColonSeparatorInTime,
-                    .withTimeZone
-                ]
-                viewModel.lastChecked = formatter.date(from: ts)
+                viewModel.lastChecked = DateFormatting.parseISO8601Full(ts)
             }
         } catch {
             platformLog("[Hyalo] updatePackageStatus decode error: \(error)")

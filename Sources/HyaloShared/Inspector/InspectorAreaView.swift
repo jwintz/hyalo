@@ -23,6 +23,8 @@ public struct InspectorAreaView: View {
             darkDivider: true
         )
         .environment(workspace)
+        .environment(\.inspectorViewModel, viewModel)
+        .environment(\.inspectorManager, InspectorManager.shared)
         .background {
             Color(platformColor: workspace.backgroundColor)
                 .opacity(Double(workspace.backgroundAlpha))

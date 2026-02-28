@@ -81,6 +81,14 @@ let package = Package(
             name: "HyaloEmacsStubs",
             path: "Sources/HyaloEmacsStubs",
             publicHeadersPath: ""
+        ),
+        .testTarget(
+            name: "HyaloSharedTests",
+            dependencies: ["HyaloShared"],
+            path: "Tests/HyaloSharedTests",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
         )
     ]
 )

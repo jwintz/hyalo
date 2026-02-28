@@ -32,8 +32,6 @@ public final class HyaloWorkspaceState {
     // MARK: - Window Identity
 
     public var projectName: String = ""
-    public var projectRoot: String = ""
-    public var projectURL: URL?
 
     // MARK: - Appearance (persisted to UserDefaults)
 
@@ -62,24 +60,12 @@ public final class HyaloWorkspaceState {
     public var navigatorVisible: Bool = false
     public var inspectorVisible: Bool = false
     public var utilityAreaVisible: Bool = false
-    public var utilityAreaMaximized: Bool = false
 
     // MARK: - Panel Dimensions
 
     public var navigatorWidth: CGFloat = 280
     public var inspectorWidth: CGFloat = 300
     public var utilityAreaHeight: CGFloat = 260
-
-    // MARK: - Footer Pattern
-
-    public var footerPattern: FooterPattern = .none
-    public var footerHeight: CGFloat = 0
-    public var footerBackgroundAlpha: CGFloat = 0.3
-    public var footerPatternAlpha: CGFloat = 0.15
-
-    // MARK: - Toolbar
-
-    public var toolbarHeight: CGFloat = 52
 
     // MARK: - Persistence
 

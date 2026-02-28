@@ -71,23 +71,6 @@ public final class NavigatorViewModel {
     public var selectedTab: NavigatorTab? = .project
     public var tabItems: [NavigatorTab] = NavigatorTab.allCases
 
-    // DEPRECATED: Use BufferListViewModel instead
-    public var bufferFilter: String = ""
-    public var bufferList: [BufferInfo] = []
-    public var selectedBuffer: String?
-    public var activeBuffer: String?
-
-    // DEPRECATED: Use SearchViewModel instead
-    public var searchQuery: String = ""
-    public var searchResults: [SearchResult] = []
-    public var findStatus: FindStatus = .none
-    public var searchResultCount: Int = 0
-    public var searchFileCount: Int = 0
-
-    // DEPRECATED: Use SourceControlViewModel instead
-    public var changedFiles: [GitChangedFile] = []
-    public var commitHistory: [GitCommitEntry] = []
-
     public init() {}
 }
 
@@ -144,18 +127,6 @@ public final class NavigatorManager {
     // MARK: - Updates from Emacs
 
     public func updateBufferList(_ buffers: [BufferInfo]) {
-        // Update both legacy and focused view models during transition
-        let incoming = Dictionary(uniqueKeysWithValues: buffers.map { ($0.id, $0) })
-        var result = viewModel.bufferList.compactMap { existing -> BufferInfo? in
-            incoming[existing.id]
-        }
-        let kept = Set(result.map(\.id))
-        for buffer in buffers where !kept.contains(buffer.id) {
-            result.append(buffer)
-        }
-        viewModel.bufferList = result
-
-        // Update focused view model
         bufferListViewModel.updateBuffers(buffers)
     }
 
@@ -172,12 +143,10 @@ public final class NavigatorManager {
     }
 
     public func updateSearchResults(_ results: [SearchResult]) {
-        viewModel.searchResults = results
         searchViewModel.results = results
     }
 
     public func setActiveBuffer(_ name: String) {
-        viewModel.selectedBuffer = name
         bufferListViewModel.setActiveBuffer(name)
     }
 
@@ -200,7 +169,6 @@ public final class NavigatorManager {
     }
 
     public func executeSearch(_ query: String) {
-        viewModel.findStatus = .searching
         searchViewModel.status = .searching
         onSearchExecute?(query)
     }
@@ -212,19 +180,14 @@ public final class NavigatorManager {
     // MARK: - Source Control Updates
 
     public func updateChangedFiles(_ files: [GitChangedFile]) {
-        viewModel.changedFiles = files
         sourceControlViewModel.updateChangedFiles(files)
     }
 
     public func updateCommitHistory(_ commits: [GitCommitEntry]) {
-        viewModel.commitHistory = commits
         sourceControlViewModel.updateCommitHistory(commits)
     }
 
     public func updateSearchStatus(resultCount: Int, fileCount: Int) {
-        viewModel.searchResultCount = resultCount
-        viewModel.searchFileCount = fileCount
-        viewModel.findStatus = resultCount > 0 ? .found : .noResults
         searchViewModel.updateResults(
             searchViewModel.results,
             resultCount: resultCount,

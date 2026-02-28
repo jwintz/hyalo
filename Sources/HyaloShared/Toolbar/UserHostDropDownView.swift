@@ -23,7 +23,7 @@ public struct UserHostDropDownView: View {
     // Lightweight hover background to reduce type complexity in body (moved up for visibility)
     private var hoverBackground: some View {
         Capsule()
-            .fill(colorScheme == .dark ? Color.white : Color.black)
+            .fill(Color.primary)
             .opacity(isHovering || isPopoverPresented ? 0.05 : 0)
     }
     

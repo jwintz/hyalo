@@ -9,14 +9,10 @@ public struct FindNavigatorView: View {
     @State private var searchQuery: String = ""
     @State private var replaceText: String = ""
     @State private var showReplace: Bool = false
-    private var searchVM: SearchViewModel { NavigatorManager.shared.searchViewModel }
+    @Environment(\.searchViewModel) private var envSearchVM
+    @Environment(\.navigatorManager) private var envManager
 
-    /// Results grouped by file
-    private var groupedResults: [(file: String, results: [SearchResult])] {
-        let dict = Dictionary(grouping: searchVM.results, by: \.file)
-        return dict.map { (file: $0.key, results: $0.value) }
-            .sorted { $0.file < $1.file }
-    }
+    private var searchVM: SearchViewModel { envSearchVM ?? NavigatorManager.shared.searchViewModel }
 
     public var body: some View {
         VStack(spacing: 0) {
@@ -46,7 +42,7 @@ public struct FindNavigatorView: View {
                     },
                     clearable: true,
                     onSubmit: {
-                        NavigatorManager.shared.executeSearch(searchQuery)
+                        (envManager ?? NavigatorManager.shared).executeSearch(searchQuery)
                     }
                 )
 
@@ -103,7 +99,7 @@ public struct FindNavigatorView: View {
 
             case .found:
                 List {
-                    ForEach(groupedResults, id: \.file) { group in
+                    ForEach(searchVM.groupedResults, id: \.file) { group in
                         Section {
                             ForEach(group.results) { result in
                                 Button {

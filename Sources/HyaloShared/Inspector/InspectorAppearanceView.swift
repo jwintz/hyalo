@@ -160,7 +160,6 @@ private enum AppearancePreset: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 #else
-import SwiftUI
 @available(iOS 26.0, *)
 struct InspectorAppearanceView: View {
     @Bindable var workspace: HyaloWorkspaceState
