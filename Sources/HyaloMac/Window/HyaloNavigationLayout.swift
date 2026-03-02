@@ -34,6 +34,7 @@ private struct InspectorWidthKey: PreferenceKey {
 struct HyaloNavigationLayout: View {
     @Bindable var workspace: HyaloWorkspaceState
     let emacsView: NSView
+    let terminalPalette: TerminalPalette
 
     var editorTabViewModel: EditorTabViewModel?
     var utilityAreaViewModel: UtilityAreaViewModel?
@@ -89,6 +90,7 @@ struct HyaloNavigationLayout: View {
             MainContentView(
                 workspace: workspace,
                 emacsView: emacsView,
+                terminalPalette: terminalPalette,
                 editorTabViewModel: editorTabViewModel,
                 utilityAreaViewModel: utilityAreaViewModel
             )

@@ -259,8 +259,7 @@ Pops the buffer so the user sees output as lines arrive."
         (insert (format "swift build -c %s\n\n" config)))
       (compilation-mode)
       (setq-local compilation-scroll-output t))
-    (display-buffer buf '((display-buffer-reuse-window
-                           display-buffer-pop-up-window)))))
+    (display-buffer buf)))
 
 (defun hyalo-channels--handle-build-log-line (line)
   "Append LINE to *hyalo-build*, auto-scrolling when point is at end."

@@ -40,6 +40,7 @@ enum HyaloOpacity {
 struct MainContentView: View {
     @Bindable var workspace: HyaloWorkspaceState
     let emacsView: NSView
+    let terminalPalette: TerminalPalette
 
     var editorTabViewModel: EditorTabViewModel?
     var utilityAreaViewModel: UtilityAreaViewModel?
@@ -51,11 +52,13 @@ struct MainContentView: View {
     init(
         workspace: HyaloWorkspaceState,
         emacsView: NSView,
+        terminalPalette: TerminalPalette,
         editorTabViewModel: EditorTabViewModel? = nil,
         utilityAreaViewModel: UtilityAreaViewModel? = nil
     ) {
         self.workspace = workspace
         self.emacsView = emacsView
+        self.terminalPalette = terminalPalette
         self.editorTabViewModel = editorTabViewModel
         self.utilityAreaViewModel = utilityAreaViewModel
     }
@@ -83,7 +86,10 @@ struct MainContentView: View {
                     viewModel: effectiveUtilityViewModel,
                     workspace: workspace,
                     terminalContent: {
-                        AnyView(UtilityAreaTerminalView(holder: effectiveUtilityViewModel.terminalHolder))
+                        AnyView(UtilityAreaTerminalView(
+                            holder: effectiveUtilityViewModel.terminalHolder,
+                            palette: terminalPalette
+                        ))
                     }
                 )
                     .background {

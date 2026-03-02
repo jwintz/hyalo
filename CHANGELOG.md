@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Add Shackle configuration (`lisp/hyalo-shackle.el`) to display popup buffers at bottom with sensible defaults for magit, help, compilation, and diagnostics
+- Add iTermColors parser (`ITermColorsParser.swift`) to load terminal color schemes from .itermcolors files
+- Add appearance-aware terminal palette (`TerminalPalette.swift`) with automatic light/dark switching
+- Add terminal color extensions (`TerminalColorExtensions.swift`) with `applyPalette()` method for SwiftTerm
+- Add comprehensive OSLog logging to terminal theming system for debugging theme loading and application
+
+### Changed
+
+- Update `TerminalPalette` to search for nano themes in multiple locations: `~/.config/hyalo/`, `~/Library/Application Support/hyalo/`, and current working directory
+- Update `hyalo-window--post-setup` to load `hyalo-shackle` module
+- Update `InspectorTerminalView`, `UtilityAreaTerminalView` (macOS), and `UtilityAreaTerminalViewiOS` to use `@Bindable TerminalPalette` for automatic theme updates
+- Update `HyaloManager` and `InspectorAppearanceCallbacks` to refresh `TerminalPalette` on appearance changes
+
+### Fixed
+
+- Fix SwiftTerm terminal not loading theme by default: `TerminalPalette` now auto-loads nano themes from .itermcolors files on initialization, with embedded fallback colors
+- Fix `hyalo-set-terminal-palette` Emacs function to use new `updateCurrentScheme()` API instead of directly setting read-only properties
+
 ### Changed
 
 - Complete NavigatorViewModel migration: remove 15 deprecated properties (`bufferFilter`, `bufferList`, `selectedBuffer`, `activeBuffer`, `searchQuery`, `searchResults`, `findStatus`, `searchResultCount`, `searchFileCount`, `changedFiles`, `commitHistory`), route all NavigatorManager updates exclusively to focused ViewModels (`BufferListViewModel`, `SearchViewModel`, `SourceControlViewModel`)

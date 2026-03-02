@@ -69,7 +69,7 @@
 
 ;; SF Mono 11pt has ~13px line height. Adding 0.15 ratio (~2px) gives
 ;; a 1.15x ratio matching Xcode/VS Code density for code editing.
-(setq-default line-spacing 0.15)
+;; (setq-default line-spacing 0.15)
 
 ;;;; Frame Defaults
 

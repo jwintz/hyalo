@@ -162,10 +162,12 @@ subsequent steps from running.  Each step logs errors individually."
       (hyalo-appearance-sync)
     (error (message "Hyalo: Appearance sync error: %s" (error-message-string err))))
   ;; Push initial terminal palette and color theme (theme loaded before hook registered)
+  ;; NOTE: Terminal palette is now loaded from iTermColors files in Swift.
+  ;; Do not override with Emacs-derived colors to preserve the nano theme.
   (condition-case err
       (progn
-        (when (fboundp 'hyalo-theme-send-palette)
-          (hyalo-theme-send-palette))
+        ;; (when (fboundp 'hyalo-theme-send-palette)
+        ;;   (hyalo-theme-send-palette))
         (when (fboundp 'hyalo-theme-send-color-theme)
           (hyalo-theme-send-color-theme))
         ;; Push current theme name (theme loaded before module, so hyalo-theme--on-enable skipped it)

@@ -17,9 +17,15 @@ enum InspectorAppearanceCallbackWirer {
                 // When the user explicitly picks light/dark, we must set isDark
                 // directly so all @Observable SwiftUI views re-render.
                 switch mode {
-                case "light": ws.colorTheme.isDark = false
-                case "dark":  ws.colorTheme.isDark = true
-                default:      ws.colorTheme.refreshAppearance()
+                case "light":
+                    ws.colorTheme.isDark = false
+                    TerminalPalette.shared.setAppearance(isDark: false)
+                case "dark":
+                    ws.colorTheme.isDark = true
+                    TerminalPalette.shared.setAppearance(isDark: true)
+                default:
+                    ws.colorTheme.refreshAppearance()
+                    TerminalPalette.shared.refreshAppearance()
                 }
             }
             HyaloModule.onAppearanceModeChanged?(mode)

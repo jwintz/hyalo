@@ -24,6 +24,9 @@ final class HyaloWindowController: NSWindowController {
     let editorTabViewModel = EditorTabViewModel()
     let utilityAreaViewModel = UtilityAreaViewModel()
 
+    /// The terminal palette for this frame.
+    private let terminalPalette = TerminalPalette.shared
+
     /// True once `setup()` has installed the SwiftUI hosting view.
     private(set) var isSetUp = false
 
@@ -98,6 +101,7 @@ final class HyaloWindowController: NSWindowController {
         let layout = HyaloNavigationLayout(
             workspace: workspace,
             emacsView: emacsView,
+            terminalPalette: terminalPalette,
             editorTabViewModel: editorTabViewModel,
             utilityAreaViewModel: utilityAreaViewModel
         )

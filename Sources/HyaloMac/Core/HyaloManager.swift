@@ -36,6 +36,8 @@ final class HyaloManager {
         for controller in HyaloModule.allControllers {
             // Refresh the tracked isDark property so @Observable views re-render.
             controller.workspace.colorTheme.refreshAppearance()
+            // Also refresh terminal palette for appearance-aware terminal theming
+            TerminalPalette.shared.refreshAppearance()
             // Reset window appearance for windows in "auto" mode.
             if controller.workspace.windowAppearance == "auto" {
                 controller.window?.appearance = nil

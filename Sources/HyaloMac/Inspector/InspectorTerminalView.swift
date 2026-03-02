@@ -1,14 +1,18 @@
 // InspectorTerminalView.swift - SwiftTerm-based terminal for inspector and utility panels
 // Target: macOS 26 Tahoe with Liquid Glass design
-// Ported from emacs.d's InspectorTerminalView
+//
+// Ported from emacs.d's InspectorTerminalView. Now uses @Observable TerminalPalette
+// for automatic appearance-aware theming that follows hyalo's color theme.
 
 #if os(macOS)
 import AppKit
 import HyaloShared
 import SwiftTerm
 import SwiftUI
+import OSLog
 
-// TerminalPalette moved to HyaloShared/Shared/TerminalPalette.swift
+@available(macOS 26.0, *)
+private let logger = Logger(subsystem: "hyalo", category: "InspectorTerminalView")
 
 // MARK: - HyaloTerminalView (key interception)
 
@@ -122,16 +126,25 @@ final class TerminalContainerView: NSView {
 // MARK: - NSViewRepresentable Wrapper
 
 /// Wraps `HyaloTerminalView` for SwiftUI. Configures transparent background,
-/// SF Mono font, steady underline cursor, and hyalo-derived ANSI colors.
+/// SF Mono font, steady underline cursor, and appearance-aware ANSI colors.
+///
+/// The palette binding ensures the terminal updates when:
+/// - The appearance changes (light/dark)
+/// - The color scheme is modified
 @available(macOS 26.0, *)
 struct InspectorTerminalView: NSViewRepresentable {
+    /// The palette to use for theming. Use `.shared` for the global palette.
     var palette: TerminalPalette
 
-    init(palette: TerminalPalette = .shared) {
+    init(palette: TerminalPalette) {
         self.palette = palette
     }
 
     func makeNSView(context: Context) -> TerminalContainerView {
+        logger.info("🔧 InspectorTerminalView.makeNSView called")
+        logger.info("   - palette isDark: \(palette.isDark)")
+        logger.info("   - palette version: \(palette.version)")
+
         let container = TerminalContainerView()
         container.autoresizesSubviews = true
 
@@ -155,7 +168,8 @@ struct InspectorTerminalView: NSViewRepresentable {
         terminalView.terminal.setCursorStyle(.steadyUnderline)
 
         // Apply palette colors
-        applyPalette(to: terminalView)
+        logger.info("🎨 Applying palette in makeNSView")
+        terminalView.applyPalette(palette)
 
         // Option key sends Meta (ESC prefix) for terminal apps
         terminalView.optionAsMetaKey = true
@@ -178,46 +192,19 @@ struct InspectorTerminalView: NSViewRepresentable {
     }
 
     func updateNSView(_ container: TerminalContainerView, context: Context) {
+        logger.info("🔧 InspectorTerminalView.updateNSView called")
+        logger.info("   - palette isDark: \(palette.isDark)")
+        logger.info("   - palette version: \(palette.version)")
         if let tv = container.terminalView {
-            applyPalette(to: tv)
+            logger.info("🎨 Reapplying palette in updateNSView")
+            tv.applyPalette(palette)
+        } else {
+            logger.error("❌ updateNSView: terminalView is nil")
         }
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
-    }
-
-    /// Apply the current palette to the terminal view.
-    private func applyPalette(to terminalView: HyaloTerminalView) {
-        // Foreground
-        if let fg = NSColor.termFromHex(palette.foreground) {
-            terminalView.nativeForegroundColor = fg
-        }
-
-        // Background stays clear for transparency
-        terminalView.nativeBackgroundColor = NSColor.clear
-
-        // Cursor
-        if let cursorColor = NSColor.termFromHex(palette.cursor) {
-            terminalView.caretColor = cursorColor
-        }
-
-        // 16 ANSI colors
-        guard palette.ansiColors.count == 16 else { return }
-        let swiftTermColors: [SwiftTerm.Color] = palette.ansiColors.compactMap { hex in
-            guard let ns = NSColor.termFromHex(hex) else { return nil }
-            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-            let converted = ns.usingColorSpace(.sRGB) ?? ns
-            converted.getRed(&r, green: &g, blue: &b, alpha: &a)
-            return SwiftTerm.Color(
-                red: UInt16(r * 65535),
-                green: UInt16(g * 65535),
-                blue: UInt16(b * 65535)
-            )
-        }
-        if swiftTermColors.count == 16 {
-            terminalView.installColors(swiftTermColors)
-        }
     }
 
     // MARK: - Coordinator
@@ -244,22 +231,6 @@ struct InspectorTerminalView: NSViewRepresentable {
                 currentDirectory: NSHomeDirectory()
             )
         }
-    }
-}
-
-// MARK: - NSColor Hex Helper (terminal-specific, avoids conflict with Module.swift extension)
-
-private extension NSColor {
-    static func termFromHex(_ hex: String) -> NSColor? {
-        let trimmed = hex.trimmingCharacters(in: .whitespaces)
-        let hexString = trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed
-        guard hexString.count == 6 else { return nil }
-        var rgb: UInt64 = 0
-        Scanner(string: hexString).scanHexInt64(&rgb)
-        let r = CGFloat((rgb >> 16) & 0xFF) / 255.0
-        let g = CGFloat((rgb >> 8) & 0xFF) / 255.0
-        let b = CGFloat(rgb & 0xFF) / 255.0
-        return NSColor(red: r, green: g, blue: b, alpha: 1.0)
     }
 }
 

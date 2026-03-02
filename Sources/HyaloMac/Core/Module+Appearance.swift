@@ -129,6 +129,7 @@ extension HyaloModule {
             Set the terminal ANSI palette from JSON.
             JSON is a JSON object with keys: foreground, background, cursor,
             ansi (array of 16 hex color strings).
+            Updates the current appearance's color scheme (light or dark).
             """
         ) { (env: EmacsSwiftModule.Environment, json: String) throws -> Bool in
             if #available(macOS 26.0, *) {
@@ -137,13 +138,16 @@ extension HyaloModule {
                           let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
                     else { return }
                     let palette = TerminalPalette.shared
-                    if let fg = dict["foreground"] as? String { palette.foreground = fg }
-                    if let bg = dict["background"] as? String { palette.background = bg }
-                    if let cursor = dict["cursor"] as? String { palette.cursor = cursor }
-                    if let ansi = dict["ansi"] as? [String], ansi.count == 16 {
-                        palette.ansiColors = ansi
-                    }
-                    palette.version += 1
+                    let fg = dict["foreground"] as? String
+                    let bg = dict["background"] as? String
+                    let cursor = dict["cursor"] as? String
+                    let ansi = dict["ansi"] as? [String]
+                    palette.updateCurrentScheme(
+                        foreground: fg,
+                        background: bg,
+                        cursor: cursor,
+                        ansiColors: ansi?.count == 16 ? ansi : nil
+                    )
                 }
                 return true
             }

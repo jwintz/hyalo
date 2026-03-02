@@ -19,8 +19,18 @@ All notable changes to Hyalo are documented here. The format follows [Keep a Cha
 
 ## Unreleased
 
+### Added
+
+- Add Shackle configuration to display popup buffers at bottom with sensible defaults for magit, help, compilation, and diagnostics
+- Add iTermColors parser to load terminal color schemes from .itermcolors files
+- Add appearance-aware terminal palette with automatic light/dark switching
+- Add terminal color extensions with `applyPalette()` method for SwiftTerm
+
 ### Changed
 
+- Update `TerminalPalette` to search for nano themes in multiple locations: `~/.config/hyalo/`, `~/Library/Application Support/hyalo/`, and current working directory
+- Update terminal views to use `@Bindable TerminalPalette` for automatic theme updates
+- Update appearance callbacks to refresh `TerminalPalette` on appearance changes
 - Complete NavigatorViewModel migration: remove deprecated properties, route all updates to focused ViewModels
 - Migrate `SourceControlNavigatorView` from legacy `NavigatorViewModel` to `SourceControlViewModel`
 - Move `groupedResults` from `FindNavigatorView` to `SearchViewModel`
@@ -42,6 +52,8 @@ All notable changes to Hyalo are documented here. The format follows [Keep a Cha
 ### Fixed
 
 - Remove duplicate `relativeDate(from:)` implementations (now shared via `DateFormatting`)
+- Fix SwiftTerm terminal not loading theme by default: `TerminalPalette` now auto-loads nano themes from .itermcolors files on initialization, with embedded fallback colors
+- Fix `hyalo-set-terminal-palette` Emacs function to use new `updateCurrentScheme()` API
 - Remove duplicate `import SwiftUI` in `InspectorAppearanceView`
 - Fix Emacs initialization error: `use-package` failed to parse `modus-themes` because `:ensure` requires a symbol or boolean, not a lisp expression. Replaced `:ensure (not (eq window-system 'ios))` with `:ensure t` and `:if (not (eq window-system 'ios))`.
 

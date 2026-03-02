@@ -121,8 +121,9 @@ which removes backgrounds from all faces automatically."
                                  (mapcar (lambda (c) (/ c 256))
                                          (color-values bg))))))
               (hyalo-set-background-color hex))))
-        ;; Send terminal palette
-        (hyalo-theme-send-palette)
+        ;; NOTE: Terminal palette is now loaded from iTermColors files in Swift.
+        ;; Do not override with Emacs-derived colors to preserve the nano theme.
+        ;; (hyalo-theme-send-palette)
         ;; Send color theme for SwiftUI views
         (hyalo-theme-send-color-theme)))))
 
@@ -159,7 +160,9 @@ Background transparency in TTY mode is handled by iota-theme-transparent-mode."
                   (hyalo-set-workspace-appearance (if dark "dark" "light")))
                 (when (fboundp 'hyalo-set-current-theme-name)
                   (hyalo-set-current-theme-name (symbol-name theme))))
-              (hyalo-theme-send-palette)
+              ;; NOTE: Terminal palette is now loaded from iTermColors files.
+              ;; Do not override with Emacs-derived colors to preserve the nano theme.
+              ;; (hyalo-theme-send-palette)
               (hyalo-theme-send-color-theme))
             ;; Apply divider, fringe, mode-line, and background colors.
             ;; enable-theme-functions fires hyalo-appearance--on-theme-load
@@ -231,6 +234,7 @@ Loads the initial theme matching the current system appearance."
 (defun hyalo-theme-send-palette ()
   "Send the current theme palette to the inspector terminal.
 Derives ANSI colors from theme face colors."
+  (message "[hyalo-theme] Sending palette to terminal...")
   (when (fboundp 'hyalo-set-terminal-palette)
     (let* ((fg (or (hyalo-theme--color-to-hex (face-foreground 'default nil t))
                    "#ffffff"))
@@ -239,6 +243,7 @@ Derives ANSI colors from theme face colors."
            (cursor-color (or (hyalo-theme--color-to-hex
                               (face-foreground 'font-lock-keyword-face nil t))
                              "#A68AF9"))
+           (_ (message "[hyalo-theme] Colors: fg=%s bg=%s cursor=%s" fg bg cursor-color))
            ;; Normal ANSI colors (0-7)
            (normal (vector
                     bg                              ; 0: black
@@ -280,8 +285,11 @@ Derives ANSI colors from theme face colors."
                      `((foreground . ,fg)
                        (background . ,bg)
                        (cursor . ,cursor-color)
-                       (ansi . ,ansi)))))
-      (hyalo-set-terminal-palette palette))))
+                       (ansi . ,ansi))))
+           (_ (message "[hyalo-theme] ANSI colors count: %d" (length ansi)))
+           (_ (message "[hyalo-theme] Sending palette JSON: %s" palette)))
+      (hyalo-set-terminal-palette palette)
+      (message "[hyalo-theme] Palette sent successfully"))))
 
 ;;; Color Theme (SwiftUI semantic colors)
 

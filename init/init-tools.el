@@ -130,9 +130,6 @@ Falls back to prin1 if pretty-printing fails."
     "v g" '(magit-generate-commit-message :wk "generate message"))
   (:keymaps 'git-commit-mode-map
    "C-c C-g" '(magit-generate-commit-message :wk "generate message"))
-  :custom
-  (magit-display-buffer-function
-   (lambda (buffer) (display-buffer buffer '(display-buffer-same-window))))
   :config
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t)
 
