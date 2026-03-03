@@ -22,6 +22,9 @@ let package = Package(
     ],
     dependencies: [
         .package(
+            path: "../kelyphos"
+        ),
+        .package(
             url: "https://github.com/SavchenkoValeriy/emacs-swift-module.git",
             branch: "main"
         ),
@@ -42,6 +45,7 @@ let package = Package(
         .target(
             name: "HyaloShared",
             dependencies: [
+                .product(name: "KelyphosKit", package: "kelyphos"),
                 .product(name: "Files", package: "ProjectNavigator"),
                 .product(name: "ProjectNavigator", package: "ProjectNavigator")
             ],

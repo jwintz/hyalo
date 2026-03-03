@@ -3,6 +3,7 @@
 
 import AppKit
 import HyaloShared
+import KelyphosKit
 import EmacsSwiftModule
 import SwiftUI
 
@@ -286,18 +287,20 @@ extension HyaloModule {
         }
 
         let workspace = HyaloWorkspaceState()
-        workspace.navigatorVisible = false
-        workspace.inspectorVisible = false
+
+        let shellState = KelyphosShellState(persistencePrefix: "hyalo")
 
         if !HyaloModule.baseDir.isEmpty {
             let baseName = (HyaloModule.baseDir as NSString).lastPathComponent
             workspace.projectName = baseName
+            shellState.title = baseName
             ToolbarManager.shared.viewModel.projectName = baseName
         }
 
         let controller = HyaloWindowController(
             window: window,
             workspace: workspace,
+            shellState: shellState,
             emacsView: emacsView
         )
 

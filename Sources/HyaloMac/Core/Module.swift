@@ -13,6 +13,7 @@
 
 import AppKit
 import HyaloShared
+import KelyphosKit
 import CoreServices
 import EmacsSwiftModule
 import SwiftUI
@@ -89,6 +90,18 @@ final class HyaloModule: Module {
     @available(macOS 26.0, *)
     static var allWorkspaces: [HyaloWorkspaceState] {
         controllers.values.map(\.workspace)
+    }
+
+    // All shell states (for appearance propagation)
+    @available(macOS 26.0, *)
+    static var allShellStates: [KelyphosShellState] {
+        controllers.values.map(\.shellState)
+    }
+
+    // Active shell state for the current key/main window
+    @available(macOS 26.0, *)
+    static var activeShellState: KelyphosShellState? {
+        activeController?.shellState
     }
 
     // All controllers (for global operations)

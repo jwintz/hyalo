@@ -5,6 +5,7 @@
 import UIKit
 import SwiftUI
 import HyaloShared
+import KelyphosKit
 
 /// Main coordinator for Hyalo on iOS.
 /// Owns the lifecycle, workspace state, and wires up the channel bridge.
@@ -17,6 +18,7 @@ public final class HyaloiOSModule {
 
     let lifecycle = EmacsLifecycle()
     let workspace = HyaloWorkspaceState()
+    let shellState = KelyphosShellState(persistencePrefix: "hyalo")
 
     /// The EmacsView handed off from iosterm.m via ios_set_main_emacs_view.
     var emacsView: UIView?
@@ -38,9 +40,9 @@ public final class HyaloiOSModule {
         platformWakeEmacs = {
             ios_signal_event_available()
         }
-        // Wire HyaloShared appearance callback → DispatchRouter
+        // Wire appearance callback → DispatchRouter
         if #available(iOS 26.0, *) {
-            InspectorAppearanceCallbacksiOS.onAppearanceModeChanged = { mode in
+            InspectorAppearanceCallbacks.onAppearanceModeChanged = { mode in
                 DispatchRouter.shared.sendCommand(.appearanceChange, payload: ["mode": mode])
             }
         }

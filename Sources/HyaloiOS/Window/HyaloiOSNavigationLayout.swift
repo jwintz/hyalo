@@ -1,157 +1,10 @@
 #if canImport(UIKit)
-// HyaloiOSNavigationLayout.swift - iPad NavigationSplitView layout
-// Mirrors macOS HyaloNavigationLayout with iPad-appropriate toolbar and materials.
+// HyaloiOSNavigationLayout.swift - iPad shell using KelyphosShellView
+// Target: iPadOS 26
 
 import SwiftUI
 import HyaloShared
-
-@available(iOS 26.0, *)
-struct HyaloiOSNavigationLayout: View {
-    @Bindable var workspace: HyaloWorkspaceState
-    let emacsView: UIView?
-
-    var editorTabViewModel: EditorTabViewModel?
-    var utilityAreaViewModel: UtilityAreaViewModel?
-
-    @Binding var showCommandPalette: Bool
-    @Binding var showOpenQuickly: Bool
-
-    @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
-    @State private var didAppear = false
-
-    var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            NavigatorAreaView(workspace: workspace)
-                .navigationSplitViewColumnWidth(min: 200, ideal: 280, max: 400)
-        } detail: {
-            detailContent
-        }
-        .navigationSplitViewStyle(.balanced)
-        .sheet(isPresented: $showOpenQuickly) {
-            OpenQuicklyView(
-                viewModel: HyaloiOSModule.shared.openQuicklyViewModel,
-                onClose: { showOpenQuickly = false },
-                openFile: { item in
-                    NavigatorManager.shared.setActiveFile(item.path)
-                    HyaloiOSModule.shared.onOpenFile?(item.path)
-                    showOpenQuickly = false
-                }
-            )
-            .presentationDetents([.medium, .large])
-        }
-        .sheet(isPresented: $showCommandPalette) {
-            CommandPaletteView(
-                viewModel: HyaloiOSModule.shared.commandPaletteViewModel,
-                onClose: { showCommandPalette = false },
-                executeCommand: { command in
-                    HyaloiOSModule.shared.onExecuteCommand?(command.name)
-                    showCommandPalette = false
-                }
-            )
-            .presentationDetents([.medium, .large])
-        }
-        .background(.regularMaterial)
-        .onAppear {
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                columnVisibility = workspace.navigatorVisible ? .all : .detailOnly
-            }
-            DispatchQueue.main.async { didAppear = true }
-        }
-        .onChange(of: workspace.navigatorVisible) { _, isVisible in
-            let target: NavigationSplitViewVisibility = isVisible ? .all : .detailOnly
-            if columnVisibility != target {
-                if didAppear {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        columnVisibility = target
-                    }
-                } else {
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        columnVisibility = target
-                    }
-                }
-            }
-        }
-        .onChange(of: columnVisibility) { _, newValue in
-            guard didAppear else { return }
-            let isVisible = (newValue == .all || newValue == .doubleColumn)
-            if workspace.navigatorVisible != isVisible {
-                workspace.navigatorVisible = isVisible
-            }
-        }
-    }
-
-    // MARK: - Detail Content
-
-    private var detailContent: some View {
-        VStack(spacing: 0) {
-            if let editorTabViewModel {
-                EditorTabBarView(
-                    viewModel: editorTabViewModel,
-                    workspace: workspace
-                )
-            }
-
-            EmacsUIViewRepresentable(emacsView: emacsView)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            if let utilityAreaViewModel, workspace.utilityAreaVisible {
-                Divider()
-                UtilityAreaView(
-                    viewModel: utilityAreaViewModel,
-                    workspace: workspace,
-                    terminalContent: { AnyView(UtilityAreaTerminalViewiOS()) }
-                )
-                .frame(height: workspace.utilityAreaHeight)
-            }
-
-            StatusBarView(
-                viewModel: StatusBarManager.shared.viewModel,
-                workspace: workspace
-            )
-        }
-        .inspector(isPresented: $workspace.inspectorVisible) {
-            InspectorAreaView(workspace: workspace)
-                .inspectorColumnWidth(min: 242, ideal: 300, max: 600)
-        }
-        .toolbar(removing: .sidebarToggle)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarVisibility(.visible, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                HStack(spacing: 8) {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            workspace.navigatorVisible.toggle()
-                        }
-                    } label: {
-                        Image(systemName: "sidebar.left")
-                    }
-                    BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
-                        .frame(minWidth: 80, maxWidth: 200)
-                        .buttonStyle(.plain)
-                }
-            }
-            ToolbarItem(placement: .principal) {
-                EnvironmentPillView(workspace: workspace)
-            }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                KeycastView(viewModel: ToolbarManager.shared.viewModel)
-                PackageManagerView(viewModel: ToolbarManager.shared.viewModel)
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        workspace.inspectorVisible.toggle()
-                    }
-                } label: {
-                    Image(systemName: "sidebar.right")
-                }
-            }
-        }
-    }
-}
+import KelyphosKit
 
 // MARK: - Root View
 
@@ -168,14 +21,7 @@ public struct HyaloRootView: View {
             case .idle, .starting, .bootstrapping:
                 HyaloLoadingView(lifecycle: module.lifecycle)
             case .running:
-                HyaloiOSNavigationLayout(
-                    workspace: module.workspace,
-                    emacsView: module.emacsView,
-                    editorTabViewModel: module.editorTabViewModel,
-                    utilityAreaViewModel: module.utilityAreaViewModel,
-                    showCommandPalette: $module.showCommandPalette,
-                    showOpenQuickly: $module.showOpenQuickly
-                )
+                HyaloiOSShellView(module: module)
             case .failed(let message):
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle")
@@ -189,16 +35,14 @@ public struct HyaloRootView: View {
                 }
             }
         }
-        .onAppear {
-            module.start()
-        }
+        .onAppear { module.start() }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
                 module.lifecycle.resume()
             case .background:
                 module.lifecycle.suspend()
-                module.workspace.saveAppearance()
+                module.shellState.saveAppearance()
             case .inactive:
                 break
             @unknown default:
@@ -206,12 +50,79 @@ public struct HyaloRootView: View {
             }
         }
         .preferredColorScheme({
-            switch module.workspace.windowAppearance {
+            switch module.shellState.windowAppearance {
             case "light": return .light
             case "dark": return .dark
             default: return nil
             }
         }())
+    }
+}
+
+// MARK: - Shell View
+
+@available(iOS 26.0, *)
+private struct HyaloiOSShellView: View {
+    let module: HyaloiOSModule
+
+    var body: some View {
+        KelyphosShellView(
+            state: module.shellState,
+            configuration: KelyphosShellConfiguration(
+                navigatorTabs: NavigatorTab.allCases.map { $0 },
+                inspectorTabs: InspectorTab.allCases.map { $0 },
+                utilityTabs: UtilityAreaTab.allCases.map { $0 },
+                scrollable: false,
+                leadingToolbar: {
+                    AnyView(HStack(spacing: 8) {
+                        BranchPickerView(viewModel: ToolbarManager.shared.viewModel)
+                            .frame(minWidth: 80, maxWidth: 200)
+                            .buttonStyle(.plain)
+                    })
+                },
+                principalToolbar: {
+                    AnyView(EnvironmentPillView(workspace: module.workspace))
+                },
+                trailingToolbarPrefix: {
+                    AnyView(HStack(spacing: 0) {
+                        KeycastView(viewModel: ToolbarManager.shared.viewModel)
+                        PackageManagerView(viewModel: ToolbarManager.shared.viewModel)
+                    })
+                },
+                detail: {
+                    AnyView(HyaloiOSDetailView(module: module))
+                }
+            )
+        )
+        .environment(module.workspace)
+        .environment(\.navigatorManager, NavigatorManager.shared)
+        .environment(\.searchViewModel, NavigatorManager.shared.searchViewModel)
+        .environment(\.bufferListViewModel, NavigatorManager.shared.bufferListViewModel)
+        .environment(\.projectNavigatorViewModel, NavigatorManager.shared.projectNavigatorViewModel)
+        .environment(\.sourceControlViewModel, NavigatorManager.shared.sourceControlViewModel)
+        .environment(\.inspectorViewModel, InspectorManager.shared.viewModel)
+        .environment(\.inspectorManager, InspectorManager.shared)
+        .environment(\.utilityAreaViewModel, module.utilityAreaViewModel)
+        .environment(\.colorTheme, module.workspace.colorTheme)
+        .environment(\.terminalContent, AnyView(UtilityAreaTerminalViewiOS()))
+    }
+}
+
+// MARK: - Detail Content
+
+@available(iOS 26.0, *)
+private struct HyaloiOSDetailView: View {
+    let module: HyaloiOSModule
+
+    @State private var statusBarViewModel = StatusBarManager.shared.viewModel
+
+    var body: some View {
+        VStack(spacing: 0) {
+            EditorTabBarView(viewModel: module.editorTabViewModel)
+            EmacsUIViewRepresentable(emacsView: module.emacsView)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            StatusBarView(viewModel: statusBarViewModel)
+        }
     }
 }
 

@@ -7,6 +7,7 @@
 // so they remain readable in both light and dark Emacs themes.
 
 import SwiftUI
+import KelyphosKit
 
 @available(macOS 26.0, iOS 26.0, *)
 public struct DiagnosticsView: View {

@@ -2,9 +2,10 @@
 // Target: macOS 26 Tahoe with Liquid Glass design
 
 import SwiftUI
+import KelyphosKit
 
 @available(macOS 26.0, iOS 26.0, *)
-public enum UtilityAreaTab: String, CaseIterable, HyaloPanelTab {
+public enum UtilityAreaTab: String, CaseIterable, KelyphosPanel {
     case terminal
     case diagnostics
 
@@ -24,9 +25,49 @@ public enum UtilityAreaTab: String, CaseIterable, HyaloPanelTab {
         }
     }
 
-    /// Default body for HyaloPanelTab conformance.
-    /// Not used at runtime — UtilityAreaView.tabContent handles rendering.
     public var body: some View {
-        EmptyView()
+        switch self {
+        case .terminal: TerminalTabBody()
+        case .diagnostics: DiagnosticsTabBody()
+        }
+    }
+}
+
+// MARK: - Terminal Content Environment Key
+
+/// Injected by platform-specific code (HyaloMac, HyaloiOS) to provide
+/// the terminal view into the utility area tab body.
+@available(macOS 26.0, iOS 26.0, *)
+private struct TerminalContentKey: @preconcurrency EnvironmentKey {
+    @MainActor static let defaultValue: AnyView = AnyView(EmptyView())
+}
+
+@available(macOS 26.0, iOS 26.0, *)
+public extension EnvironmentValues {
+    var terminalContent: AnyView {
+        get { self[TerminalContentKey.self] }
+        set { self[TerminalContentKey.self] = newValue }
+    }
+}
+
+// MARK: - Tab Bodies (read view models from environment)
+
+@available(macOS 26.0, iOS 26.0, *)
+private struct TerminalTabBody: View {
+    @Environment(\.terminalContent) private var content
+
+    var body: some View {
+        content
+    }
+}
+
+@available(macOS 26.0, iOS 26.0, *)
+private struct DiagnosticsTabBody: View {
+    @Environment(\.utilityAreaViewModel) private var vm
+
+    var body: some View {
+        if let vm {
+            DiagnosticsView(viewModel: vm.diagnosticsViewModel)
+        }
     }
 }

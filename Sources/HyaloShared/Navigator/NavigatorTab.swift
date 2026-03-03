@@ -2,9 +2,10 @@
 // Target: macOS 26 Tahoe with Liquid Glass design
 
 import SwiftUI
+import KelyphosKit
 
 @available(macOS 26.0, iOS 26.0, *)
-public enum NavigatorTab: String, CaseIterable, HyaloPanelTab {
+public enum NavigatorTab: String, CaseIterable, KelyphosPanel {
     case project
     case buffers
     case sourceControl
@@ -16,7 +17,7 @@ public enum NavigatorTab: String, CaseIterable, HyaloPanelTab {
         switch self {
         case .project: return "Project"
         case .buffers: return "Buffers"
-        case .sourceControl: return "Source Control"
+        case .sourceControl: return "VCS"
         case .search: return "Search"
         }
     }

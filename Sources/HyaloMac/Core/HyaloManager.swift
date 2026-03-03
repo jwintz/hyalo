@@ -39,7 +39,7 @@ final class HyaloManager {
             // Also refresh terminal palette for appearance-aware terminal theming
             TerminalPalette.shared.refreshAppearance()
             // Reset window appearance for windows in "auto" mode.
-            if controller.workspace.windowAppearance == "auto" {
+            if controller.shellState.windowAppearance == "auto" {
                 controller.window?.appearance = nil
             }
         }

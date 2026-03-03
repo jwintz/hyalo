@@ -7,11 +7,6 @@ import Foundation
 @MainActor
 @Observable
 public final class UtilityAreaViewModel {
-    public var isVisible: Bool = false
-    public var isMaximized: Bool = false
-    public var height: CGFloat = 260
-    public var selectedTab: UtilityAreaTab? = .terminal
-
     public let diagnosticsViewModel = DiagnosticsViewModel()
 
     public init() {}

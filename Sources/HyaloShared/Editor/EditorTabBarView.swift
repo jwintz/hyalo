@@ -1,111 +1,90 @@
-// EditorTabBarView.swift - Editor tab bar
+// EditorTabBarView.swift - Editor tab bar with Liquid Glass design
 // Target: macOS 26 Tahoe with Liquid Glass design
-// Glass capsule background, overlapping dividers.
+//
+// Visual design matches KelyphosPanelTabBar:
+//   Outer padding: .horizontal 8, .vertical 4  (same as KelyphosPanelTabBar)
+//   Chevrons: GlassEffectContainer + glassEffect(in: .capsule)
+//   Tabs: GlassEffectContainer + glassEffect(in: .capsule) + glassEffectID per tab
 
 import SwiftUI
+import KelyphosKit
 
 @available(macOS 26.0, iOS 26.0, *)
 public struct EditorTabBarView: View {
     @Bindable public var viewModel: EditorTabViewModel
-    @Bindable public var workspace: HyaloWorkspaceState
 
-    public init(viewModel: EditorTabViewModel, workspace: HyaloWorkspaceState) {
+    @Namespace private var glassNamespace
+
+    public init(viewModel: EditorTabViewModel) {
         self.viewModel = viewModel
-        self.workspace = workspace
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            Divider()
-            HStack(spacing: 0) {
-                // Leading accessories: Back/Forward navigation
-                HStack(spacing: 4) {
-                    Button {
-                        viewModel.onNavigateBack?()
-                        wakeEmacs()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 11, weight: .medium))
-                    }
-                    .buttonStyle(TabNavigationButtonStyle())
-                    .disabled(viewModel.tabs.isEmpty)
-                    .accessibilityLabel("Navigate Back")
-
-                    Button {
-                        viewModel.onNavigateForward?()
-                        wakeEmacs()
-                    } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .medium))
-                    }
-                    .buttonStyle(TabNavigationButtonStyle())
-                    .disabled(viewModel.tabs.isEmpty)
-                    .accessibilityLabel("Navigate Forward")
-                }
-                .padding(.leading, 8)
-                .padding(.trailing, 4)
-
-                PanelDivider()
-
-                // Tabs
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 0) {
-                        ForEach(Array(viewModel.tabs.enumerated()), id: \.element.id) { index, tab in
-                            let isSelected = tab.id == viewModel.selectedTabId
-
-                            EditorTabItemView(
-                                tab: tab,
-                                isSelected: isSelected,
-                                onSelect: { viewModel.selectTab(tab) },
-                                onClose: { viewModel.closeTab(tab) }
-                            )
-
-                            // Divider between non-selected tabs
-                            if !isSelected && index < viewModel.tabs.count - 1 {
-                                let nextIsSelected = viewModel.tabs[index + 1].id == viewModel.selectedTabId
-                                if !nextIsSelected {
-                                    EditorTabDivider()
-                                }
-                            }
-                        }
-                    }
-                    .padding(.vertical, 0)
-                }
-
-                Spacer()
-            }
-            .frame(height: HyaloDesign.Height.tabBar)
-            Divider()
+        HStack(spacing: KelyphosDesign.Spacing.tight) {
+            chevronPill
+            tabScrollArea
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, KelyphosDesign.Padding.compact)
+        .padding(.vertical, KelyphosDesign.Spacing.tight)
     }
-}
 
-// MARK: - Navigation Button Style
+    // MARK: - Back / Forward Pill
 
-@available(macOS 26.0, iOS 26.0, *)
-private struct TabNavigationButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(isEnabled ? Color.primary.opacity(0.8) : Color.secondary.opacity(0.4))
-            .frame(width: 22, height: 22)
-            .background(configuration.isPressed ? Color.primary.opacity(0.1) : Color.clear)
-            .clipShape(.rect(cornerRadius: 4))
-            .contentShape(Rectangle())
-            .opacity(isEnabled ? 1.0 : 0.5)
+    private var chevronPill: some View {
+        GlassEffectContainer(spacing: 4) {
+            HStack(spacing: 4) {
+                chevronButton(
+                    systemImage: "chevron.left",
+                    action: { viewModel.onNavigateBack?(); wakeEmacs() },
+                    label: "Navigate Back"
+                )
+                chevronButton(
+                    systemImage: "chevron.right",
+                    action: { viewModel.onNavigateForward?(); wakeEmacs() },
+                    label: "Navigate Forward"
+                )
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 5)
+        }
+        .glassEffect(in: .capsule)
+        .disabled(viewModel.tabs.isEmpty)
     }
-}
 
-// MARK: - Tab Divider
+    private func chevronButton(systemImage: String, action: @escaping () -> Void, label: String) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.primary.opacity(0.8))
+                .frame(width: 18, height: 18)
+        }
+        .buttonStyle(.plain)
+        .focusable(false)
+        .accessibilityLabel(label)
+    }
 
-@available(macOS 26.0, iOS 26.0, *)
-private struct EditorTabDivider: View {
-    var body: some View {
-        Rectangle()
-            .frame(width: 1)
-            .padding(.vertical, 8)
-            .foregroundStyle(Color.primary.opacity(0.12))
+    // MARK: - Tab Row
+
+    private var tabScrollArea: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            GlassEffectContainer(spacing: 0) {
+                HStack(spacing: 2) {
+                    ForEach(viewModel.tabs, id: \.id) { tab in
+                        let isSelected = tab.id == viewModel.selectedTabId
+                        EditorTabItemView(
+                            tab: tab,
+                            isSelected: isSelected,
+                            namespace: glassNamespace,
+                            onSelect: { viewModel.selectTab(tab) },
+                            onClose: { viewModel.closeTab(tab) }
+                        )
+                    }
+                }
+                .padding(3)
+            }
+            .glassEffect(in: .capsule)
+        }
     }
 }
 
@@ -115,6 +94,7 @@ private struct EditorTabDivider: View {
 private struct EditorTabItemView: View {
     let tab: EditorTab
     let isSelected: Bool
+    let namespace: Namespace.ID
     let onSelect: () -> Void
     let onClose: () -> Void
 
@@ -123,17 +103,17 @@ private struct EditorTabItemView: View {
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: HyaloDesign.Spacing.tight) {
+            HStack(spacing: KelyphosDesign.Spacing.tight) {
                 Image(systemName: tab.icon ?? "doc.text")
-                    .font(.system(size: HyaloDesign.FontSize.caption))
+                    .font(.system(size: KelyphosDesign.FontSize.caption))
                     .foregroundStyle(isSelected ? .primary : .secondary)
 
                 Text(tab.name)
-                    .font(.system(size: HyaloDesign.FontSize.body))
+                    .font(.system(size: KelyphosDesign.FontSize.body))
                     .lineLimit(1)
                     .foregroundStyle(isSelected ? .primary : .secondary)
 
-                // Fixed-width trailing accessory container to prevent tab resizing
+                // Fixed-width trailing: modified dot or close button
                 ZStack {
                     if tab.isModified {
                         Circle()
@@ -150,24 +130,27 @@ private struct EditorTabItemView: View {
                         }
                         .buttonStyle(.plain)
                         .opacity(isHovering ? 1 : 0)
-                        .accessibilityLabel("Close tab: \(tab.name)")
+                        .accessibilityLabel("Close \(tab.name)")
                     }
                 }
                 .frame(width: 16)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(isSelected ? Color.primary.opacity(0.08) : Color.clear)
-            .clipShape(.capsule)
-            .contentShape(.capsule)
+            .padding(.vertical, 5)
+            .background {
+                if isSelected {
+                    Capsule()
+                        .fill(.regularMaterial)
+                        .shadow(color: .primary.opacity(0.12), radius: 1, y: 0.5)
+                }
+            }
         }
         .buttonStyle(.plain)
-        .padding(.vertical, 2)
-        .padding(.horizontal, 2)
+        .glassEffectID(tab.id, in: namespace)
         .onHover { isHovering = $0 }
+        .focusable(false)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Tab: \(tab.name)")
-        .accessibilityValue(isSelected ? "Selected" : "")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

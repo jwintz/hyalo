@@ -4,14 +4,17 @@
 // Shows: cursor | mode | minor modes | spacer | encoding | line-ending | indent | utility toggle
 
 import SwiftUI
+import KelyphosKit
 
 @available(macOS 26.0, iOS 26.0, *)
 public struct StatusBarView: View {
     @Bindable public var viewModel: StatusBarViewModel
-    @Bindable public var workspace: HyaloWorkspaceState
 
     @Environment(\.controlActiveState)
     private var controlActive
+
+    @Environment(\.kelyphosShellState)
+    private var shellState
 
     @Environment(\.colorScheme)
     private var colorScheme
@@ -35,9 +38,8 @@ public struct StatusBarView: View {
         // No opaque background — inherits parent EffectView vibrancy
     }
 
-    public init(viewModel: StatusBarViewModel, workspace: HyaloWorkspaceState) {
+    public init(viewModel: StatusBarViewModel) {
         self.viewModel = viewModel
-        self.workspace = workspace
     }
 
     // MARK: - Full Layout (all segments)
@@ -154,16 +156,16 @@ public struct StatusBarView: View {
     private var utilityToggle: some View {
         Button {
             withAnimation(.easeInOut(duration: 0.15)) {
-                workspace.utilityAreaVisible.toggle()
+                shellState?.utilityAreaVisible.toggle()
             }
         } label: {
             Image(systemName: "rectangle.bottomthird.inset.filled")
                 .font(.system(size: HyaloDesign.FontSize.body))
-                .foregroundStyle(workspace.utilityAreaVisible ? .primary : .secondary)
+                .foregroundStyle((shellState?.utilityAreaVisible ?? false) ? .primary : .secondary)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(workspace.utilityAreaVisible ? "Hide Utility Area" : "Show Utility Area")
+        .help((shellState?.utilityAreaVisible ?? false) ? "Hide Utility Area" : "Show Utility Area")
     }
 
     private var topDivider: some View {

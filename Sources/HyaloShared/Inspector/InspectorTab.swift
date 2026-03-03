@@ -1,11 +1,11 @@
 // InspectorTab.swift - Inspector sidebar tab definitions
 // Target: macOS 26 Tahoe with Liquid Glass design
-// Terminal removed (available in utility area). Appearance panel integrated.
 
 import SwiftUI
+import KelyphosKit
 
 @available(macOS 26.0, iOS 26.0, *)
-public enum InspectorTab: String, CaseIterable, HyaloPanelTab {
+public enum InspectorTab: String, CaseIterable, KelyphosPanel {
     case file
     case history
     case appearance
@@ -30,41 +30,38 @@ public enum InspectorTab: String, CaseIterable, HyaloPanelTab {
 
     public var body: some View {
         switch self {
-        case .file: InspectorTabContent(tab: .file)
-        case .history: InspectorTabContent(tab: .history)
-        case .appearance:
-#if os(macOS)
-            InspectorAppearanceView()
-#else
-            AppearanceTabContent()
-#endif
+        case .file: FileInspectorTabBody()
+        case .history: HistoryInspectorTabBody()
+        case .appearance: AppearanceInspectorTabBody()
         }
+    }
+}
+
+// MARK: - Tab Bodies (read managers from environment)
+
+@available(macOS 26.0, iOS 26.0, *)
+private struct FileInspectorTabBody: View {
+    @Environment(\.inspectorViewModel) private var envVM
+    private var viewModel: InspectorViewModel { envVM ?? InspectorManager.shared.viewModel }
+
+    var body: some View {
+        FileInspectorView(viewModel: viewModel)
     }
 }
 
 @available(macOS 26.0, iOS 26.0, *)
-private struct InspectorTabContent: View {
-    let tab: InspectorTab
+private struct HistoryInspectorTabBody: View {
     @Environment(\.inspectorViewModel) private var envVM
-
     private var viewModel: InspectorViewModel { envVM ?? InspectorManager.shared.viewModel }
 
     var body: some View {
-        switch tab {
-        case .file: FileInspectorView(viewModel: viewModel)
-        case .history: HistoryInspectorView(viewModel: viewModel)
-        default: EmptyView()
-        }
+        HistoryInspectorView(viewModel: viewModel)
     }
 }
 
-#if !os(macOS)
-@available(iOS 26.0, *)
-private struct AppearanceTabContent: View {
-    @Environment(HyaloWorkspaceState.self) private var workspace
-
+@available(macOS 26.0, iOS 26.0, *)
+private struct AppearanceInspectorTabBody: View {
     var body: some View {
-        InspectorAppearanceView(workspace: workspace)
+        InspectorAppearanceView()
     }
 }
-#endif

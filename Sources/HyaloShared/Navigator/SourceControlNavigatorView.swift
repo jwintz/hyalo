@@ -2,6 +2,7 @@
 // Target: macOS 26 Tahoe with Liquid Glass design
 
 import SwiftUI
+import KelyphosKit
 
 @available(macOS 26.0, iOS 26.0, *)
 public struct SourceControlNavigatorView: View {

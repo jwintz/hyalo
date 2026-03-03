@@ -3,6 +3,7 @@
 
 import AppKit
 import HyaloShared
+import KelyphosKit
 import EmacsSwiftModule
 import SwiftUI
 
@@ -18,8 +19,8 @@ extension HyaloModule {
             if #available(macOS 26.0, *) {
                 DispatchQueue.main.async {
                     guard let mat = VibrancyMaterial(rawValue: material) else { return }
-                    for workspace in HyaloModule.allWorkspaces {
-                        workspace.vibrancyMaterial = mat
+                    for state in HyaloModule.allShellStates {
+                        state.vibrancyMaterial = mat
                     }
                 }
                 return true
@@ -33,8 +34,8 @@ extension HyaloModule {
             if #available(macOS 26.0, *) {
                 DispatchQueue.main.async {
                     guard let color = NSColor(hexString: hexColor) else { return }
-                    for workspace in HyaloModule.allWorkspaces {
-                        workspace.backgroundColor = color
+                    for state in HyaloModule.allShellStates {
+                        state.backgroundColor = color
                     }
                     for controller in HyaloModule.allControllers {
                         controller.updateLayerBackgrounds()
@@ -177,8 +178,8 @@ extension HyaloModule {
                 HyaloModule.onOpacityChanged = opacityChangedCallback
 
                 MainActor.assumeIsolated {
-                    if let workspace = HyaloModule.activeWorkspace {
-                        let opacity = Double(workspace.backgroundAlpha)
+                    if let shellState = HyaloModule.activeShellState {
+                        let opacity = Double(shellState.backgroundAlpha)
                         opacityChangedCallback(opacity)
                         let fringeAlpha = min(opacity + HyaloModule.fringeAlphaOffset, 1.0)
                         HyaloModule.setFringeAlpha(fringeAlpha)

@@ -3,6 +3,7 @@
 
 import AppKit
 import HyaloShared
+import KelyphosKit
 import EmacsSwiftModule
 import SwiftUI
 
@@ -130,10 +131,10 @@ extension HyaloModule {
             if #available(macOS 26.0, *) {
                 MainActor.assumeIsolated {
                     guard let controller = HyaloModule.activeController else { return }
-                    let workspace = controller.workspace
-                    let willShow = !workspace.utilityAreaVisible
+                    let shellState = controller.shellState
+                    let willShow = !shellState.utilityAreaVisible
                     withAnimation(.easeInOut(duration: 0.15)) {
-                        workspace.utilityAreaVisible = willShow
+                        shellState.utilityAreaVisible = willShow
                     }
                     if willShow {
                         DispatchQueue.main.async { controller.focusTerminal() }
@@ -156,7 +157,7 @@ extension HyaloModule {
                 MainActor.assumeIsolated {
                     guard let controller = HyaloModule.activeController else { return }
                     withAnimation(.easeInOut(duration: 0.15)) {
-                        controller.workspace.utilityAreaVisible = true
+                        controller.shellState.utilityAreaVisible = true
                     }
                     DispatchQueue.main.async { controller.focusTerminal() }
                 }
@@ -175,7 +176,7 @@ extension HyaloModule {
                 MainActor.assumeIsolated {
                     guard let controller = HyaloModule.activeController else { return }
                     withAnimation(.easeInOut(duration: 0.15)) {
-                        controller.workspace.utilityAreaVisible = false
+                        controller.shellState.utilityAreaVisible = false
                     }
                     controller.focusEmacs()
                 }

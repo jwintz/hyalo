@@ -1,15 +1,10 @@
-// HyaloWindowController.swift - Window controller hosting NavigationSplitView
+// HyaloWindowController.swift - Window controller hosting KelyphosShellView
 // Target: macOS 26 Tahoe with Liquid Glass design
-//
-// Hosts HyaloNavigationLayout (SwiftUI NavigationSplitView) as the window's
-// content view. Toolbar items are managed by SwiftUI .toolbar {} on the
-// NavigationSplitView. The HyaloToolbar is installed as a stub (no delegate)
-// for Emacs C code compatibility — the NSToolbar extension in HyaloToolbar.swift
-// ensures any toolbar SwiftUI creates also responds to Emacs selectors.
 
 import AppKit
 import SwiftUI
 import HyaloShared
+import KelyphosKit
 
 @available(macOS 26.0, *)
 final class HyaloWindowController: NSWindowController {
@@ -17,6 +12,7 @@ final class HyaloWindowController: NSWindowController {
     // MARK: - Properties
 
     private(set) var workspace: HyaloWorkspaceState
+    private(set) var shellState: KelyphosShellState
     /// The original Emacs NSView, retained for focus restoration.
     private(set) var emacsView: NSView?
     private var observers: [NSKeyValueObservation] = []
@@ -32,8 +28,9 @@ final class HyaloWindowController: NSWindowController {
 
     // MARK: - Initialization
 
-    init(window: NSWindow?, workspace: HyaloWorkspaceState, emacsView: NSView? = nil) {
+    init(window: NSWindow?, workspace: HyaloWorkspaceState, shellState: KelyphosShellState, emacsView: NSView? = nil) {
         self.workspace = workspace
+        self.shellState = shellState
         self.emacsView = emacsView
         super.init(window: window)
 
@@ -41,11 +38,6 @@ final class HyaloWindowController: NSWindowController {
             win.delegate = self
         }
 
-        // Call setup() synchronously.  decorateWindow is already called from
-        // the Emacs main thread (via MainActor.assumeIsolated in the defun),
-        // so setup can safely manipulate the window hierarchy here.
-        // Async dispatch was removed because it caused setup to fire during a
-        // subsequent sit-for, interleaving with Emacs drawing and segfaulting.
         setup()
     }
 
@@ -60,25 +52,15 @@ final class HyaloWindowController: NSWindowController {
         guard let window else { return }
         guard let emacsView else { return }
 
+        // Wire appearance callbacks now that shellState exists.
+        shellState.colorTheme = workspace.colorTheme
 
-        // Wrap the entire view hierarchy manipulation in an autoreleasepool.
-        // Replacing window.contentView autoreleases the old content view and
-        // its internal AppKit objects (layers, constraints, layout engines).
-        // Without an explicit drain, these objects linger in the outer pool
-        // managed by Emacs's C code (ns_read_socket_1).  When the next
-        // (sit-for 0) triggers ns_read_socket_1 and pops its pool, some of
-        // those objects have already been invalidated by the hierarchy swap,
-        // causing a use-after-free → SIGSEGV in AutoreleasePoolPage::releaseUntil.
-        // Draining here ensures all temporaries are released deterministically
-        // before control returns to the Emacs event loop.
+        // Wrap hierarchy changes in autoreleasepool to prevent use-after-free
+        // when Emacs's C event loop pops its pool after this returns.
         autoreleasepool {
 
-        // Save the window's position before reconfiguring.
-        // Emacs placed the window at a specific origin; we must preserve
-        // it to prevent a visible position jump when the chrome is installed.
         let savedFrame = window.frame
 
-        // Window configuration
         window.styleMask.insert(.fullSizeContentView)
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
@@ -86,67 +68,85 @@ final class HyaloWindowController: NSWindowController {
         window.title = ""
         window.representedURL = nil
 
-        // Remove Emacs's toolbar if present
-        if window.toolbar != nil {
-            window.toolbar = nil
-        }
-
-        // Window configuration - use .unified toolbar style
+        if window.toolbar != nil { window.toolbar = nil }
         window.toolbarStyle = .unified
 
-        // Create SwiftUI layout and host it.
-        // NavigationSplitView's .toolbar {} manages all toolbar items.
-        // The NSToolbar extension stubs (in HyaloToolbar.swift) ensure
-        // any toolbar SwiftUI creates responds to Emacs C selectors.
-        let layout = HyaloNavigationLayout(
-            workspace: workspace,
-            emacsView: emacsView,
-            terminalPalette: terminalPalette,
-            editorTabViewModel: editorTabViewModel,
-            utilityAreaViewModel: utilityAreaViewModel
+        let toolbarVM = ToolbarManager.shared.viewModel
+
+        // Seed shell title; subtitle is kept in sync by ShellTitleBridgeView inside the content.
+        shellState.title = workspace.projectName.isEmpty ? "Emacs" : workspace.projectName
+
+        let shell = KelyphosShellView(
+            state: shellState,
+            configuration: KelyphosShellConfiguration(
+                navigatorTabs: NavigatorTab.allCases.map { $0 },
+                inspectorTabs: InspectorTab.allCases.map { $0 },
+                utilityTabs: UtilityAreaTab.allCases.map { $0 },
+                scrollable: false,
+                leadingToolbar: { [shellState] in
+                    // titleVisibility = .hidden suppresses navigationTitle/navigationSubtitle
+                    // display in the toolbar, so we render title+subtitle explicitly here.
+                    AnyView(ShellTitleView(shellState: shellState))
+                },
+                principalToolbar: { [workspace] in
+                    AnyView(EnvironmentPillView(workspace: workspace)
+                        .fixedSize(horizontal: true, vertical: false))
+                },
+                trailingToolbarPrefix: { [shellState] in
+                    AnyView(HStack(spacing: 0) {
+                        KeycastView(viewModel: toolbarVM)
+                            .background(
+                                ShellTitleBridgeView(
+                                    toolbarVM: toolbarVM,
+                                    shellState: shellState
+                                )
+                            )
+                        PackageManagerView(viewModel: toolbarVM)
+                    })
+                },
+                detail: { [emacsView, editorTabViewModel, terminalPalette] in
+                    AnyView(MainContentView(
+                        emacsView: emacsView,
+                        terminalPalette: terminalPalette,
+                        editorTabViewModel: editorTabViewModel
+                    ))
+                }
+            )
         )
-        // Inject view models via environment (AUDIT.md #4)
+        .environment(workspace)
         .environment(\.projectNavigatorViewModel, NavigatorManager.shared.projectNavigatorViewModel)
         .environment(\.inspectorViewModel, InspectorManager.shared.viewModel)
+        .environment(\.inspectorManager, InspectorManager.shared)
+        .environment(\.navigatorManager, NavigatorManager.shared)
+        .environment(\.searchViewModel, NavigatorManager.shared.searchViewModel)
+        .environment(\.bufferListViewModel, NavigatorManager.shared.bufferListViewModel)
+        .environment(\.sourceControlViewModel, NavigatorManager.shared.sourceControlViewModel)
+        .environment(\.utilityAreaViewModel, utilityAreaViewModel)
         .environment(\.colorTheme, workspace.colorTheme)
-        let hosting = NSHostingView(rootView: layout)
+        .environment(\.terminalContent, AnyView(UtilityAreaTerminalView(
+            holder: utilityAreaViewModel.terminalHolder,
+            palette: terminalPalette
+        )))
+
+        let hosting = NSHostingView(rootView: shell)
         hosting.frame = window.contentView?.bounds ?? .zero
-        hosting.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
+        hosting.autoresizingMask = [.width, .height]
 
         window.contentView = hosting
         isSetUp = true
 
-        // Force SwiftUI to evaluate its body NOW so that makeNSView fires
-        // synchronously.  Without this, SwiftUI may defer makeNSView for
-        // invisible windows, leaving EmacsView orphaned (no window, no
-        // superview).  When make-frame-visible later calls
-        // makeKeyAndOrderFront, windowDidBecomeKey fires on an orphaned
-        // EmacsView and triggers gui_update_cursor on corrupted glyph
-        // matrices → segfault.
         hosting.layoutSubtreeIfNeeded()
 
-        // Restore the window position.  Setting contentView and styleMask
-        // can shift the origin (AppKit adjusts for toolbar height changes).
-        // Keep the same top-left corner by computing from the saved frame.
         let newOrigin = NSPoint(
             x: savedFrame.origin.x,
             y: savedFrame.origin.y + savedFrame.size.height - window.frame.size.height
         )
         window.setFrameOrigin(newOrigin)
 
-        // The Emacs window is intentionally NOT revealed here.
-        // A standalone loading proxy window (created in Module.decorateWindow)
-        // is shown instead while init.el runs.  The Emacs window is revealed
-        // by hyalo-loading-done once the IDE shell is fully initialized.
+        } // autoreleasepool
 
-
-        } // autoreleasepool — drain all temporaries from view hierarchy swap
-
-        // Observe window title to prevent Emacs from displaying geometry
         titleObservation = window.observe(\.title, options: [.new]) { window, _ in
-            if window.title != "" {
-                window.title = ""
-            }
+            if window.title != "" { window.title = "" }
         }
     }
 
@@ -155,140 +155,95 @@ final class HyaloWindowController: NSWindowController {
     private static let panelAnimation: Animation = .easeInOut(duration: 0.15)
 
     func toggleNavigator() {
-        withAnimation(Self.panelAnimation) {
-            workspace.navigatorVisible.toggle()
-        }
+        withAnimation(Self.panelAnimation) { shellState.navigatorVisible.toggle() }
     }
 
     func toggleInspector() {
-        withAnimation(Self.panelAnimation) {
-            workspace.inspectorVisible.toggle()
-        }
+        withAnimation(Self.panelAnimation) { shellState.inspectorVisible.toggle() }
     }
 
     func setNavigatorVisible(_ visible: Bool) {
-        withAnimation(Self.panelAnimation) {
-            workspace.navigatorVisible = visible
-        }
+        withAnimation(Self.panelAnimation) { shellState.navigatorVisible = visible }
     }
 
     func setInspectorVisible(_ visible: Bool) {
-        withAnimation(Self.panelAnimation) {
-            workspace.inspectorVisible = visible
-        }
+        withAnimation(Self.panelAnimation) { shellState.inspectorVisible = visible }
     }
 
-    var isNavigatorVisible: Bool {
-        workspace.navigatorVisible
-    }
-
-    var isInspectorVisible: Bool {
-        workspace.inspectorVisible
-    }
+    var isNavigatorVisible: Bool { shellState.navigatorVisible }
+    var isInspectorVisible: Bool { shellState.inspectorVisible }
 
     // MARK: - Tab Selection (Xcode-like toggle behavior)
 
-    /// Select navigator tab by 1-based index. If already on that tab and visible, toggle off.
     func selectNavigatorTab(_ index: Int) {
-        let vm = NavigatorManager.shared.viewModel
-        let tabs = vm.tabItems
+        let tabs = NavigatorTab.allCases
         guard index >= 1, index <= tabs.count else { return }
-        let tab = tabs[index - 1]
-
         withAnimation(Self.panelAnimation) {
-            if workspace.navigatorVisible && vm.selectedTab == tab {
-                workspace.navigatorVisible = false
+            if shellState.navigatorVisible && shellState.selectedNavigatorIndex == index - 1 {
+                shellState.navigatorVisible = false
             } else {
-                vm.selectedTab = tab
-                workspace.navigatorVisible = true
+                shellState.selectedNavigatorIndex = index - 1
+                shellState.navigatorVisible = true
             }
         }
     }
 
-    /// Select inspector tab by 1-based index. If already on that tab and visible, toggle off.
     func selectInspectorTab(_ index: Int) {
-        let vm = InspectorManager.shared.viewModel
-        let tabs = vm.tabItems
+        let tabs = InspectorTab.allCases
         guard index >= 1, index <= tabs.count else { return }
-        let tab = tabs[index - 1]
-
         withAnimation(Self.panelAnimation) {
-            if workspace.inspectorVisible && vm.selectedTab == tab {
-                workspace.inspectorVisible = false
+            if shellState.inspectorVisible && shellState.selectedInspectorIndex == index - 1 {
+                shellState.inspectorVisible = false
             } else {
-                vm.selectedTab = tab
-                workspace.inspectorVisible = true
+                shellState.selectedInspectorIndex = index - 1
+                shellState.inspectorVisible = true
             }
         }
     }
 
-    /// Select utility area tab by 1-based index. If already on that tab and visible, toggle off.
-    /// Manages focus: terminal gets focus when shown, Emacs when hidden.
     func selectUtilityAreaTab(_ index: Int) {
         let tabs = UtilityAreaTab.allCases
         guard index >= 1, index <= tabs.count else { return }
         let tab = tabs[index - 1]
-
-        let willHide = workspace.utilityAreaVisible && utilityAreaViewModel.selectedTab == tab
-
+        let willHide = shellState.utilityAreaVisible && shellState.selectedUtilityIndex == index - 1
         withAnimation(Self.panelAnimation) {
             if willHide {
-                workspace.utilityAreaVisible = false
+                shellState.utilityAreaVisible = false
             } else {
-                utilityAreaViewModel.selectedTab = tab
-                workspace.utilityAreaVisible = true
+                shellState.selectedUtilityIndex = index - 1
+                shellState.utilityAreaVisible = true
             }
         }
-
         if willHide {
             focusEmacs()
         } else if tab == .terminal {
-            // Defer until the view is laid out
             DispatchQueue.main.async { [weak self] in self?.focusTerminal() }
         }
     }
 
-    /// Show utility area and select tab by 1-based index. Never hides.
     func showUtilityAreaTab(_ index: Int) {
         let tabs = UtilityAreaTab.allCases
         guard index >= 1, index <= tabs.count else { return }
         let tab = tabs[index - 1]
-
         withAnimation(Self.panelAnimation) {
-            utilityAreaViewModel.selectedTab = tab
-            workspace.utilityAreaVisible = true
+            shellState.selectedUtilityIndex = index - 1
+            shellState.utilityAreaVisible = true
         }
-
         if tab == .terminal {
             DispatchQueue.main.async { [weak self] in self?.focusTerminal() }
         }
     }
 
-    /// Get current navigator tab index (1-based), or 0 if none.
-    var navigatorTabIndex: Int {
-        let vm = NavigatorManager.shared.viewModel
-        guard let tab = vm.selectedTab,
-              let index = vm.tabItems.firstIndex(of: tab) else { return 0 }
-        return index + 1
-    }
-
-    /// Get current inspector tab index (1-based), or 0 if none.
-    var inspectorTabIndex: Int {
-        let vm = InspectorManager.shared.viewModel
-        guard let tab = vm.selectedTab,
-              let index = vm.tabItems.firstIndex(of: tab) else { return 0 }
-        return index + 1
-    }
+    var navigatorTabIndex: Int { (shellState.selectedNavigatorIndex ?? -1) + 1 }
+    var inspectorTabIndex: Int { (shellState.selectedInspectorIndex ?? -1) + 1 }
 
     // MARK: - Focus Management
 
-    /// Focus the utility area terminal view.
     func focusTerminal() {
         guard let tv = utilityAreaViewModel.terminalHolder.container?.terminalView else { return }
         window?.makeFirstResponder(tv)
     }
 
-    /// Focus the Emacs main view (restore keyboard input to Emacs).
     func focusEmacs() {
         guard let ev = emacsView else { return }
         window?.makeFirstResponder(ev)
@@ -298,10 +253,7 @@ final class HyaloWindowController: NSWindowController {
         window?.appearance = appearance
     }
 
-    func updateLayerBackgrounds() {
-        // No-op: workspace state changes trigger SwiftUI re-render automatically
-    }
-
+    func updateLayerBackgrounds() {}
 }
 
 // MARK: - NSWindowDelegate
@@ -315,4 +267,3 @@ extension HyaloWindowController: NSWindowDelegate {
         observers.removeAll()
     }
 }
-

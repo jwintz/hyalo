@@ -41,6 +41,13 @@ private struct InspectorManagerKey: @preconcurrency EnvironmentKey {
     @MainActor static let defaultValue: InspectorManager? = nil
 }
 
+// MARK: - Utility Area View Model
+
+@available(macOS 26.0, iOS 26.0, *)
+private struct UtilityAreaViewModelKey: @preconcurrency EnvironmentKey {
+    @MainActor static let defaultValue: UtilityAreaViewModel? = nil
+}
+
 // MARK: - Color Theme
 
 @available(macOS 26.0, iOS 26.0, *)
@@ -75,6 +82,12 @@ public extension EnvironmentValues {
     var sourceControlViewModel: SourceControlViewModel? {
         get { self[SourceControlViewModelKey.self] }
         set { self[SourceControlViewModelKey.self] = newValue }
+    }
+
+    @available(macOS 26.0, iOS 26.0, *)
+    var utilityAreaViewModel: UtilityAreaViewModel? {
+        get { self[UtilityAreaViewModelKey.self] }
+        set { self[UtilityAreaViewModelKey.self] = newValue }
     }
 
     @available(macOS 26.0, iOS 26.0, *)

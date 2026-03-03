@@ -8,6 +8,7 @@
 // Views access colors via `workspace.colorTheme.accent` etc.
 
 import SwiftUI
+import KelyphosKit
 
 // MARK: - Color Theme Variant
 
@@ -47,7 +48,7 @@ public struct HyaloColorVariant: Equatable {
 @available(macOS 26.0, iOS 26.0, *)
 @MainActor
 @Observable
-public final class HyaloColorTheme {
+public final class HyaloColorTheme: KelyphosColorThemeProtocol {
 
     // MARK: - Variants
 

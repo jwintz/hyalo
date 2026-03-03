@@ -192,7 +192,7 @@ func bridgeAppearanceSetMode(_ modeCString: UnsafePointer<CChar>) {
     let mode = String(cString: modeCString)
     DispatchQueue.main.async {
         if #available(iOS 26.0, *) {
-            HyaloiOSModule.shared.workspace.windowAppearance = mode
+            HyaloiOSModule.shared.shellState.windowAppearance = mode
         }
     }
 }
@@ -371,7 +371,7 @@ extension ReverseChannelBridge {
         registerHandler("get_theme_info") { payload, callback in
             if #available(iOS 26.0, *) {
                 let themeInfo: [String: Any] = [
-                    "appearance": HyaloiOSModule.shared.workspace.windowAppearance,
+                    "appearance": HyaloiOSModule.shared.shellState.windowAppearance,
                     "material": "automatic"
                 ]
                 callback(.success(themeInfo))
@@ -385,7 +385,7 @@ extension ReverseChannelBridge {
             if let mode = payload["mode"] as? String {
                 DispatchQueue.main.async {
                     if #available(iOS 26.0, *) {
-                        HyaloiOSModule.shared.workspace.windowAppearance = mode
+                        HyaloiOSModule.shared.shellState.windowAppearance = mode
                     }
                 }
                 callback(.success(["mode": mode, "status": "set"]))
