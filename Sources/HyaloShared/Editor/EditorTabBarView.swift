@@ -23,7 +23,6 @@ public struct EditorTabBarView: View {
         HStack(spacing: KelyphosDesign.Spacing.tight) {
             chevronPill
             tabScrollArea
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, KelyphosDesign.Padding.compact)
         .padding(.vertical, KelyphosDesign.Spacing.tight)
@@ -81,10 +80,16 @@ public struct EditorTabBarView: View {
                         )
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(3)
             }
+            // containerRelativeFrame makes the content match the scroll view's
+            // visible width, so the glass capsule fills the available space.
+            // Horizontal scroll still activates when tabs overflow.
+            .containerRelativeFrame(.horizontal, alignment: .leading)
             .glassEffect(in: .capsule)
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
