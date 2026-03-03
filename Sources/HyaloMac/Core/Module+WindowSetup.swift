@@ -40,6 +40,10 @@ extension HyaloModule {
                         workspace.projectName = name
                     }
                     ToolbarManager.shared.viewModel.projectName = name
+                    for controller in HyaloModule.allControllers {
+                        controller.shellState.title = name
+                        controller.window?.title = name
+                    }
                 }
                 return true
             }

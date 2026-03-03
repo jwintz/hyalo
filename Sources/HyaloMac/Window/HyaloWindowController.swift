@@ -17,6 +17,7 @@ final class HyaloWindowController: NSWindowController {
     private(set) var emacsView: NSView?
     private var observers: [NSKeyValueObservation] = []
     private var titleObservation: NSKeyValueObservation?
+    private var isRestoringTitle = false
     let editorTabViewModel = EditorTabViewModel()
     let utilityAreaViewModel = UtilityAreaViewModel()
 
@@ -62,7 +63,7 @@ final class HyaloWindowController: NSWindowController {
         let savedFrame = window.frame
 
         window.styleMask.insert(.fullSizeContentView)
-        window.titleVisibility = .hidden
+        window.titleVisibility = .visible
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .automatic
         window.title = ""
@@ -83,33 +84,24 @@ final class HyaloWindowController: NSWindowController {
                 inspectorTabs: InspectorTab.allCases.map { $0 },
                 utilityTabs: UtilityAreaTab.allCases.map { $0 },
                 scrollable: false,
-                leadingToolbar: { [shellState] in
-                    // titleVisibility = .hidden suppresses navigationTitle/navigationSubtitle
-                    // display in the toolbar, so we render title+subtitle explicitly here.
-                    AnyView(ShellTitleView(shellState: shellState))
-                },
                 principalToolbar: { [workspace] in
                     AnyView(EnvironmentPillView(workspace: workspace)
                         .fixedSize(horizontal: true, vertical: false))
                 },
-                trailingToolbarPrefix: { [shellState] in
+                trailingToolbarPrefix: {
                     AnyView(HStack(spacing: 0) {
                         KeycastView(viewModel: toolbarVM)
-                            .background(
-                                ShellTitleBridgeView(
-                                    toolbarVM: toolbarVM,
-                                    shellState: shellState
-                                )
-                            )
                         PackageManagerView(viewModel: toolbarVM)
                     })
                 },
-                detail: { [emacsView, editorTabViewModel, terminalPalette] in
+                detail: { [emacsView, editorTabViewModel, terminalPalette, shellState] in
                     AnyView(MainContentView(
                         emacsView: emacsView,
                         terminalPalette: terminalPalette,
                         editorTabViewModel: editorTabViewModel
-                    ))
+                    )
+                    .background(ShellTitleBridgeView(toolbarVM: toolbarVM, shellState: shellState))
+                    )
                 }
             )
         )
@@ -145,8 +137,18 @@ final class HyaloWindowController: NSWindowController {
 
         } // autoreleasepool
 
-        titleObservation = window.observe(\.title, options: [.new]) { window, _ in
-            if window.title != "" { window.title = "" }
+        // Emacs sets window.title to geometry strings like "emacs — (134 × 61)".
+        // Reset any such overwrite back to shellState.title so .navigationTitle stays correct.
+        // Guard: only act when we have a real title; skip while shellState.title is still empty.
+        // Async: setting win.title inside its own KVO observation causes re-entrancy on macOS.
+        titleObservation = window.observe(\.title, options: [.new]) { [weak self] win, change in
+            guard let self, !self.isRestoringTitle else { return }
+            guard let newTitle = change.newValue else { return }
+            let desired = self.shellState.title
+            guard !desired.isEmpty, newTitle != desired else { return }
+            self.isRestoringTitle = true
+            win.title = desired
+            self.isRestoringTitle = false
         }
     }
 
