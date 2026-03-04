@@ -12,6 +12,7 @@ public struct MinibufferPayload: Codable {
     public let candidates: [MinibufferCandidate]
     public let selectedIndex: Int
     public let totalCandidates: Int
+    public let historyMode: Bool?
 }
 
 @available(macOS 26.0, iOS 26.0, *)
@@ -28,6 +29,13 @@ public final class MinibufferViewModel {
     public var candidates: [MinibufferCandidate] = []
     public var selectedIndex: Int = -1
     public var totalCandidates: Int = 0
+    public var historyMode: Bool = false
+
+    /// Max annotation character count across visible candidates, used for column alignment.
+    /// Computed on each candidate update — O(n) where n ≤ maxCandidates (50).
+    public var annotationColumnChars: Int = 0
+
+    private static let maxAnnotationColumnChars = 55
 
     // MARK: - Callbacks (wired by platform integration)
 
@@ -37,6 +45,9 @@ public final class MinibufferViewModel {
 
     // MARK: - Lifecycle
 
+    /// Suppresses `onInputChanged` during `show()` to avoid echoing the initial input back to Emacs.
+    private var suppressInputCallback = false
+
     public func show(from jsonData: Data) {
         guard let payload = try? JSONDecoder().decode(MinibufferPayload.self, from: jsonData) else {
             NSLog("[Hyalo] Failed to decode minibuffer show payload")
@@ -44,10 +55,15 @@ public final class MinibufferViewModel {
         }
         sessionId = payload.sessionId
         prompt = payload.prompt
-        input = ""
+        historyMode = payload.historyMode ?? false
         candidates = payload.candidates
         selectedIndex = payload.selectedIndex
         totalCandidates = payload.totalCandidates
+        recomputeAnnotationColumnWidth()
+        // Set input from Emacs (e.g. compile-command default) without triggering callback
+        suppressInputCallback = true
+        input = payload.input
+        suppressInputCallback = false
         isActive = true
     }
 
@@ -67,6 +83,7 @@ public final class MinibufferViewModel {
         candidates = payload.candidates
         selectedIndex = payload.selectedIndex
         totalCandidates = payload.totalCandidates
+        recomputeAnnotationColumnWidth()
         let t2 = CFAbsoluteTimeGetCurrent()
         NSLog("[Hyalo:Minibuffer] update: decode=%.1fms assign=%.1fms cands=%d",
               (t1 - t0) * 1000, (t2 - t1) * 1000, candidates.count)
@@ -78,6 +95,17 @@ public final class MinibufferViewModel {
         selectedIndex = -1
         input = ""
         prompt = ""
+        historyMode = false
+    }
+
+    // MARK: - Layout
+
+    private func recomputeAnnotationColumnWidth() {
+        var maxLen = 0
+        for c in candidates {
+            if c.annotation.count > maxLen { maxLen = c.annotation.count }
+        }
+        annotationColumnChars = min(maxLen, Self.maxAnnotationColumnChars)
     }
 
     // MARK: - Navigation
@@ -101,10 +129,21 @@ public final class MinibufferViewModel {
     }
 
     public func confirm() {
-        if selectedIndex >= 0 && selectedIndex < candidates.count {
+        if historyMode && (selectedIndex < 0 || candidates.isEmpty) {
+            // Free-text: submit current input as-is (index -1 signals confirm-input)
+            onCandidateSelected?(-1)
+        } else if selectedIndex >= 0 && selectedIndex < candidates.count {
             onCandidateSelected?(selectedIndex)
         } else if !candidates.isEmpty {
             onCandidateSelected?(0)
+        } else {
+            // No candidates at all (e.g. empty history): submit current input
+            onCandidateSelected?(-1)
         }
+    }
+
+    /// Whether the input callback should fire. Used by `MinibufferView`'s onChange.
+    public var shouldFireInputCallback: Bool {
+        !suppressInputCallback
     }
 }

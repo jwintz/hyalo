@@ -22,6 +22,10 @@ public struct MinibufferView: View {
         self.viewModel = viewModel
     }
 
+    private var hasCandidates: Bool {
+        !viewModel.candidates.isEmpty || viewModel.totalCandidates > 0
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
             // Prompt + input
@@ -58,7 +62,7 @@ public struct MinibufferView: View {
             }
 
             // Candidate list
-            if viewModel.candidates.isEmpty && !viewModel.input.isEmpty {
+            if viewModel.candidates.isEmpty && !viewModel.input.isEmpty && !viewModel.historyMode {
                 Text("No matching candidates")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
@@ -68,7 +72,8 @@ public struct MinibufferView: View {
                     List(Array(viewModel.candidates.enumerated()), id: \.element.id) { index, candidate in
                         MinibufferCandidateRow(
                             candidate: candidate,
-                            isSelected: index == viewModel.selectedIndex
+                            isSelected: index == viewModel.selectedIndex,
+                            annotationColumnChars: viewModel.annotationColumnChars
                         )
                         .id(candidate.id)
                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
@@ -93,8 +98,13 @@ public struct MinibufferView: View {
         }
         .background(panelBackground)
         .edgesIgnoringSafeArea(.vertical)
-        .frame(minWidth: 680, minHeight: 400, maxHeight: .infinity)
+        .frame(
+            minWidth: 680,
+            minHeight: hasCandidates ? 400 : nil,
+            maxHeight: .infinity
+        )
         .onChange(of: viewModel.input) { _, newValue in
+            guard viewModel.shouldFireInputCallback else { return }
             viewModel.onInputChanged?(newValue)
         }
         .onAppear {
@@ -111,26 +121,35 @@ public struct MinibufferView: View {
 struct MinibufferCandidateRow: View {
     let candidate: MinibufferCandidate
     let isSelected: Bool
+    let annotationColumnChars: Int
+
+    // Approximate width per character for 10pt monospaced system font (annotation)
+    private static let annotationCharWidth: CGFloat = 6.02
+
+    private var annotationColumnWidth: CGFloat {
+        CGFloat(annotationColumnChars) * Self.annotationCharWidth
+    }
 
     var body: some View {
         HStack(spacing: 0) {
-            // Candidate text — truncates to leave room for annotation
+            // Candidate text — fills available space, elides if needed
             Text(candidate.text)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .monospaced))
                 .foregroundStyle(.primary)
                 .opacity(isSelected ? 1.0 : 0.85)
                 .lineLimit(1)
                 .truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer(minLength: 8)
-
-            // Marginalia annotation — monospaced, fixed min width for column alignment
+            // Marginalia annotation — fixed width for vertical column alignment.
+            // Marginalia pads each field (mode, size, perms) to fixed widths,
+            // so a fixed annotation frame width aligns the internal columns.
             if !candidate.annotation.isEmpty {
                 Text(candidate.annotation)
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(isSelected ? .secondary : .tertiary)
                     .lineLimit(1)
-                    .frame(minWidth: 280, alignment: .trailing)
+                    .frame(width: annotationColumnWidth, alignment: .leading)
             }
         }
         .padding(.horizontal, 12)

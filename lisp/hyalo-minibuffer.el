@@ -37,6 +37,9 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
 (defvar hyalo-minibuffer--prompt nil
   "The current minibuffer prompt text.")
 
+(defvar hyalo-minibuffer--history-mode nil
+  "Non-nil when the current minibuffer session is free-text (no completion table).")
+
 (defvar hyalo-minibuffer--max-candidates 50
   "Maximum number of candidates to send to Swift for rendering performance.")
 
@@ -76,14 +79,29 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
            (string-match-p "\\(y or n\\|yes or no\\)" (minibuffer-prompt)))))
 
 ;; ---------------------------------------------------------------------------
+;; Text cleaning — strip invisible disambiguation chars
+;; ---------------------------------------------------------------------------
+
+(defun hyalo-minibuffer--clean-text (str)
+  "Strip consult tofu chars (Unicode PUA-B disambiguation markers) from STR.
+Consult appends invisible U+100000..U+10FFFE chars to multi-source candidates.
+`substring-no-properties' removes the `invisible' property but keeps the char."
+  (replace-regexp-in-string "[\U00100000-\U0010FFFE]+" "" str))
+
+;; ---------------------------------------------------------------------------
 ;; Candidate extraction — framework detection
 ;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--extract-candidates ()
   "Extract current completion candidates with annotations.
-Detects vertico, fido-vertical-mode, or generic completion."
+Detects vertico, fido-vertical-mode, or generic completion.
+For free-text inputs (no completion table), extracts history."
   (condition-case err
       (cond
+       ;; Free-text mode: filter history by current input
+       (hyalo-minibuffer--history-mode
+        (hyalo-minibuffer--extract-history-filtered))
+
        ;; Vertico (macOS desktop)
        ((bound-and-true-p vertico-mode)
         (hyalo-minibuffer--extract-vertico))
@@ -115,7 +133,8 @@ Detects vertico, fido-vertical-mode, or generic completion."
              (annotation (if annotate-fn
                              (or (ignore-errors (funcall annotate-fn cand)) "")
                            "")))
-        (push `((text . ,(substring-no-properties cand))
+        (push `((text . ,(hyalo-minibuffer--clean-text
+                          (substring-no-properties cand)))
                 (annotation . ,(string-trim (substring-no-properties annotation)))
                 (selected . ,(if (eq i index) t :json-false)))
               result)))
@@ -144,7 +163,8 @@ Detects vertico, fido-vertical-mode, or generic completion."
              (annotation (if annotate-fn
                              (or (ignore-errors (funcall annotate-fn cand)) "")
                            "")))
-        (push `((text . ,(substring-no-properties cand))
+        (push `((text . ,(hyalo-minibuffer--clean-text
+                          (substring-no-properties cand)))
                 (annotation . ,(string-trim (substring-no-properties annotation)))
                 (selected . ,(if (eq i 0) t :json-false)))
               result)))
@@ -176,7 +196,8 @@ Detects vertico, fido-vertical-mode, or generic completion."
              (annotation (if annotate-fn
                              (or (ignore-errors (funcall annotate-fn cand)) "")
                            "")))
-        (push `((text . ,(if (stringp cand) (substring-no-properties cand) ""))
+        (push `((text . ,(hyalo-minibuffer--clean-text
+                          (if (stringp cand) (substring-no-properties cand) "")))
                 (annotation . ,(string-trim (substring-no-properties annotation)))
                 (selected . ,(if (eq i 0) t :json-false)))
               result)))
@@ -215,6 +236,58 @@ Detects vertico, fido-vertical-mode, or generic completion."
     (error
      (hyalo-minibuffer--log "get-annotation-fn error: %s" (error-message-string err))
      nil)))
+
+;; ---------------------------------------------------------------------------
+;; History extraction — for free-text minibuffers (no completion table)
+;; ---------------------------------------------------------------------------
+
+(defvar hyalo-minibuffer--max-history-items 30
+  "Maximum number of history items to send as candidates.")
+
+(defun hyalo-minibuffer--extract-history ()
+  "Extract history items from `minibuffer-history-variable' as candidates.
+Used when there is no completion table (e.g. `read-shell-command')."
+  (let* ((hist-var (and (boundp 'minibuffer-history-variable)
+                        minibuffer-history-variable))
+         (hist (and hist-var (boundp hist-var) (symbol-value hist-var)))
+         (items (seq-take (seq-uniq (seq-filter #'stringp hist))
+                          hyalo-minibuffer--max-history-items))
+         (total (length items))
+         (result nil))
+    (hyalo-minibuffer--log "extract-history: var=%s items=%d" hist-var total)
+    (dotimes (i total)
+      (push `((text . ,(substring-no-properties (nth i items)))
+              (annotation . "")
+              (selected . ,(if (eq i 0) t :json-false)))
+            result))
+    (list (cons 'candidates (vconcat (nreverse result)))
+          (cons 'selectedIndex (if (> total 0) 0 -1))
+          (cons 'totalCandidates total))))
+
+(defun hyalo-minibuffer--extract-history-filtered ()
+  "Extract history items filtered by current minibuffer input."
+  (let* ((input (minibuffer-contents-no-properties))
+         (hist-var (and (boundp 'minibuffer-history-variable)
+                        minibuffer-history-variable))
+         (hist (and hist-var (boundp hist-var) (symbol-value hist-var)))
+         (all-items (seq-uniq (seq-filter #'stringp hist)))
+         (filtered (if (string-empty-p input)
+                       all-items
+                     (seq-filter (lambda (item)
+                                   (string-match-p (regexp-quote input) item))
+                                 all-items)))
+         (items (seq-take filtered hyalo-minibuffer--max-history-items))
+         (total (length items))
+         (result nil))
+    (hyalo-minibuffer--log "extract-history-filtered: input=%S matches=%d" input total)
+    (dotimes (i total)
+      (push `((text . ,(substring-no-properties (nth i items)))
+              (annotation . "")
+              (selected . ,(if (eq i 0) t :json-false)))
+            result))
+    (list (cons 'candidates (vconcat (nreverse result)))
+          (cons 'selectedIndex (if (> total 0) 0 -1))
+          (cons 'totalCandidates total))))
 
 ;; ---------------------------------------------------------------------------
 ;; Update timer — push candidates to Swift
@@ -287,10 +360,25 @@ Detects vertico, fido-vertical-mode, or generic completion."
 ;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--select-candidate (index)
-  "Select candidate at INDEX and exit the minibuffer."
-  (hyalo-minibuffer--log "select-candidate: index=%d" index)
+  "Select candidate at INDEX and exit the minibuffer.
+INDEX of -1 means confirm current input as-is (free-text mode)."
+  (hyalo-minibuffer--log "select-candidate: index=%d historyMode=%s" index hyalo-minibuffer--history-mode)
   (when (minibufferp)
     (cond
+     ;; Free-text confirm: index -1 means submit whatever is in the minibuffer
+     ((= index -1)
+      (exit-minibuffer))
+     ;; History mode: insert selected history item and exit
+     (hyalo-minibuffer--history-mode
+      (let* ((extracted (hyalo-minibuffer--extract-history))
+             (candidates (cdr (assq 'candidates extracted)))
+             (cand (and candidates
+                        (< index (length candidates))
+                        (elt candidates index))))
+        (when cand
+          (delete-minibuffer-contents)
+          (insert (cdr (assq 'text cand)))
+          (exit-minibuffer))))
      ;; Vertico: set index and exit
      ((bound-and-true-p vertico-mode)
       (when (and (fboundp 'vertico--goto)
@@ -331,22 +419,40 @@ Detects vertico, fido-vertical-mode, or generic completion."
     (setq hyalo-minibuffer--session-id (1+ hyalo-minibuffer--session-id))
     (setq hyalo-minibuffer--prompt (minibuffer-prompt))
     (setq hyalo-minibuffer--active t)
-    (hyalo-minibuffer--log "setup-hook: session=%d depth=%d prompt=%S"
-                           hyalo-minibuffer--session-id
-                           (minibuffer-depth)
-                           hyalo-minibuffer--prompt)
-    ;; Show Swift panel
-    (let* ((payload `((sessionId . ,hyalo-minibuffer--session-id)
-                      (prompt . ,(or hyalo-minibuffer--prompt ""))
-                      (input . "")
-                      (candidates . [])
-                      (selectedIndex . -1)
-                      (totalCandidates . 0)))
-           (json (json-encode payload)))
-      (hyalo-minibuffer--log "setup-hook: calling hyalo-minibuffer-show, json-len=%d"
-                             (length json))
-      (when (fboundp 'hyalo-minibuffer-show)
-        (hyalo-minibuffer-show json)))
+    ;; Detect free-text mode: no completion table means read-string/read-shell-command
+    (setq hyalo-minibuffer--history-mode (null minibuffer-completion-table))
+    ;; Read initial input (e.g. compile-command default inserted before setup-hook)
+    (let* ((initial-input (minibuffer-contents-no-properties))
+           (history-data (when hyalo-minibuffer--history-mode
+                           (hyalo-minibuffer--extract-history)))
+           (initial-candidates (if history-data
+                                   (cdr (assq 'candidates history-data))
+                                 []))
+           (initial-selected (if history-data
+                                 (cdr (assq 'selectedIndex history-data))
+                               -1))
+           (initial-total (if history-data
+                              (cdr (assq 'totalCandidates history-data))
+                            0)))
+      (hyalo-minibuffer--log "setup-hook: session=%d depth=%d prompt=%S input=%S historyMode=%s"
+                             hyalo-minibuffer--session-id
+                             (minibuffer-depth)
+                             hyalo-minibuffer--prompt
+                             initial-input
+                             hyalo-minibuffer--history-mode)
+      ;; Show Swift panel
+      (let* ((payload `((sessionId . ,hyalo-minibuffer--session-id)
+                        (prompt . ,(or hyalo-minibuffer--prompt ""))
+                        (input . ,initial-input)
+                        (historyMode . ,(if hyalo-minibuffer--history-mode t :json-false))
+                        (candidates . ,initial-candidates)
+                        (selectedIndex . ,initial-selected)
+                        (totalCandidates . ,initial-total)))
+             (json (json-encode payload)))
+        (hyalo-minibuffer--log "setup-hook: calling hyalo-minibuffer-show, json-len=%d"
+                               (length json))
+        (when (fboundp 'hyalo-minibuffer-show)
+          (hyalo-minibuffer-show json))))
     ;; Watch for input changes
     (add-hook 'post-command-hook #'hyalo-minibuffer--post-command nil t)
     ;; Schedule initial candidate push (after vertico has computed)
@@ -359,6 +465,7 @@ Detects vertico, fido-vertical-mode, or generic completion."
   (when hyalo-minibuffer--active
     (hyalo-minibuffer--log "exit-hook: hiding panel")
     (setq hyalo-minibuffer--active nil)
+    (setq hyalo-minibuffer--history-mode nil)
     (when hyalo-minibuffer--update-timer
       (cancel-timer hyalo-minibuffer--update-timer)
       (setq hyalo-minibuffer--update-timer nil))
