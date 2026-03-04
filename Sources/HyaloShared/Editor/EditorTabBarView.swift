@@ -24,6 +24,7 @@ public struct EditorTabBarView: View {
             chevronPill
             tabScrollArea
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, KelyphosDesign.Padding.compact)
         .padding(.vertical, KelyphosDesign.Spacing.tight)
     }
@@ -44,10 +45,11 @@ public struct EditorTabBarView: View {
                     label: "Navigate Forward"
                 )
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 4)
+            .frame(maxHeight: .infinity)
         }
         .glassEffect(in: .capsule)
+        .fixedSize(horizontal: true, vertical: false)
         .disabled(viewModel.tabs.isEmpty)
     }
 
@@ -66,8 +68,11 @@ public struct EditorTabBarView: View {
     // MARK: - Tab Row
 
     private var tabScrollArea: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            GlassEffectContainer(spacing: 0) {
+        // GlassEffectContainer + glassEffect are OUTSIDE the ScrollView so the
+        // pill is always full-width.  The ScrollView sits inside the pill and
+        // clips its content — tabs keep their natural width and scroll within.
+        GlassEffectContainer(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 2) {
                     ForEach(viewModel.tabs, id: \.id) { tab in
                         let isSelected = tab.id == viewModel.selectedTabId
@@ -78,17 +83,14 @@ public struct EditorTabBarView: View {
                             onSelect: { viewModel.selectTab(tab) },
                             onClose: { viewModel.closeTab(tab) }
                         )
+                        .fixedSize(horizontal: true, vertical: false)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(3)
             }
-            // containerRelativeFrame makes the content match the scroll view's
-            // visible width, so the glass capsule fills the available space.
-            // Horizontal scroll still activates when tabs overflow.
-            .containerRelativeFrame(.horizontal, alignment: .leading)
-            .glassEffect(in: .capsule)
+            .frame(maxWidth: .infinity)
         }
+        .glassEffect(in: .capsule)
         .frame(maxWidth: .infinity)
     }
 }
@@ -107,51 +109,60 @@ private struct EditorTabItemView: View {
     @Environment(\.colorTheme) private var theme
 
     var body: some View {
-        Button(action: onSelect) {
-            HStack(spacing: KelyphosDesign.Spacing.tight) {
-                Image(systemName: tab.icon ?? "doc.text")
-                    .font(.system(size: KelyphosDesign.FontSize.caption))
-                    .foregroundStyle(isSelected ? .primary : .secondary)
+        // ZStack: select button fills the full item; close button overlaid at
+        // trailing edge so both have independent, non-nested hit areas.
+        ZStack(alignment: .trailing) {
+            // Select button — full item width
+            Button(action: onSelect) {
+                HStack(spacing: KelyphosDesign.Spacing.tight) {
+                    Image(systemName: tab.icon ?? "doc.text")
+                        .font(.system(size: KelyphosDesign.FontSize.caption))
+                        .foregroundStyle(isSelected ? .primary : .secondary)
 
-                Text(tab.name)
-                    .font(.system(size: KelyphosDesign.FontSize.body))
-                    .lineLimit(1)
-                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    Text(tab.name)
+                        .font(.system(size: KelyphosDesign.FontSize.body))
+                        .lineLimit(1)
+                        .foregroundStyle(isSelected ? .primary : .secondary)
 
-                // Fixed-width trailing: modified dot or close button
-                ZStack {
-                    if tab.isModified {
-                        Circle()
-                            .fill(theme.accent)
-                            .frame(width: 7, height: 7)
-                    } else {
-                        Button(action: onClose) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 7, weight: .bold))
-                                .foregroundStyle(.tertiary)
-                                .frame(width: 14, height: 14)
-                                .background(isHovering ? Color.primary.opacity(0.08) : Color.clear)
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .opacity(isHovering ? 1 : 0)
-                        .accessibilityLabel("Close \(tab.name)")
+                    // Reserve trailing space for dot / close button
+                    Color.clear.frame(width: 16)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background {
+                    if isSelected || isHovering {
+                        Capsule()
+                            .fill(isSelected ? .regularMaterial : .thinMaterial)
+                            .shadow(color: .primary.opacity(isSelected ? 0.12 : 0), radius: 1, y: 0.5)
                     }
                 }
-                .frame(width: 16)
+                .contentShape(Capsule())
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background {
-                if isSelected {
-                    Capsule()
-                        .fill(.regularMaterial)
-                        .shadow(color: .primary.opacity(0.12), radius: 1, y: 0.5)
+            .buttonStyle(.plain)
+            .glassEffectID(tab.id, in: namespace)
+
+            // Trailing indicator: modified dot or close button
+            ZStack {
+                if tab.isModified {
+                    Circle()
+                        .fill(theme.accent)
+                        .frame(width: 7, height: 7)
+                } else if isHovering {
+                    Button(action: onClose) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 14, height: 14)
+                            .background(Color.primary.opacity(0.08))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Close \(tab.name)")
                 }
             }
+            .frame(width: 16)
+            .padding(.trailing, 10)
         }
-        .buttonStyle(.plain)
-        .glassEffectID(tab.id, in: namespace)
         .onHover { isHovering = $0 }
         .focusable(false)
         .accessibilityElement(children: .combine)

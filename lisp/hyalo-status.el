@@ -95,6 +95,7 @@ Clear cached project roots to ensure fresh detection on startup."
   ;; complete, so the push always reflects the final state.  No guards
   ;; or debounce needed — the hook fires once per redisplay cycle.
   (add-hook 'window-buffer-change-functions #'hyalo-status--on-buffer-change)
+  (add-hook 'kill-buffer-hook #'hyalo-status--on-buffer-killed)
   ;; Window selection change: windmove, mouse click into different window
   (add-hook 'window-selection-change-functions #'hyalo-status--on-window-selection-change)
   ;; Tab state refresh on save (modified flag changes) and first edit
@@ -118,6 +119,7 @@ Clear cached project roots to ensure fresh detection on startup."
   "Remove all hooks and cancel pending timers."
   (remove-hook 'post-command-hook #'hyalo-status--schedule-cursor-update)
   (remove-hook 'window-buffer-change-functions #'hyalo-status--on-buffer-change)
+  (remove-hook 'kill-buffer-hook #'hyalo-status--on-buffer-killed)
   (remove-hook 'window-selection-change-functions #'hyalo-status--on-window-selection-change)
   (remove-hook 'after-save-hook #'hyalo-sync--push-from-hook)
   (remove-hook 'first-change-hook #'hyalo-sync--push-from-hook)
@@ -227,9 +229,7 @@ buffers regardless of entry point."
              ;; Collect user-visible buffers for editor tabs
              (tab-bufs (cl-remove-if
                         (lambda (b)
-                          (let ((name (buffer-name b)))
-                            (or (string-prefix-p " " name)
-                                (string-prefix-p "*" name))))
+                          (string-prefix-p " " (buffer-name b)))
                         (buffer-list)))
              ;; Collect all non-internal buffers for navigator buffer list
              (nav-bufs (cl-remove-if
@@ -316,12 +316,12 @@ prevent feedback loops from `json-encode' temp buffers and other
 transient internal buffers."
   (let* ((win-buf (window-buffer (selected-window)))
          (buf-name (buffer-name win-buf)))
-    ;; Skip internal buffers (space prefix or *...*) — all phases
+    ;; Skip space-prefixed internal buffers (json-encode temp buffers, etc.).
+    ;; *...*  buffers (magit, scratch, messages) are intentionally included.
     ;; Skip if the buffer hasn't changed — prevents redundant pushes when
     ;; window-buffer-change-functions fires during resize (resize_frame_windows
     ;; can recreate windows without changing their buffer associations).
     (unless (or (string-prefix-p " " buf-name)
-                (string-prefix-p "*" buf-name)
                 (eq win-buf hyalo-status--last-pushed-buffer))
       ;; Phase 1: Push all UI state (tabs, selection, buffer list)
       (hyalo-sync--push)
@@ -363,6 +363,42 @@ transient internal buffers."
           (when hyalo-status--last-git-root
             (when (fboundp 'hyalo-source-control--schedule-update)
               (hyalo-source-control--schedule-update))))))))
+
+(defun hyalo-status--on-buffer-killed ()
+  "Push editor tab list after a buffer is killed.
+`kill-buffer-hook' runs before the buffer is actually killed, while the
+buffer is still current.  The buffer will be absent from `buffer-list'
+only after the kill completes, so we defer via `run-at-time' to let Emacs
+finish removing the buffer before we snapshot the list."
+  (run-at-time 0 nil
+               (lambda ()
+                 (when (fboundp 'hyalo-update-editor-tabs)
+                   (let* ((tab-bufs (cl-remove-if
+                                     (lambda (b)
+                                       (string-prefix-p " " (buffer-name b)))
+                                     (buffer-list)))
+                          (tab-data
+                           (mapcar
+                            (lambda (b)
+                              (let* ((name (buffer-name b))
+                                     (file (buffer-file-name b))
+                                     (modified (buffer-modified-p b))
+                                     (icon (cond
+                                            ((string-suffix-p ".swift" (or name "")) "swift")
+                                            ((string-suffix-p ".el" (or name "")) "doc.text")
+                                            ((string-suffix-p ".md" (or name "")) "doc.plaintext")
+                                            ((string-suffix-p ".json" (or name "")) "curlybraces")
+                                            ((string-suffix-p ".html" (or name ""))
+                                             "chevron.left.forwardslash.chevron.right")
+                                            (t "doc"))))
+                                `((id . ,name)
+                                  (name . ,name)
+                                  (icon . ,icon)
+                                  (isModified . ,(if modified t :json-false))
+                                  (isTemporary . :json-false)
+                                  (filePath . ,file))))
+                            tab-bufs)))
+                     (hyalo-update-editor-tabs (json-encode (vconcat tab-data))))))))
 
 (defun hyalo-status--on-window-selection-change (_frame)
   "Handle selected window change in FRAME.
