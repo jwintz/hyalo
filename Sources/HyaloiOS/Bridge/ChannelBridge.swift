@@ -207,44 +207,35 @@ func bridgeSetCurrentThemeName(_ nameCString: UnsafePointer<CChar>) {
     }
 }
 
-// MARK: - Command Palette Channel
+// MARK: - Minibuffer Channel
 
-@_cdecl("hyalo_ios_update_open_quickly_items")
-func bridgeUpdateOpenQuicklyItems(_ jsonCString: UnsafePointer<CChar>) {
+@_cdecl("hyalo_ios_minibuffer_show")
+func bridgeMinibufferShow(_ jsonCString: UnsafePointer<CChar>) {
     let json = String(cString: jsonCString)
     DispatchQueue.main.async {
         guard let data = json.data(using: .utf8) else { return }
         if #available(iOS 26.0, *) {
-            HyaloiOSModule.shared.openQuicklyViewModel.updateItems(from: data)
+            HyaloiOSModule.shared.minibufferViewModel.show(from: data)
         }
     }
 }
 
-@_cdecl("hyalo_ios_update_command_list")
-func bridgeUpdateCommandList(_ jsonCString: UnsafePointer<CChar>) {
+@_cdecl("hyalo_ios_minibuffer_update")
+func bridgeMinibufferUpdate(_ jsonCString: UnsafePointer<CChar>) {
     let json = String(cString: jsonCString)
     DispatchQueue.main.async {
         guard let data = json.data(using: .utf8) else { return }
         if #available(iOS 26.0, *) {
-            HyaloiOSModule.shared.commandPaletteViewModel.updateCommands(from: data)
+            HyaloiOSModule.shared.minibufferViewModel.update(from: data)
         }
     }
 }
 
-@_cdecl("hyalo_ios_show_open_quickly")
-func bridgeShowOpenQuickly() {
+@_cdecl("hyalo_ios_minibuffer_hide")
+func bridgeMinibufferHide() {
     DispatchQueue.main.async {
         if #available(iOS 26.0, *) {
-            HyaloiOSModule.shared.showOpenQuickly = true
-        }
-    }
-}
-
-@_cdecl("hyalo_ios_show_command_palette")
-func bridgeShowCommandPalette() {
-    DispatchQueue.main.async {
-        if #available(iOS 26.0, *) {
-            HyaloiOSModule.shared.showCommandPalette = true
+            HyaloiOSModule.shared.minibufferViewModel.hide()
         }
     }
 }

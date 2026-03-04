@@ -51,7 +51,7 @@ final class HyaloModule: Module {
     static var editorTabChannel: Any?
     static var statusChannel: Any?
     static var toolbarChannel: Any?
-    static var commandPaletteChannel: Any?
+    static var minibufferChannel: Any?
     static var appearanceChannel: Any?
     static var diagnosticsChannel: Any?
     static var packageChannel: Any?
@@ -225,5 +225,6 @@ final class HyaloModule: Module {
         try setupStatusBarBindings(env)
         try setupAppearanceBindings(env)
         try setupBuildBindings(env)
+        try setupMinibufferBindings(env)
     }
 }

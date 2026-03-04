@@ -23,8 +23,7 @@
           (hyalo-setup-status-channel))
         (when (fboundp 'hyalo-setup-toolbar-channel)
           (hyalo-setup-toolbar-channel))
-        (when (fboundp 'hyalo-setup-command-palette-channel)
-          (hyalo-setup-command-palette-channel))
+        ;; Command palette channel removed — replaced by minibuffer channel
         (when (fboundp 'hyalo-setup-search-channel)
           (hyalo-setup-search-channel))
         (when (fboundp 'hyalo-setup-appearance-channel)
@@ -39,6 +38,8 @@
           (hyalo-setup-environment-channel))
         (when (fboundp 'hyalo-setup-build-channel)
           (hyalo-setup-build-channel))
+        (when (fboundp 'hyalo-setup-minibuffer-channel)
+          (hyalo-setup-minibuffer-channel))
         ;; Push initial environment state now that channel is ready
         (when (fboundp 'hyalo-environment--push-initial)
           (hyalo-environment--push-initial))

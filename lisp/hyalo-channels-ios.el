@@ -113,13 +113,17 @@
   "Toggle utility area."
   (hyalo-log 'window "Toggle utility area"))
 
-(defun hyalo-show-command-palette ()
-  "Show command palette."
-  (hyalo-log 'window "Show command palette"))
+(defun hyalo-minibuffer-show (json)
+  "Show the native minibuffer panel.  JSON is the session payload."
+  (hyalo-log 'minibuffer "Show: %s" json))
 
-(defun hyalo-show-open-quickly ()
-  "Show open quickly."
-  (hyalo-log 'window "Show open quickly"))
+(defun hyalo-minibuffer-update (json)
+  "Update the native minibuffer panel.  JSON is the candidate payload."
+  (hyalo-log 'minibuffer "Update: %s" json))
+
+(defun hyalo-minibuffer-hide ()
+  "Hide the native minibuffer panel."
+  (hyalo-log 'minibuffer "Hide"))
 
 ;; File info
 (defun hyalo-update-file-info (json)

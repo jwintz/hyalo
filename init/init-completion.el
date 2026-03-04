@@ -104,5 +104,11 @@
   (advice-add #'corfu--popup-show :override #'ignore)
   (advice-add #'corfu--popup-hide :override #'ignore))
 
+;;;; Hyalo Minibuffer Bridge
+
+(require 'hyalo-minibuffer nil t)
+(when (featurep 'hyalo-minibuffer)
+  (hyalo-minibuffer-mode 1))
+
 (provide 'init-completion)
 ;;; init-completion.el ends here

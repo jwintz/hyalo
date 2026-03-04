@@ -24,16 +24,7 @@ public final class HyaloiOSModule {
     var emacsView: UIView?
     let editorTabViewModel = EditorTabViewModel()
     let utilityAreaViewModel = UtilityAreaViewModel()
-    let commandPaletteViewModel = CommandPaletteViewModel()
-    let openQuicklyViewModel = OpenQuicklyViewModel()
-
-    // Channel callbacks wired by ChannelBridge when Emacs sets up channels.
-    var onOpenFile: ((String) -> Void)?
-    var onExecuteCommand: ((String) -> Void)?
-
-    // Presentation state for Cmd+P / Cmd+O sheets (driven by Emacs or toolbar)
-    var showCommandPalette = false
-    var showOpenQuickly = false
+    let minibufferViewModel = MinibufferViewModel()
 
     private init() {
         // Register the iOS wakeEmacs implementation

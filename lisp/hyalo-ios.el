@@ -156,8 +156,8 @@ On iOS, always succeeds."
 (hyalo--ios-function hyalo-setup-toolbar-channel
   "Setup toolbar channel.")
 
-(hyalo--ios-function hyalo-setup-command-palette-channel
-  "Setup command palette channel.")
+(hyalo--ios-function hyalo-setup-minibuffer-channel
+  "Setup minibuffer channel.")
 
 (hyalo--ios-function hyalo-setup-search-channel
   "Setup search channel.")
@@ -237,11 +237,15 @@ On iOS, always succeeds."
 (hyalo--ios-function hyalo-toggle-utility-area
   "Toggle utility area visibility.")
 
-(hyalo--ios-function hyalo-show-command-palette
-  "Show command palette.")
+;; Minibuffer bridge functions (called by hyalo-minibuffer.el)
+(hyalo--ios-function hyalo-minibuffer-show
+  "Show the native minibuffer panel.")
 
-(hyalo--ios-function hyalo-show-open-quickly
-  "Show open quickly dialog.")
+(hyalo--ios-function hyalo-minibuffer-update
+  "Update the native minibuffer panel with new candidates.")
+
+(hyalo--ios-function hyalo-minibuffer-hide
+  "Hide the native minibuffer panel.")
 
 ;; Package functions
 (hyalo--ios-function hyalo-update-package-status
@@ -308,8 +312,8 @@ Called by init-hyalo on iOS."
     (hyalo-setup-status-channel))
   (when (fboundp 'hyalo-setup-toolbar-channel)
     (hyalo-setup-toolbar-channel))
-  (when (fboundp 'hyalo-setup-command-palette-channel)
-    (hyalo-setup-command-palette-channel))
+  (when (fboundp 'hyalo-setup-minibuffer-channel)
+    (hyalo-setup-minibuffer-channel))
   (when (fboundp 'hyalo-setup-search-channel)
     (hyalo-setup-search-channel))
   (when (fboundp 'hyalo-setup-appearance-channel)

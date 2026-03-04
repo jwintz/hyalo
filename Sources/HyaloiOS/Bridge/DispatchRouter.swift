@@ -21,6 +21,9 @@ public enum EmacsCommandID: Int32 {
     case packageUpgrade = 15
     case gitShowCommit = 16
     case gitShowDiff = 17
+    case minibufferInput = 18
+    case minibufferSelect = 19
+    case minibufferAbort = 20
 }
 
 public protocol EmacsCommand {
