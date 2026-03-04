@@ -52,15 +52,24 @@ public final class MinibufferViewModel {
     }
 
     public func update(from jsonData: Data) {
+        let t0 = CFAbsoluteTimeGetCurrent()
         guard let payload = try? JSONDecoder().decode(MinibufferPayload.self, from: jsonData) else {
-            NSLog("[Hyalo] Failed to decode minibuffer update payload")
+            NSLog("[Hyalo:Minibuffer] Failed to decode update payload (%d bytes)", jsonData.count)
             return
         }
+        let t1 = CFAbsoluteTimeGetCurrent()
         // Reject stale updates from a previous session
-        guard payload.sessionId == sessionId else { return }
+        guard payload.sessionId == sessionId else {
+            NSLog("[Hyalo:Minibuffer] stale update: got session %d, expected %d",
+                  payload.sessionId, sessionId)
+            return
+        }
         candidates = payload.candidates
         selectedIndex = payload.selectedIndex
         totalCandidates = payload.totalCandidates
+        let t2 = CFAbsoluteTimeGetCurrent()
+        NSLog("[Hyalo:Minibuffer] update: decode=%.1fms assign=%.1fms cands=%d",
+              (t1 - t0) * 1000, (t2 - t1) * 1000, candidates.count)
     }
 
     public func hide() {

@@ -92,6 +92,7 @@ final class MinibufferManager {
     // MARK: - Hide
 
     func hide() {
+        NSLog("[Hyalo:Minibuffer] hide called, panel=%@", panel != nil ? "yes" : "nil")
         viewModel.hide()
         dismissPanel()
     }
@@ -99,6 +100,7 @@ final class MinibufferManager {
     // MARK: - Abort (user pressed Escape in Swift panel)
 
     private func abort() {
+        NSLog("[Hyalo:Minibuffer] abort called")
         onAbort?()
         // Don't call viewModel.hide() here — Emacs will call hyalo-minibuffer-hide
         // via the minibuffer-exit-hook after abort-recursive-edit completes.
@@ -109,6 +111,11 @@ final class MinibufferManager {
     private func dismissPanel() {
         guard let p = panel else { return }
         panel = nil
+        // Detach delegate BEFORE close to prevent windowDidResignKey → abort.
+        // Without this, p.close() triggers windowDidResignKey which sends a
+        // spurious abort through the Emacs channel, killing the next minibuffer
+        // session (e.g., M-x compile → compile's read-shell-command).
+        p.delegate = nil
         p.close()
         restoreEmacsFirstResponder()
     }
@@ -122,8 +129,19 @@ final class MinibufferManager {
     }
 
     private func restoreEmacsFirstResponder() {
-        guard let window = findParentWindow() else { return }
-        DispatchQueue.main.async {
+        guard let window = findParentWindow() else {
+            NSLog("[Hyalo:Minibuffer] restoreEmacsFirstResponder: no parent window")
+            return
+        }
+        NSLog("[Hyalo:Minibuffer] restoreEmacsFirstResponder: scheduled async")
+        DispatchQueue.main.async { [weak self] in
+            // If a new panel was shown (recursive minibuffer), skip focus restore
+            // to avoid stealing key from the new panel (which triggers windowDidResignKey → abort).
+            guard self?.panel == nil else {
+                NSLog("[Hyalo:Minibuffer] restoreEmacsFirstResponder: SKIPPED (new panel active)")
+                return
+            }
+            NSLog("[Hyalo:Minibuffer] restoreEmacsFirstResponder: restoring focus to Emacs")
             window.makeKeyAndOrderFront(nil)
             func findEmacsView(in view: NSView) -> NSView? {
                 let className = String(describing: type(of: view))

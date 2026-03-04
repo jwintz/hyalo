@@ -100,10 +100,6 @@
        (elog-info emacs-logger "[%s] Loaded (%.3fs)" ,feature (- (float-time) start)))))
 
 (when hyalo--needs-bootstrap
-  (when (fboundp 'hyalo-set-loading-message) (hyalo-set-loading-message "Loading window settings…") (sit-for 0.01)))
-(init--require-with-trace 'init-windows)
-
-(when hyalo--needs-bootstrap
   (when (fboundp 'hyalo-set-loading-message) (hyalo-set-loading-message "Loading editor settings…") (sit-for 0.01)))
 (init--require-with-trace 'init-emacs)
 (init--require-with-trace 'init-tty)

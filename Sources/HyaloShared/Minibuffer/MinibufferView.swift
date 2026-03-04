@@ -28,28 +28,40 @@ public struct MinibufferView: View {
             HStack(alignment: .center, spacing: 0) {
                 if !viewModel.prompt.isEmpty {
                     Text(viewModel.prompt)
-                        .font(.system(size: 16, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 14, design: .monospaced))
+                        .foregroundStyle(.secondary)
                         .padding(.leading, 12)
                         .lineLimit(1)
                 }
 
                 TextField("", text: $viewModel.input)
-                    .font(.system(size: 20, weight: .light))
+                    .font(.system(size: 18, weight: .light))
                     .textFieldStyle(.plain)
                     .focused($isInputFocused)
                     .accessibilityLabel("Minibuffer input")
             }
-            .padding(.vertical, 12)
+            .padding(.vertical, 10)
             .foregroundColor(.primary.opacity(0.85))
 
             Divider()
 
+            // Candidate count
+            if viewModel.totalCandidates > 0 {
+                HStack {
+                    Text("\(viewModel.totalCandidates) candidates")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.quaternary)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 3)
+            }
+
             // Candidate list
             if viewModel.candidates.isEmpty && !viewModel.input.isEmpty {
                 Text("No matching candidates")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if !viewModel.candidates.isEmpty {
                 ScrollViewReader { proxy in
@@ -60,6 +72,7 @@ public struct MinibufferView: View {
                         )
                         .id(candidate.id)
                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .listRowSeparator(.hidden)
                         .contentShape(Rectangle())
                         .onTapGesture {
                             viewModel.onCandidateSelected?(index)
@@ -67,10 +80,10 @@ public struct MinibufferView: View {
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
-                    .environment(\.defaultMinListRowHeight, 32)
+                    .environment(\.defaultMinListRowHeight, 28)
                     .onChange(of: viewModel.selectedIndex) { _, newIndex in
                         if newIndex >= 0 && newIndex < viewModel.candidates.count {
-                            withAnimation {
+                            withAnimation(.easeOut(duration: 0.1)) {
                                 proxy.scrollTo(viewModel.candidates[newIndex].id, anchor: .center)
                             }
                         }
@@ -100,23 +113,32 @@ struct MinibufferCandidateRow: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 0) {
+            // Candidate text — truncates to leave room for annotation
             Text(candidate.text)
-                .font(.system(size: 12, weight: isSelected ? .medium : .regular))
+                .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .monospaced))
                 .foregroundStyle(.primary)
+                .opacity(isSelected ? 1.0 : 0.85)
                 .lineLimit(1)
+                .truncationMode(.middle)
 
-            Spacer()
+            Spacer(minLength: 8)
 
+            // Marginalia annotation — monospaced, fixed min width for column alignment
             if !candidate.annotation.isEmpty {
                 Text(candidate.annotation)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(isSelected ? .secondary : .tertiary)
                     .lineLimit(1)
+                    .frame(minWidth: 280, alignment: .trailing)
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 5)
-        .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(isSelected ? Color.accentColor.opacity(0.18) : Color.clear)
+                .padding(.horizontal, 4)
+        )
     }
 }

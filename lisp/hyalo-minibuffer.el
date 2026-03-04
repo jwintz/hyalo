@@ -62,8 +62,8 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
 (defun hyalo-minibuffer--should-skip-p ()
   "Return non-nil if we should fall through to native Emacs minibuffer."
   (or hyalo-minibuffer--inhibit
-      ;; Recursive minibuffer (depth > 1)
-      (> (minibuffer-depth) 1)
+      ;; Recursive minibuffer (depth > 2): skip for deep nesting
+      (> (minibuffer-depth) 2)
       ;; Password prompts
       (bound-and-true-p read-passwd--mode)
       ;; Detect password prompt text
@@ -116,7 +116,7 @@ Detects vertico, fido-vertical-mode, or generic completion."
                              (or (ignore-errors (funcall annotate-fn cand)) "")
                            "")))
         (push `((text . ,(substring-no-properties cand))
-                (annotation . ,(string-trim annotation))
+                (annotation . ,(string-trim (substring-no-properties annotation)))
                 (selected . ,(if (eq i index) t :json-false)))
               result)))
     (list (cons 'candidates (vconcat (nreverse result)))
@@ -145,7 +145,7 @@ Detects vertico, fido-vertical-mode, or generic completion."
                              (or (ignore-errors (funcall annotate-fn cand)) "")
                            "")))
         (push `((text . ,(substring-no-properties cand))
-                (annotation . ,(string-trim annotation))
+                (annotation . ,(string-trim (substring-no-properties annotation)))
                 (selected . ,(if (eq i 0) t :json-false)))
               result)))
     (list (cons 'candidates (vconcat (nreverse result)))
@@ -177,7 +177,7 @@ Detects vertico, fido-vertical-mode, or generic completion."
                              (or (ignore-errors (funcall annotate-fn cand)) "")
                            "")))
         (push `((text . ,(if (stringp cand) (substring-no-properties cand) ""))
-                (annotation . ,(string-trim annotation))
+                (annotation . ,(string-trim (substring-no-properties annotation)))
                 (selected . ,(if (eq i 0) t :json-false)))
               result)))
     (list (cons 'candidates (vconcat (nreverse result)))
@@ -186,7 +186,7 @@ Detects vertico, fido-vertical-mode, or generic completion."
 
 (defun hyalo-minibuffer--get-annotation-fn ()
   "Get the marginalia/completion annotation function if available."
-  (condition-case nil
+  (condition-case err
       (let* ((input (buffer-substring-no-properties
                      (minibuffer-prompt-end) (point-max)))
              (metadata (completion-metadata
@@ -194,11 +194,27 @@ Detects vertico, fido-vertical-mode, or generic completion."
                         minibuffer-completion-table
                         minibuffer-completion-predicate))
              (cat (completion-metadata-get metadata 'category)))
-        (or (and (bound-and-true-p marginalia-mode)
-                 cat
-                 (alist-get cat (bound-and-true-p marginalia-annotator-registry)))
-            (completion-metadata-get metadata 'annotation-function)))
-    (error nil)))
+        (hyalo-minibuffer--log "get-annotation-fn: cat=%s marginalia=%s"
+                               cat (if (bound-and-true-p marginalia-mode) "on" "off"))
+        ;; marginalia-annotators is an alist: (category annotator1 annotator2 ... builtin none)
+        ;; car of the cdr gives the first (active) annotator function
+        (let ((fn (or (and (bound-and-true-p marginalia-mode)
+                           cat
+                           (let ((entry (alist-get cat
+                                                   (bound-and-true-p marginalia-annotators))))
+                             (when entry
+                               (let ((first (car entry)))
+                                 (cond
+                                  ((eq first 'none) nil)
+                                  ((eq first 'builtin) nil)
+                                  ((functionp first) first)
+                                  (t nil))))))
+                      (completion-metadata-get metadata 'annotation-function))))
+          (hyalo-minibuffer--log "get-annotation-fn: resolved=%s" fn)
+          fn))
+    (error
+     (hyalo-minibuffer--log "get-annotation-fn error: %s" (error-message-string err))
+     nil)))
 
 ;; ---------------------------------------------------------------------------
 ;; Update timer — push candidates to Swift
@@ -218,20 +234,30 @@ Detects vertico, fido-vertical-mode, or generic completion."
   (setq hyalo-minibuffer--update-timer nil)
   (when (and hyalo-minibuffer--active (minibufferp))
     (condition-case err
-        (let* ((session hyalo-minibuffer--session-id)
+        (let* ((t0 (float-time))
+               (session hyalo-minibuffer--session-id)
                (extracted (hyalo-minibuffer--extract-candidates))
+               (t1 (float-time))
                (input (minibuffer-contents-no-properties))
                (payload `((sessionId . ,session)
                           (prompt . ,(or hyalo-minibuffer--prompt ""))
                           (input . ,input)
                           ,@extracted))
-               (json (json-encode payload)))
-          (hyalo-minibuffer--log "push-update: input=%s candidates=%d json-len=%d"
-                                 input
-                                 (length (cdr (assq 'candidates extracted)))
-                                 (length json))
+               (json (json-encode payload))
+               (t2 (float-time)))
+          (hyalo-minibuffer--log
+           "push-update: input=%s cands=%d json=%d extract=%.1fms encode=%.1fms"
+           input
+           (length (cdr (assq 'candidates extracted)))
+           (length json)
+           (* 1000 (- t1 t0))
+           (* 1000 (- t2 t1)))
           (when (and extracted (fboundp 'hyalo-minibuffer-update))
-            (hyalo-minibuffer-update json)))
+            (hyalo-minibuffer-update json)
+            (let ((t3 (float-time)))
+              (hyalo-minibuffer--log "push-update: defun-call=%.1fms total=%.1fms"
+                                     (* 1000 (- t3 t2))
+                                     (* 1000 (- t3 t0))))))
       (error
        (hyalo-minibuffer--log "push-update error: %s" (error-message-string err))))))
 
@@ -300,13 +326,15 @@ Detects vertico, fido-vertical-mode, or generic completion."
 (defun hyalo-minibuffer--setup-hook ()
   "Called from `minibuffer-setup-hook'.  Show the Swift panel."
   (if (hyalo-minibuffer--should-skip-p)
-      (hyalo-minibuffer--log "setup-hook: SKIPPED (skip condition met, depth=%d)"
-                             (minibuffer-depth))
+      (hyalo-minibuffer--log "setup-hook: SKIPPED (skip condition met, depth=%d, inhibit=%s)"
+                             (minibuffer-depth) hyalo-minibuffer--inhibit)
     (setq hyalo-minibuffer--session-id (1+ hyalo-minibuffer--session-id))
     (setq hyalo-minibuffer--prompt (minibuffer-prompt))
     (setq hyalo-minibuffer--active t)
-    (hyalo-minibuffer--log "setup-hook: session=%d prompt=%S"
-                           hyalo-minibuffer--session-id hyalo-minibuffer--prompt)
+    (hyalo-minibuffer--log "setup-hook: session=%d depth=%d prompt=%S"
+                           hyalo-minibuffer--session-id
+                           (minibuffer-depth)
+                           hyalo-minibuffer--prompt)
     ;; Show Swift panel
     (let* ((payload `((sessionId . ,hyalo-minibuffer--session-id)
                       (prompt . ,(or hyalo-minibuffer--prompt ""))
@@ -326,6 +354,8 @@ Detects vertico, fido-vertical-mode, or generic completion."
 
 (defun hyalo-minibuffer--exit-hook ()
   "Called from `minibuffer-exit-hook'.  Hide the Swift panel."
+  (hyalo-minibuffer--log "exit-hook: depth=%d active=%s"
+                         (minibuffer-depth) hyalo-minibuffer--active)
   (when hyalo-minibuffer--active
     (hyalo-minibuffer--log "exit-hook: hiding panel")
     (setq hyalo-minibuffer--active nil)
