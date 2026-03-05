@@ -131,13 +131,36 @@ struct MinibufferCandidateRow: View {
         CGFloat(annotationColumnChars) * Self.annotationCharWidth
     }
 
+    /// Build an AttributedString with match ranges highlighted in accent color.
+    /// Falls back to a plain AttributedString when no ranges are available.
+    private func attributedCandidateText() -> AttributedString {
+        var str = AttributedString(candidate.text)
+        let baseWeight: Font.Weight = isSelected ? .semibold : .regular
+        let baseColor = Color.primary.opacity(isSelected ? 1.0 : 0.85)
+        str.font = .system(size: 12, weight: baseWeight, design: .monospaced)
+        str.foregroundColor = baseColor
+
+        guard let ranges = candidate.matchRanges, !ranges.isEmpty else { return str }
+
+        let text = candidate.text
+        for range in ranges {
+            guard range.count == 2 else { continue }
+            let s = range[0], e = range[1]
+            guard s >= 0, s < e, e <= text.count else { continue }
+            let startIdx = text.index(text.startIndex, offsetBy: s)
+            let endIdx = text.index(text.startIndex, offsetBy: e)
+            if let attrRange = Range(startIdx..<endIdx, in: str) {
+                str[attrRange].font = .system(size: 12, weight: .semibold, design: .monospaced)
+                str[attrRange].foregroundColor = Color.accentColor
+            }
+        }
+        return str
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             // Candidate text — fills available space, elides if needed
-            Text(candidate.text)
-                .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .monospaced))
-                .foregroundStyle(.primary)
-                .opacity(isSelected ? 1.0 : 0.85)
+            Text(attributedCandidateText())
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .leading)

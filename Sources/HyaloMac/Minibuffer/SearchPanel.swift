@@ -94,6 +94,18 @@ final class SearchPanel: NSPanel, NSWindowDelegate {
             case 48: // Tab
                 self.onTabComplete?()
                 return nil
+            case 35: // p — M-p history prev
+                if event.modifierFlags.contains(.option) {
+                    self.onHistoryPrev?()
+                    return nil
+                }
+                return event
+            case 45: // n — M-n history next
+                if event.modifierFlags.contains(.option) {
+                    self.onHistoryNext?()
+                    return nil
+                }
+                return event
             default:
                 return event
             }

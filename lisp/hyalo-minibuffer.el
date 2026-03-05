@@ -130,13 +130,16 @@ For free-text inputs (no completion table), extracts history."
                            total index (if annotate-fn "yes" "no"))
     (dotimes (i limit)
       (let* ((cand (nth i cands))
+             (hilited (hyalo-minibuffer--hilit-candidate cand))
+             (match-ranges (hyalo-minibuffer--extract-match-ranges hilited))
              (annotation (if annotate-fn
                              (or (ignore-errors (funcall annotate-fn cand)) "")
                            "")))
         (push `((text . ,(hyalo-minibuffer--clean-text
                           (substring-no-properties cand)))
                 (annotation . ,(string-trim (substring-no-properties annotation)))
-                (selected . ,(if (eq i index) t :json-false)))
+                (selected . ,(if (eq i index) t :json-false))
+                (matchRanges . ,match-ranges))
               result)))
     (list (cons 'candidates (vconcat (nreverse result)))
           (cons 'selectedIndex index)
@@ -236,6 +239,56 @@ For free-text inputs (no completion table), extracts history."
     (error
      (hyalo-minibuffer--log "get-annotation-fn error: %s" (error-message-string err))
      nil)))
+
+;; ---------------------------------------------------------------------------
+;; Match highlighting — extract face ranges for Swift bold rendering
+;; ---------------------------------------------------------------------------
+
+(defun hyalo-minibuffer--hilit-candidate (cand)
+  "Return a copy of CAND with completion face properties applied.
+Uses vertico's buffer-local hilit function when available, then
+`completion-lazy-hilit' (Emacs 30+), otherwise returns CAND unchanged."
+  (condition-case nil
+      (let ((str (copy-sequence cand)))
+        (cond
+         ;; vertico sets `vertico--hilit' buffer-locally in the minibuffer
+         ((and (bound-and-true-p vertico-mode)
+               (boundp 'vertico--hilit)
+               (functionp vertico--hilit))
+          (funcall vertico--hilit str))
+         ;; Emacs 30+ lazy hilit
+         ((fboundp 'completion-lazy-hilit)
+          (completion-lazy-hilit str))
+         (t str)))
+    (error cand)))
+
+(defconst hyalo-minibuffer--match-faces
+  '(completions-common-part
+    completions-first-difference
+    orderless-match-face-0
+    orderless-match-face-1
+    orderless-match-face-2
+    orderless-match-face-3)
+  "Faces that indicate a completion match region.")
+
+(defun hyalo-minibuffer--extract-match-ranges (str)
+  "Return a vector of [start end] vectors for match-face regions in STR."
+  (let ((len (length str))
+        (pos 0)
+        ranges)
+    (while (< pos len)
+      (let* ((face (get-text-property pos 'face str))
+             (faces (cond ((listp face) face)
+                          ((symbolp face) (list face))
+                          (t nil)))
+             (is-match (seq-some (lambda (f)
+                                   (memq f hyalo-minibuffer--match-faces))
+                                 faces))
+             (next (or (next-single-property-change pos 'face str) len)))
+        (when is-match
+          (push (vector pos next) ranges))
+        (setq pos next)))
+    (vconcat (nreverse ranges))))
 
 ;; ---------------------------------------------------------------------------
 ;; History extraction — for free-text minibuffers (no completion table)
