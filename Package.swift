@@ -47,7 +47,8 @@ let package = Package(
             dependencies: [
                 .product(name: "KelyphosKit", package: "kelyphos"),
                 .product(name: "Files", package: "ProjectNavigator"),
-                .product(name: "ProjectNavigator", package: "ProjectNavigator")
+                .product(name: "ProjectNavigator", package: "ProjectNavigator"),
+                .product(name: "SwiftTerm", package: "SwiftTerm")
             ],
             path: "Sources/HyaloShared",
             swiftSettings: [

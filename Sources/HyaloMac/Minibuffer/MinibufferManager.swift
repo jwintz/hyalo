@@ -18,6 +18,9 @@ final class MinibufferManager {
     var onInputChanged: ((String) -> Void)?
     var onCandidateSelected: ((String) -> Void)?
     var onAbort: (() -> Void)?
+    var onHistoryPrev: (() -> Void)?
+    var onHistoryNext: (() -> Void)?
+    var onTabComplete: (() -> Void)?
 
     private init() {}
 
@@ -41,6 +44,7 @@ final class MinibufferManager {
             self?.abort()
         }
 
+        searchPanel.historyMode = viewModel.historyMode
         searchPanel.onArrowUp = { [weak self] in
             self?.viewModel.selectPrevious()
         }
@@ -49,6 +53,15 @@ final class MinibufferManager {
         }
         searchPanel.onConfirm = { [weak self] in
             self?.viewModel.confirm()
+        }
+        searchPanel.onHistoryPrev = { [weak self] in
+            self?.viewModel.historyPrev()
+        }
+        searchPanel.onHistoryNext = { [weak self] in
+            self?.viewModel.historyNext()
+        }
+        searchPanel.onTabComplete = { [weak self] in
+            self?.viewModel.tabComplete()
         }
 
         panel = searchPanel
@@ -65,13 +78,26 @@ final class MinibufferManager {
         viewModel.onAbort = { [weak self] in
             self?.abort()
         }
+        viewModel.onHistoryPrev = { [weak self] in
+            NSLog("[Hyalo:Minibuffer] history prev")
+            self?.onHistoryPrev?()
+        }
+        viewModel.onHistoryNext = { [weak self] in
+            NSLog("[Hyalo:Minibuffer] history next")
+            self?.onHistoryNext?()
+        }
+        viewModel.onTabComplete = { [weak self] in
+            NSLog("[Hyalo:Minibuffer] tab complete")
+            self?.onTabComplete?()
+        }
 
         let contentView = MinibufferView(viewModel: viewModel)
         searchPanel.contentView = NSHostingView(rootView: contentView)
 
         // Set panel to proper size before positioning
         let panelWidth: CGFloat = 680
-        let panelHeight: CGFloat = 400
+        let hasInitialCandidates = !viewModel.candidates.isEmpty || viewModel.totalCandidates > 0
+        let panelHeight: CGFloat = hasInitialCandidates ? 400 : 60
         searchPanel.setContentSize(NSSize(width: panelWidth, height: panelHeight))
 
         searchPanel.positionRelativeToParent(parentWindow)

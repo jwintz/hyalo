@@ -84,11 +84,29 @@ extension HyaloModule {
                     try env.funcall("hyalo-channels--handle-minibuffer-abort")
                 }
 
+                let historyPrevCallback: () -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment) in
+                    try env.funcall("hyalo-channels--handle-minibuffer-history-prev")
+                }
+
+                let historyNextCallback: () -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment) in
+                    try env.funcall("hyalo-channels--handle-minibuffer-history-next")
+                }
+
+                let tabCompleteCallback: () -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment) in
+                    try env.funcall("hyalo-channels--handle-minibuffer-tab")
+                }
+
                 MainActor.assumeIsolated {
                     let manager = MinibufferManager.shared
                     manager.onInputChanged = inputCallback
                     manager.onCandidateSelected = selectCallback
                     manager.onAbort = abortCallback
+                    manager.onHistoryPrev = historyPrevCallback
+                    manager.onHistoryNext = historyNextCallback
+                    manager.onTabComplete = tabCompleteCallback
                 }
 
                 return true

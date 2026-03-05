@@ -12,6 +12,11 @@ final class SearchPanel: NSPanel, NSWindowDelegate {
     var onArrowUp: (() -> Void)?
     var onArrowDown: (() -> Void)?
     var onConfirm: (() -> Void)?
+    var onHistoryPrev: (() -> Void)?
+    var onHistoryNext: (() -> Void)?
+    var onTabComplete: (() -> Void)?
+    /// When true, up/down arrows invoke history navigation instead of candidate navigation.
+    var historyMode: Bool = false
 
     private var eventMonitor: Any?
 
@@ -70,13 +75,24 @@ final class SearchPanel: NSPanel, NSWindowDelegate {
                 self.onClose?()
                 return nil
             case 126: // Up arrow
-                self.onArrowUp?()
+                if self.historyMode {
+                    self.onHistoryPrev?()
+                } else {
+                    self.onArrowUp?()
+                }
                 return nil
             case 125: // Down arrow
-                self.onArrowDown?()
+                if self.historyMode {
+                    self.onHistoryNext?()
+                } else {
+                    self.onArrowDown?()
+                }
                 return nil
             case 36: // Return/Enter
                 self.onConfirm?()
+                return nil
+            case 48: // Tab
+                self.onTabComplete?()
                 return nil
             default:
                 return event

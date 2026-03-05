@@ -42,11 +42,17 @@ public final class MinibufferViewModel {
     public var onInputChanged: ((String) -> Void)?
     public var onCandidateSelected: ((Int) -> Void)?
     public var onAbort: (() -> Void)?
+    public var onHistoryPrev: (() -> Void)?
+    public var onHistoryNext: (() -> Void)?
+    public var onTabComplete: (() -> Void)?
 
     // MARK: - Lifecycle
 
-    /// Suppresses `onInputChanged` during `show()` to avoid echoing the initial input back to Emacs.
-    private var suppressInputCallback = false
+    /// Counts pending Emacs-originated input changes that must not be echoed back.
+    /// Incremented before setting `input` from Emacs; decremented in SwiftUI's onChange.
+    /// Uses a counter (not bool) so it survives the async gap between setting a property
+    /// and SwiftUI firing onChange on the next render pass.
+    private var pendingEmacsInputUpdates = 0
 
     public func show(from jsonData: Data) {
         guard let payload = try? JSONDecoder().decode(MinibufferPayload.self, from: jsonData) else {
@@ -60,12 +66,17 @@ public final class MinibufferViewModel {
         selectedIndex = payload.selectedIndex
         totalCandidates = payload.totalCandidates
         recomputeAnnotationColumnWidth()
-        // Set input from Emacs (e.g. compile-command default) without triggering callback
-        suppressInputCallback = true
+        // Reset stale sync flag from any previous session
+        pendingEmacsSync = false
+        // Set input from Emacs without triggering the inject-input callback
+        pendingEmacsInputUpdates += 1
         input = payload.input
-        suppressInputCallback = false
         isActive = true
     }
+
+    /// Set true before sending a history-nav or tab-complete action to Emacs.
+    /// `update()` will sync the returned `input` into the TextField once (suppressed callback).
+    public var pendingEmacsSync: Bool = false
 
     public func update(from jsonData: Data) {
         let t0 = CFAbsoluteTimeGetCurrent()
@@ -84,6 +95,15 @@ public final class MinibufferViewModel {
         selectedIndex = payload.selectedIndex
         totalCandidates = payload.totalCandidates
         recomputeAnnotationColumnWidth()
+        // Sync input from Emacs when explicitly requested (history nav, tab completion)
+        if pendingEmacsSync && payload.input != input {
+            pendingEmacsSync = false
+            pendingEmacsInputUpdates += 1
+            input = payload.input
+            NSLog("[Hyalo:Minibuffer] update: synced input from Emacs: %@", payload.input)
+        } else {
+            pendingEmacsSync = false
+        }
         let t2 = CFAbsoluteTimeGetCurrent()
         NSLog("[Hyalo:Minibuffer] update: decode=%.1fms assign=%.1fms cands=%d",
               (t1 - t0) * 1000, (t2 - t1) * 1000, candidates.count)
@@ -96,6 +116,8 @@ public final class MinibufferViewModel {
         input = ""
         prompt = ""
         historyMode = false
+        pendingEmacsSync = false
+        pendingEmacsInputUpdates = 0
     }
 
     // MARK: - Layout
@@ -129,21 +151,44 @@ public final class MinibufferViewModel {
     }
 
     public func confirm() {
-        if historyMode && (selectedIndex < 0 || candidates.isEmpty) {
-            // Free-text: submit current input as-is (index -1 signals confirm-input)
+        if historyMode {
+            // Free-text / history mode: always submit current input.
+            // After arrow navigation, the Emacs minibuffer text is already the
+            // history item (updated by previous-history-element), so -1 is always correct.
             onCandidateSelected?(-1)
         } else if selectedIndex >= 0 && selectedIndex < candidates.count {
+            // Completion mode: let vertico pick the highlighted candidate.
             onCandidateSelected?(selectedIndex)
-        } else if !candidates.isEmpty {
-            onCandidateSelected?(0)
         } else {
-            // No candidates at all (e.g. empty history): submit current input
+            // No valid vertico selection: submit current input.
             onCandidateSelected?(-1)
         }
     }
 
-    /// Whether the input callback should fire. Used by `MinibufferView`'s onChange.
-    public var shouldFireInputCallback: Bool {
-        !suppressInputCallback
+    // MARK: - Emacs-delegated actions (history nav, tab completion)
+
+    public func historyPrev() {
+        pendingEmacsSync = true
+        onHistoryPrev?()
+    }
+
+    public func historyNext() {
+        pendingEmacsSync = true
+        onHistoryNext?()
+    }
+
+    public func tabComplete() {
+        pendingEmacsSync = true
+        onTabComplete?()
+    }
+
+    /// Called by MinibufferView's onChange. Returns true if the change should be
+    /// forwarded to Emacs, false if it originated from Emacs (suppress echo-back).
+    public func consumeEmacsInputUpdate() -> Bool {
+        if pendingEmacsInputUpdates > 0 {
+            pendingEmacsInputUpdates -= 1
+            return false
+        }
+        return true
     }
 }

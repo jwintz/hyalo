@@ -101,10 +101,11 @@ public struct MinibufferView: View {
         .frame(
             minWidth: 680,
             minHeight: hasCandidates ? 400 : nil,
-            maxHeight: .infinity
+            maxHeight: .infinity,
+            alignment: .top
         )
         .onChange(of: viewModel.input) { _, newValue in
-            guard viewModel.shouldFireInputCallback else { return }
+            guard viewModel.consumeEmacsInputUpdate() else { return }
             viewModel.onInputChanged?(newValue)
         }
         .onAppear {

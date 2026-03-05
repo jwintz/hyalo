@@ -62,7 +62,9 @@ extension HyaloModule {
             """
         ) { (env: EmacsSwiftModule.Environment, baseDir: String, config: String) throws -> Bool in
             if #available(macOS 26.0, *) {
-                HyaloModule.runAsyncBuild(baseDir: baseDir, config: config)
+                MainActor.assumeIsolated {
+                    HyaloModule.runAsyncBuild(baseDir: baseDir, config: config)
+                }
                 return true
             }
             return false
@@ -193,9 +195,7 @@ extension HyaloModule {
             return
         }
 
-        FSEventStreamScheduleWithRunLoop(
-            stream, CFRunLoopGetMain(),
-            CFRunLoopMode.defaultMode.rawValue)
+        FSEventStreamSetDispatchQueue(stream, DispatchQueue.main)
         FSEventStreamStart(stream)
         buildWatcherStream = stream
     }
@@ -262,6 +262,7 @@ extension HyaloModule {
 
     /// Run `swift build` asynchronously with full lifecycle tracking.
     @available(macOS 26.0, *)
+    @MainActor
     static func runAsyncBuild(baseDir: String, config: String) {
         if let existing = buildProcess, existing.isRunning {
             existing.terminate()
@@ -285,16 +286,22 @@ extension HyaloModule {
         process.standardOutput = pipe
         process.standardError = pipe
 
-        let handle = pipe.fileHandleForReading
-        var lineBuffer = Data()
-        handle.readabilityHandler = { fh in
-            let data = fh.availableData
-            guard !data.isEmpty else { return }
-            lineBuffer.append(data)
+        // Wrap the line accumulation buffer in a reference type so it can be
+        // safely shared between the readabilityHandler and terminationHandler
+        // closures. Access is sequential in practice: terminationHandler sets
+        // readabilityHandler = nil before touching the buffer.
+        final class LineAccumulator: @unchecked Sendable { var data = Data() }
+        let acc = LineAccumulator()
 
-            while let range = lineBuffer.range(of: Data([0x0A])) {
-                let lineData = lineBuffer.subdata(in: lineBuffer.startIndex..<range.lowerBound)
-                lineBuffer.removeSubrange(lineBuffer.startIndex...range.lowerBound)
+        let handle = pipe.fileHandleForReading
+        handle.readabilityHandler = { fh in
+            let chunk = fh.availableData
+            guard !chunk.isEmpty else { return }
+            acc.data.append(chunk)
+
+            while let range = acc.data.range(of: Data([0x0A])) {
+                let lineData = acc.data.subdata(in: acc.data.startIndex..<range.lowerBound)
+                acc.data.removeSubrange(acc.data.startIndex...range.lowerBound)
                 if let line = String(data: lineData, encoding: .utf8), !line.isEmpty {
                     DispatchQueue.main.async {
                         mgr.appendLog(id: activityID, line: line)
@@ -311,7 +318,7 @@ extension HyaloModule {
 
         process.terminationHandler = { proc in
             handle.readabilityHandler = nil
-            if !lineBuffer.isEmpty, let line = String(data: lineBuffer, encoding: .utf8) {
+            if !acc.data.isEmpty, let line = String(data: acc.data, encoding: .utf8) {
                 DispatchQueue.main.async {
                     mgr.appendLog(id: activityID, line: line)
                     HyaloModule.buildLogLineCallback?(line)

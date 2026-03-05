@@ -340,18 +340,20 @@ Used when there is no completion table (e.g. `read-shell-command')."
 
 (defun hyalo-minibuffer--inject-input (text)
   "Replace minibuffer contents with TEXT from Swift panel."
-  (hyalo-minibuffer--log "inject-input: %s" text)
   (when (minibufferp)
     (delete-minibuffer-contents)
     (insert text)
-    ;; Trigger completion framework refresh
-    (cond
-     ((bound-and-true-p vertico-mode)
-      (when (fboundp 'vertico--exhibit)
-        (vertico--exhibit)))
-     ((bound-and-true-p fido-vertical-mode)
-      (when (fboundp 'icomplete-exhibit)
-        (icomplete-exhibit))))
+    (hyalo-minibuffer--log "inject-input: inserted=%S actual=%S"
+                           text (minibuffer-contents-no-properties))
+    ;; Trigger completion framework refresh (skip for free-text: no completion table)
+    (unless hyalo-minibuffer--history-mode
+      (cond
+       ((bound-and-true-p vertico-mode)
+        (when (fboundp 'vertico--exhibit)
+          (vertico--exhibit)))
+       ((bound-and-true-p fido-vertical-mode)
+        (when (fboundp 'icomplete-exhibit)
+          (icomplete-exhibit)))))
     ;; Schedule candidate extraction after framework has processed
     (hyalo-minibuffer--schedule-update)))
 
@@ -367,6 +369,7 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
     (cond
      ;; Free-text confirm: index -1 means submit whatever is in the minibuffer
      ((= index -1)
+      (hyalo-minibuffer--log "select-candidate: submitting=%S" (minibuffer-contents-no-properties))
       (exit-minibuffer))
      ;; History mode: insert selected history item and exit
      (hyalo-minibuffer--history-mode
@@ -518,6 +521,32 @@ INDEX-STR is the selected candidate index as a string."
 (defun hyalo-channels--handle-minibuffer-abort ()
   "Handle abort from the Swift minibuffer panel."
   (hyalo-minibuffer--abort))
+
+(defun hyalo-channels--handle-minibuffer-history-prev ()
+  "Navigate to the previous history item (M-p equivalent)."
+  (hyalo-minibuffer--log "history-prev")
+  (when (minibufferp)
+    (ignore-errors (previous-history-element 1))
+    (hyalo-minibuffer--schedule-update)))
+
+(defun hyalo-channels--handle-minibuffer-history-next ()
+  "Navigate to the next history item (M-n equivalent)."
+  (hyalo-minibuffer--log "history-next")
+  (when (minibufferp)
+    (ignore-errors (next-history-element 1))
+    (hyalo-minibuffer--schedule-update)))
+
+(defun hyalo-channels--handle-minibuffer-tab ()
+  "Trigger minibuffer completion (Tab equivalent)."
+  (hyalo-minibuffer--log "tab-complete")
+  (when (minibufferp)
+    (cond
+     ((bound-and-true-p vertico-mode)
+      (when (fboundp 'vertico-insert)
+        (ignore-errors (vertico-insert))))
+     (t
+      (ignore-errors (minibuffer-complete))))
+    (hyalo-minibuffer--schedule-update)))
 
 ;; ---------------------------------------------------------------------------
 ;; Minor mode

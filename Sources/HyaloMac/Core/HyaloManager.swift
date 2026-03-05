@@ -27,7 +27,9 @@ final class HyaloManager {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.updateWindowsForSystemAppearanceChange()
+            MainActor.assumeIsolated {
+                self?.updateWindowsForSystemAppearanceChange()
+            }
         }
     }
 

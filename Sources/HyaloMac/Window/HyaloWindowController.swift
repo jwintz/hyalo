@@ -142,13 +142,15 @@ final class HyaloWindowController: NSWindowController {
         // Guard: only act when we have a real title; skip while shellState.title is still empty.
         // Async: setting win.title inside its own KVO observation causes re-entrancy on macOS.
         titleObservation = window.observe(\.title, options: [.new]) { [weak self] win, change in
-            guard let self, !self.isRestoringTitle else { return }
-            guard let newTitle = change.newValue else { return }
-            let desired = self.shellState.title
-            guard !desired.isEmpty, newTitle != desired else { return }
-            self.isRestoringTitle = true
-            win.title = desired
-            self.isRestoringTitle = false
+            MainActor.assumeIsolated {
+                guard let self, !self.isRestoringTitle else { return }
+                guard let newTitle = change.newValue else { return }
+                let desired = self.shellState.title
+                guard !desired.isEmpty, newTitle != desired else { return }
+                self.isRestoringTitle = true
+                win.title = desired
+                self.isRestoringTitle = false
+            }
         }
     }
 
