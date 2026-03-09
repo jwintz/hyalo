@@ -12,7 +12,7 @@
   (inhibit-startup-screen t)
   (inhibit-startup-message t)
   (inhibit-startup-echo-area-message t)
-  (initial-buffer-choice t)
+  (initial-buffer-choice nil)
   (initial-scratch-message "")
   ;; Cursor
   (cursor-in-non-selected-windows nil)

@@ -230,7 +230,7 @@ further details)."
   "Generated palette for the N Λ N O light theme.")
 
 ;; Mode-line as thin separator in GUI: height 0.1, fg=bg (invisible text),
-;; underline in border color, no box.  In TTY: default mode-line with underline.
+;; underline in border color, no box.  In TTY: standard mode-line with background.
 ;; NOTE: bg-dim (#fafafa) is nearly invisible on bg-main (#ffffff) in light
 ;; themes — use border (#d4d4d8 zinc-300) for a visible separator.
 (defvar nano-light-custom-faces
@@ -243,7 +243,9 @@ further details)."
         :overline nil
         :box nil
         :inherit nil)
-       (t :underline ,border-mode-line-active :box nil)))
+       (t :background ,bg-mode-line-active
+          :foreground ,fg-mode-line-active
+          :underline ,border-mode-line-active :box nil)))
     `(mode-line-active
       ((((type graphic))
         :height 0.1
@@ -253,7 +255,9 @@ further details)."
         :overline nil
         :box nil
         :inherit nil)
-       (t :underline ,border-mode-line-active :box nil)))
+       (t :background ,bg-mode-line-active
+          :foreground ,fg-mode-line-active
+          :underline ,border-mode-line-active :box nil)))
     `(mode-line-inactive
       ((((type graphic))
         :height 0.1
@@ -263,7 +267,9 @@ further details)."
         :overline nil
         :box nil
         :inherit nil)
-       (t :underline ,border-mode-line-inactive :box nil)))
+       (t :background ,bg-mode-line-inactive
+          :foreground ,fg-mode-line-inactive
+          :underline ,border-mode-line-inactive :box nil)))
     ;; Window dividers — match border color (zinc-300)
     `(window-divider ((t :foreground ,border)))
     `(window-divider-first-pixel ((t :foreground ,border)))

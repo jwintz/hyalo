@@ -95,14 +95,16 @@
   (when (and initial-window-system
              (file-directory-p lisp-dir))
     (add-to-list 'load-path lisp-dir)
-    (condition-case err
-        (progn
-          (require 'hyalo)
-          (if (hyalo-load)
-              (hyalo--boot-log "dylib loaded")
-            (hyalo--boot-log "dylib not found or build failed — will retry in init.el")))
-      (error
-       (hyalo--boot-log (format "dylib load error: %s" (error-message-string err)))))))
+    ;; On iOS, the module is statically linked - no dylib to load
+    (unless (eq window-system 'ios)
+      (condition-case err
+          (progn
+            (require 'hyalo)
+            (if (hyalo-load)
+                (hyalo--boot-log "dylib loaded")
+              (hyalo--boot-log "dylib not found or build failed — will retry in init.el")))
+        (error
+         (hyalo--boot-log (format "dylib load error: %s" (error-message-string err))))))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Failsafe visibility hook

@@ -169,10 +169,12 @@ subsequent steps from running.  Each step logs errors individually."
       (hyalo-appearance-sync)
     (error (message "Hyalo: Appearance sync error: %s" (error-message-string err))))
   ;; Push initial terminal palette and color theme (theme loaded before hook registered)
+  ;; NOTE: Terminal palette is now loaded from iTermColors files in Swift.
+  ;; Do not override with Emacs-derived colors to preserve the nano theme.
   (condition-case err
       (progn
-        (when (fboundp 'hyalo-theme-send-palette)
-          (hyalo-theme-send-palette))
+        ;; (when (fboundp 'hyalo-theme-send-palette)
+        ;;   (hyalo-theme-send-palette))
         (when (fboundp 'hyalo-theme-send-color-theme)
           (hyalo-theme-send-color-theme))
         ;; Push current theme name (theme loaded before module, so hyalo-theme--on-enable skipped it)
@@ -243,7 +245,7 @@ Remove Hyalo decoration from FRAME before it is destroyed."
 Override Cmd+O (ns-open-file-using-panel) and Cmd+P (ns-print-buffer)
 with Open Quickly and Command Palette respectively.
 Setup Xcode-like Cmd-0..4 navigator and Cmd-Option-0..3 inspector shortcuts."
-  (when (and (hyalo-available-p) (fboundp 'hyalo-show-open-quickly))
+  (when (hyalo-available-p)
     ;; Override NS functions directly using advice
     (when (fboundp 'ns-open-file-using-panel)
       (advice-add 'ns-open-file-using-panel :override #'hyalo/open-quickly))
@@ -273,7 +275,7 @@ Setup Xcode-like Cmd-0..4 navigator and Cmd-Option-0..3 inspector shortcuts."
 
 (defun hyalo-window--setup-ns-advice-delayed ()
   "Delayed setup of NS function advice."
-  (when (and (hyalo-available-p) (fboundp 'hyalo-show-open-quickly))
+  (when (hyalo-available-p)
     (when (and (fboundp 'ns-open-file-using-panel)
                (not (advice-member-p #'hyalo/open-quickly 'ns-open-file-using-panel)))
       (advice-add 'ns-open-file-using-panel :override #'hyalo/open-quickly))
@@ -296,38 +298,23 @@ Setup Xcode-like Cmd-0..4 navigator and Cmd-Option-0..3 inspector shortcuts."
 ;;; Open Quickly Command (Cmd+O)
 
 (defun hyalo/open-quickly ()
-  "Show the Open Quickly panel for fast file navigation.
-Collects project files and opens the Swift panel."
+  "Open a file using the native Swift minibuffer panel.
+Delegates to `find-file'; the minibuffer bridge (hyalo-minibuffer-mode)
+intercepts the minibuffer session and renders it natively."
   (interactive)
-  (if (and (hyalo-available-p)
-           (fboundp 'hyalo-show-open-quickly)
-           (boundp 'hyalo-channels--initialized)
-           hyalo-channels--initialized)
-      (progn
-        (let ((files (hyalo-window--collect-project-files)))
-          (when (and files (fboundp 'hyalo-update-open-quickly-items))
-            (hyalo-update-open-quickly-items (json-encode files))))
-        (hyalo-show-open-quickly))
-    (call-interactively 'find-file)))
+  (call-interactively 'find-file))
 
 ;;; Command Palette Command (Cmd+P)
 
 (defun hyalo/command-palette ()
-  "Show the Command Palette for quick command execution.
-Collects Emacs commands and opens the Swift panel."
+  "Execute a command using the native Swift minibuffer panel.
+Delegates to `execute-extended-command'; the minibuffer bridge
+\(hyalo-minibuffer-mode) intercepts the minibuffer session and
+renders it natively."
   (interactive)
-  (if (and (hyalo-available-p)
-           (fboundp 'hyalo-show-command-palette)
-           (boundp 'hyalo-channels--initialized)
-           hyalo-channels--initialized)
-      (progn
-        (let ((commands (hyalo-window--collect-commands)))
-          (when (and commands (fboundp 'hyalo-update-command-list))
-            (hyalo-update-command-list (json-encode commands))))
-        (hyalo-show-command-palette))
-    (call-interactively 'execute-extended-command)))
+  (call-interactively 'execute-extended-command))
 
-;;; Data Collectors
+;;; Data Collectors (used by minibuffer bridge via Emacs completion)
 
 (defun hyalo-window--get-project-root ()
   "Get project root: project.el root, git root, file directory, or `default-directory'."
@@ -339,69 +326,6 @@ Collects Emacs commands and opens the Swift panel."
       (and buffer-file-name (file-name-directory buffer-file-name))
       default-directory))
 
-(defun hyalo-window--collect-project-files ()
-  "Collect files in the current project for Open Quickly."
-  (let ((root (hyalo-window--get-project-root)))
-    (when root
-      (condition-case nil
-          (let* ((default-directory root)
-                 (files (split-string
-                         (shell-command-to-string
-                          "git ls-files 2>/dev/null || find . -type f -not -path '*/\\.*' -not -path '*/node_modules/*' | head -1000")
-                         "\n" t))
-                 (result nil))
-            (dolist (file files)
-              (when (and (> (length file) 0)
-                         (not (string-match-p "^\\." file)))
-                (let* ((full-path (expand-file-name file root))
-                       (name (file-name-nondirectory file))
-                       (icon (cond
-                              ((string-match-p "\\.swift$" name) "swift")
-                              ((string-match-p "\\.el$" name) "doc.text")
-                              ((string-match-p "\\.md$" name) "doc.plaintext")
-                              ((string-match-p "\\.json$" name) "doc.text")
-                              (t "doc"))))
-                  (push `((name . ,name)
-                          (path . ,full-path)
-                          (relativePath . ,file)
-                          (icon . ,icon))
-                        result))))
-            (nreverse result))
-        (error nil)))))
-
-(defun hyalo-window--collect-commands ()
-  "Collect available Emacs commands for the Command Palette."
-  (let ((commands nil))
-    (mapatoms
-     (lambda (sym)
-       (when (and (commandp sym)
-                  (symbol-name sym)
-                  (not (string-match-p "^\\^" (symbol-name sym))))
-         (let* ((name (symbol-name sym))
-                (doc (documentation sym 'function))
-                (desc (if doc
-                          (substring doc 0 (min 60 (length doc)))
-                        ""))
-                (key (where-is-internal sym nil t))
-                (keybinding (when key (key-description key)))
-                (icon (cond
-                       ((string-match-p "file" name) "doc")
-                       ((string-match-p "buffer" name) "doc.on.doc")
-                       ((string-match-p "window\\|frame" name) "macwindow")
-                       ((string-match-p "compile\\|build" name) "hammer")
-                       ((string-match-p "search\\|find\\|grep" name) "magnifyingglass")
-                       ((string-match-p "git\\|magit" name) "chevron.branch")
-                       ((string-match-p "toggle" name) "switch.2")
-                       (t "command.square"))))
-           (push `((name . ,name)
-                   (description . ,desc)
-                   (icon . ,icon)
-                   (keybinding . ,keybinding)
-                   (category . "commands"))
-                 commands)))))
-    (sort commands (lambda (a b)
-                     (string< (cdr (assq 'name a))
-                              (cdr (assq 'name b)))))))
 
 ;;; Panel Toggles
 

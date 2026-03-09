@@ -9,24 +9,29 @@
 ;;;; Fonts
 
 ;; Set font preferences before loading themes
-(set-face-attribute 'default nil
-                    :family "SF Mono"
-                    :height 110  ; 11pt
-                    :weight 'regular)
-
-(set-face-attribute 'variable-pitch nil
-                    :family "Recursive Mono Casual Static"
-                    :height 110
-                    :weight 'regular)
-
-(set-face-attribute 'fixed-pitch nil
-                    :family "SF Mono"
-                    :height 110
-                    :weight 'regular)
+;; On iOS, use Menlo (system font). On macOS, use SF Mono and Recursive Mono.
+(if (eq window-system 'ios)
+    (progn
+      (set-face-attribute 'default nil :family "Menlo" :height 120 :weight 'regular)
+      (set-face-attribute 'variable-pitch nil :family "Menlo" :height 120 :weight 'regular)
+      (set-face-attribute 'fixed-pitch nil :family "Menlo" :height 120 :weight 'regular))
+  (set-face-attribute 'default nil
+                      :family "SF Mono"
+                      :height 110  ; 11pt
+                      :weight 'regular)
+  (set-face-attribute 'variable-pitch nil
+                      :family "Lilex" ;; "Recursive Mono Casual Static"
+                      :height 110
+                      :weight 'regular)
+  (set-face-attribute 'fixed-pitch nil
+                      :family "Lilex" ;; "SF Mono"
+                      :height 110
+                      :weight 'regular))
 
 ;;;; Fontaine (font presets)
 
 (use-package fontaine
+  :if (not (eq window-system 'ios))
   :ensure t
   :demand t
   :config
@@ -38,7 +43,7 @@
            :fixed-pitch-family "SF Mono"
            :fixed-pitch-weight regular
            :fixed-pitch-height 1.0
-           :variable-pitch-family "Recursive Mono Casual Static"
+           :variable-pitch-family "Lilex" ;; "Recursive Mono Casual Static"
            :variable-pitch-weight regular
            :variable-pitch-height 1.0)
           (presentation
@@ -48,7 +53,7 @@
            :fixed-pitch-family "SF Mono"
            :fixed-pitch-weight regular
            :fixed-pitch-height 1.0
-           :variable-pitch-family "Recursive Mono Casual Static"
+           :variable-pitch-family "Lilex" ;; "Recursive Mono Casual Static"
            :variable-pitch-weight regular
            :variable-pitch-height 1.0)
           (t  ; fallback applied to all presets
@@ -64,25 +69,25 @@
 
 ;; SF Mono 11pt has ~13px line height. Adding 0.15 ratio (~2px) gives
 ;; a 1.15x ratio matching Xcode/VS Code density for code editing.
-(setq-default line-spacing 0.15)
+;; (setq-default line-spacing 0.15)
 
 ;;;; Frame Defaults
 
 (setq default-frame-alist
-      (append (list
-               '(min-height . 1)
-               '(height     . 45)
-               '(min-width  . 1)
-               '(width      . 81)
-               '(vertical-scroll-bars . nil)
-               '(horizontal-scroll-bars . nil)
-               '(tool-bar-lines . 0)
-               ;; Transparent background for Liquid Glass pass-through.
-               ;; ns-alpha-elements controls which elements use alpha.
-               '(alpha-background . 0.0)
-               '(ns-alpha-elements . (ns-alpha-default
-                                      ns-alpha-glyphs)))))
+      '((min-height . 1)
+        (height     . 45)
+        (min-width  . 1)
+        (width      . 81)
+        (vertical-scroll-bars . nil)
+        (horizontal-scroll-bars . nil)
+        (tool-bar-lines . 0)))
 
+;; Transparent background for Liquid Glass pass-through.
+;; Only on macOS (ns): iOS has no vibrancy material beneath the frame.
+(when (eq window-system 'ns)
+  (push '(alpha-background . 0.0) default-frame-alist)
+  (push '(ns-alpha-elements . (ns-alpha-default ns-alpha-glyphs))
+        default-frame-alist))
 (setq widget-image-enable nil)
 
 ;;;; Fringe Configuration
@@ -100,8 +105,15 @@
 ;;;; Theme Dependencies
 
 ;; modus-themes: accessibility-focused base theme engine (required by nano-themes)
+;; On iOS, modus-themes.el lives in etc/themes/ (bundled with Emacs), not in
+;; ELPA. Add etc/themes/ to load-path so (require 'modus-themes) works.
+(when (eq window-system 'ios)
+  (add-to-list 'load-path
+               (expand-file-name "themes" data-directory)))
+
 (use-package modus-themes
   :ensure t
+  :if (not (eq window-system 'ios))
   :demand t
   :config
   (setq modus-themes-italic-constructs t)
@@ -111,6 +123,7 @@
 ;; Must be loaded before enabling modus-themes-include-derivatives-mode
 ;; so that ef themes are registered in modus-themes-registered-items.
 (use-package ef-themes
+  :if (not (eq window-system 'ios))
   :ensure t
   :demand t
   :after modus-themes
@@ -186,6 +199,7 @@
 ;;;; Icons
 
 (use-package nerd-icons
+  :if (not (eq window-system 'ios))
   :ensure t
   :demand t
   :config
@@ -222,6 +236,7 @@
   :group 'lin-faces)
 
 (use-package lin
+  :if (not (eq window-system 'ios))
   :ensure t
   :custom
   (lin-face 'lin-violet)
@@ -240,9 +255,11 @@
 ;;;; Minimap
 
 (use-package hide-mode-line
+  :if (not (eq window-system 'ios))
   :ensure t)
 
 (use-package demap
+  :if (not (eq window-system 'ios))
   :ensure t
   :defer t
   :commands (demap-toggle demap-open demap-close)
@@ -257,6 +274,7 @@
 ;;;; Olivetti (centered writing mode)
 
 (use-package olivetti
+  :if (not (eq window-system 'ios))
   :ensure t
   :defer t
   :init
@@ -268,6 +286,7 @@
 ;; fixed-pitch for code elements (indentation, tables, code blocks).
 ;; Automatically enabled in text-heavy modes.
 (use-package mixed-pitch
+  :if (not (eq window-system 'ios))
   :ensure t
   :hook ((markdown-mode . mixed-pitch-mode)
          (org-mode . mixed-pitch-mode)

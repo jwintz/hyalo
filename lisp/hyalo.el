@@ -184,17 +184,28 @@ Returns non-nil on success (sync) or t immediately (async)."
         (progn
           (hyalo-async-build hyalo--base-dir config)
           t)
-      ;; Sync fallback for initial build (module not yet loaded)
+      ;; Sync fallback for initial build (module not yet loaded).
+      ;; display-buffer is called AFTER call-process returns, not before.
+      ;; Showing the buffer before call-process triggers window hooks that
+      ;; can kill *hyalo-build* before the process has a chance to write to it.
+      ;; compilation-mode is activated after the process exits to avoid
+      ;; buffer-read-only conflicts with the C-level subprocess output writer.
       (let* ((buffer-name "*hyalo-build*")
-             (cmd (format "swift build -c %s" config))
-             (result (call-process-shell-command cmd nil buffer-name t)))
-        (if (= result 0)
-            (progn
-              (hyalo-log 'core "Build successful")
-              t)
-          (pop-to-buffer buffer-name)
-          (hyalo-log 'core "Build failed (see %s)" buffer-name)
-          nil)))))
+             (cmd (format "swift build --product Hyalo -c %s" config)))
+        (with-current-buffer (get-buffer-create buffer-name)
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (insert (format "swift build --product Hyalo -c %s\n\n" config))))
+        (let ((result (call-process-shell-command cmd nil buffer-name t)))
+          (with-current-buffer buffer-name
+            (compilation-mode))
+          (display-buffer buffer-name)
+          (if (= result 0)
+              (progn
+                (hyalo-log 'core "Build successful")
+                t)
+            (hyalo-log 'core "Build failed (see %s)" buffer-name)
+            nil))))))
 
 (defun hyalo-rebuild-and-reload ()
   "Rebuild the module synchronously and reload it into Emacs.
@@ -203,25 +214,31 @@ build) because the reload must happen after the build completes."
   (interactive)
   (let* ((default-directory hyalo--base-dir)
          (buffer-name "*hyalo-build*")
-         (cmd "swift build -c debug")
-         (result (call-process-shell-command cmd nil buffer-name t)))
-    (if (= result 0)
-        (let ((dylib-path (hyalo--find-dylib)))
-          (if dylib-path
-              (condition-case err
-                  (progn
-                    (module-load dylib-path)
-                    (setq hyalo--loaded t)
-                    (hyalo-log 'core "Rebuilt and reloaded from %s" dylib-path)
-                    t)
-                (error
-                 (hyalo-log 'core "Reload failed: %s" (error-message-string err))
-                 nil))
-            (hyalo-log 'core "No dylib found after build")
-            nil))
-      (pop-to-buffer buffer-name)
-      (hyalo-log 'core "Rebuild failed (see %s)" buffer-name)
-      nil)))
+         (cmd "swift build --product Hyalo -c debug"))
+    (with-current-buffer (get-buffer-create buffer-name)
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert "swift build --product Hyalo -c debug\n\n")))
+    (let ((result (call-process-shell-command cmd nil buffer-name t)))
+      (with-current-buffer buffer-name
+        (compilation-mode))
+      (display-buffer buffer-name)
+      (if (= result 0)
+          (let ((dylib-path (hyalo--find-dylib)))
+            (if dylib-path
+                (condition-case err
+                    (progn
+                      (module-load dylib-path)
+                      (setq hyalo--loaded t)
+                      (hyalo-log 'core "Rebuilt and reloaded from %s" dylib-path)
+                      t)
+                  (error
+                   (hyalo-log 'core "Reload failed: %s" (error-message-string err))
+                   nil))
+              (hyalo-log 'core "No dylib found after build")
+              nil))
+        (hyalo-log 'core "Rebuild failed (see %s)" buffer-name)
+        nil))))
 
 ;;; Module Path Discovery
 

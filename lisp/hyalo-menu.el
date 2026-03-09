@@ -10,10 +10,10 @@
 (easy-menu-define hyalo-menu global-map "Hyalo"
   '("Hyalo"
     ["Open Quickly..." hyalo/open-quickly
-     :visible (fboundp 'hyalo-show-open-quickly)
+     :visible (fboundp 'hyalo/open-quickly)
      :keys "s-o"]
     ["Command Palette..." hyalo/command-palette
-     :visible (fboundp 'hyalo-show-command-palette)
+     :visible (fboundp 'hyalo/command-palette)
      :keys "s-p"]
     "---"
     ["Toggle Navigator" hyalo-toggle-navigator :keys "s-0"]

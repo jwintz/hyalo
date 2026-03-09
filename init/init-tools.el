@@ -130,9 +130,6 @@ Falls back to prin1 if pretty-printing fails."
     "v g" '(magit-generate-commit-message :wk "generate message"))
   (:keymaps 'git-commit-mode-map
    "C-c C-g" '(magit-generate-commit-message :wk "generate message"))
-  :custom
-  (magit-display-buffer-function
-   (lambda (buffer) (display-buffer buffer '(display-buffer-same-window))))
   :config
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t)
 
@@ -171,20 +168,15 @@ Falls back to prin1 if pretty-printing fails."
 7. If breaking change, add \"BREAKING CHANGE:\" footer
 
 Respond with ONLY the commit message, no explanation, no markdown, no quotes."
-    "System message for Gemini CLI commit message generation.")
+    "System message for commit message generation.")
 
-  (defcustom magit-commit-provider "synthetic"
-    "AI provider for commit message generation."
-    :type 'string
-    :group 'magit)
-
-  (defcustom magit-commit-model "hf:MiniMaxAI/MiniMax-M2.1"
+  (defcustom magit-commit-model "gpt-5-mini"
     "Model ID for commit message generation."
     :type 'string
     :group 'magit)
 
   (defun magit-generate-commit-message ()
-    "Generate commit message using pi CLI based on staged changes.
+    "Generate commit message using copilot CLI based on staged changes.
 Inserts the message at point in the commit buffer.
 Runs asynchronously — shows a placeholder while generating."
     (interactive)
@@ -195,8 +187,8 @@ Runs asynchronously — shows a placeholder while generating."
           (message "No staged changes to generate commit message from")
         (let* ((buf (current-buffer))
                (insert-pos (point))
-               (placeholder (format "Generating using %s/%s..."
-                                    magit-commit-provider magit-commit-model))
+               (placeholder (format "Generating using copilot/%s..."
+                                    magit-commit-model))
                (truncated-diff (if (> (length diff) 50000)
                                    (concat (substring diff 0 50000)
                                            "\n\n[Diff truncated due to length]")
@@ -209,20 +201,18 @@ Runs asynchronously — shows a placeholder while generating."
           (let ((marker (point-marker)))
             (set-marker-insertion-type marker nil)
             (insert placeholder)
-            ;; Run pi asynchronously
+            ;; Run copilot asynchronously
             (let ((output-buf (generate-new-buffer " *magit-commit-gen*"))
                   (stderr-buf (generate-new-buffer " *magit-commit-gen-err*")))
               (make-process
                :name "magit-commit-gen"
                :buffer output-buf
                :stderr stderr-buf
-               :command (list "pi"
-                              "--provider" magit-commit-provider
+               :command (list "copilot"
                               "--model" magit-commit-model
-                              "--system-prompt" magit--commit-system-message
-                              "--no-tools"
-                              "--no-session"
-                              "-p" prompt)
+                              "-s"
+                              "--allow-all-tools"
+                              "-p" (concat magit--commit-system-message "\n\n" prompt))
                :sentinel
                (lambda (proc _event)
                  (when (memq (process-status proc) '(exit signal))

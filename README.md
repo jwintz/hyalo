@@ -1,18 +1,26 @@
 # Hyalo
 
-macOS IDE shell around Emacs via dynamic module (`.dylib`).
+IDE shell around Emacs for macOS, built as a dynamic module (`.dylib`) loaded by Emacs at startup.
 
 ## Architecture
 
-- **61 Swift source files** across 12 modules: Core, Window, Editor, Navigator, Inspector, StatusBar, UtilityArea, Toolbar, CommandPalette, Appearance, Shared
-- **26 Emacs Lisp files** in `lisp/`
+```
+Sources/
+  HyaloShared/     SwiftUI views, view models, managers, widget data
+  HyaloMac/        macOS: AppKit, EmacsSwiftModule, NSToolbar, NSSplitView
+  HyaloWidget/     WidgetKit extension for desktop widget
+
+Products:
+  Hyalo            .dynamic macOS library loaded by Emacs (swift build)
+```
+
+- **HyaloShared**: models, view models, managers, pure SwiftUI views, widget data publisher
+- **HyaloMac**: AppKit, EmacsSwiftModule `env.defun()` / `env.openChannel()`, NSToolbar, NSSplitViewController, SwiftTerm terminal
+- **HyaloWidget**: WidgetKit extension showing live Emacs instance status on the desktop
+- **Emacs Lisp files** in `lisp/` (`hyalo.el`, `hyalo-channels.el`, etc.)
 - **14 modular init files** in `init/`
-- **NSSplitViewController** 3-panel layout: Navigator | Editor | Inspector
-- **NSToolbar** with tracking separators, expanding pill activity viewer, branch picker
-- **Channel architecture** for bidirectional Swift<->Emacs Lisp communication (see [Channel Architecture](#channel-architecture) below)
-- **NSPanel-based** command palette (Cmd+P) and open-quickly (Cmd+O) dialogs
-- **SwiftTerm** terminal integration in inspector and utility panels
-- **ProjectNavigator** (`mchakravarty/ProjectNavigator`) for file tree navigation with `FileNavigator`, UUID-based identity, expansion/selection state, and editable labels
+- **Channel architecture** for bidirectional Swift/Emacs Lisp communication (see [Channel Architecture](#channel-architecture) below)
+- **Native file tree** using FileManager-based `FileTreeNode` for navigator
 
 ## Test Procedure
 
@@ -38,14 +46,19 @@ This launches Emacs with the modular init system:
 
 ### Prerequisites
 
-- macOS with Xcode Command Line Tools
-- Swift 6.0 or later
+- macOS 26+ with Xcode 17+
+- Swift 6.2 or later
 - **Emacs 30.1 or later compiled with `--with-modules`**
+- Feedstock at `~/Syntropment/hyalo-feedstock` (must be built first)
 
 ### Build
 
 ```bash
-swift build
+swift build                    # builds all targets
+swift build --target Hyalo     # builds Hyalo.dylib only
+pixi run build-release         # release build
+pixi run package               # assemble Hyalo.app bundle
+pixi run dmg                   # create DMG installer
 ```
 
 ### Theme System
@@ -93,7 +106,6 @@ Theme-appearance synchronization:
 | `hyalo-channels.el` | Channel lifecycle, callback handlers, rg search execution |
 | `hyalo-navigator.el` | Buffer list, file tree push to Swift |
 | `hyalo-status.el` | Hook-driven status updates (cursor, tabs, branch, file info, navigator refresh) |
-| `hyalo-source-control.el` | Git changed files and commit history push (debounced on save) |
 | `hyalo-appearance.el` | Vibrancy, background color, divider color, frame transparency |
 | `hyalo-themes.el` | Theme switching, appearance sync, terminal palette |
 | `hyalo-activities.el` | Activities (tab-bar) integration for breadcrumb |
@@ -113,6 +125,7 @@ Theme-appearance synchronization:
 | `nano-themes.el` | N Λ N O theme infrastructure (built on modus-themes) |
 | `nano-light-theme.el` | N Λ N O light theme (Material Design palette) |
 | `nano-dark-theme.el` | N Λ N O dark theme (Nord palette) |
+| `hyalo-doctor.el` | Environment doctor: checks Swift, macOS, Xcode, fonts, tools |
 | `header2.el` | File header creation and update (vendored) |
 
 ### Channel Architecture
@@ -142,11 +155,8 @@ Defined via `env.defun()` in `Module.swift`. Called directly from Elisp. Execute
 | `hyalo-set-vibrancy-material` | Set vibrancy material level | `main.async` |
 | `hyalo-set-background-color` | Set tint color hex + alpha | `main.async` |
 | `hyalo-update-file-info` | Push file info JSON to inspector | `main.async` |
-| `hyalo-update-git-history` | Push git history JSON to inspector | `main.async` |
 | `hyalo-update-search-results` | Push search results JSON | `main.async` |
 | `hyalo-update-search-status` | Push search status counts | `main.async` |
-| `hyalo-update-changed-files` | Push git changed files JSON | `main.async` |
-| `hyalo-update-commit-history` | Push git commit history JSON | `main.async` |
 | `hyalo-update-diagnostics` | Push flymake diagnostics JSON | `main.async` |
 | `hyalo-update-build-status` | Push native compilation status | `main.async` |
 | `hyalo-update-build-progress` | Push compilation progress | `main.async` |
@@ -171,7 +181,6 @@ Created via `env.openChannel()`. Channel callbacks are Swift closures that, when
 | `hyalo-appearance` | `hyalo-channels--handle-appearance-mode`, `handle-opacity-change` | User changes appearance settings |
 | `hyalo-diagnostics` | `hyalo-channels--handle-diagnostic-navigate` | User clicks diagnostic |
 | `hyalo-package` | `handle-package-refresh`, `upgrade-all`, `upgrade-single`, `list` | Package manager actions |
-| `hyalo-source-control` | `hyalo-channels--handle-show-commit`, `handle-show-diff` | User clicks commit or changed file |
 
 **Key insight**: Channel callbacks invoke `wakeEmacs()` after queuing the callback. Emacs processes the callback when it returns to its event loop. If Emacs is busy (e.g., processing a hook), the callback is deferred. This means there is an **indeterminate delay** between the Swift-side action and the Elisp execution.
 
@@ -215,7 +224,7 @@ The actual race was more subtle — `activeFilePath`/`activeBuffer`/`pendingTabI
 2. User clicks B (before A's callback) → `activeFilePath = nil` → guard passes! → channel sends `find-file B`
 3. Callback for A arrives → `setActiveFile(A)` → sets `activeFilePath = A`, `selection = A` → **revert!**
 
-**Fix** (applied to `ProjectNavigatorViewModel`, `BufferListViewModel`, `EditorTabViewModel`):
+**Fix** (applied to `FileTreeViewModel`, `BufferListViewModel`, `EditorTabViewModel`):
 
 1. **Set active/pending state immediately** when the user clicks (`selectFile`, `selectBuffer`, `selectFile` for tabs) **before** calling the channel callback
 2. **Check for stale callbacks** in the Emacs callback methods (`setActiveFile`, `setActiveBuffer`, `onTabSelected`) — skip if the callback doesn't match what's currently active/pending
@@ -258,9 +267,8 @@ Status updates use Emacs hooks with debounced timers (no polling):
 | File info + git history | `window-buffer-change-functions` | immediate |
 | Branch info + project name | `window-buffer-change-functions` | immediate |
 | Navigator file tree | `window-buffer-change-functions` (on project root change) | 500ms |
-| Source control (changes, history) | `after-save-hook` | 3s |
 
-On buffer switch, `default-directory` is updated to the enclosing git root. If the project root changes, the navigator file tree and source control data refresh automatically.
+On buffer switch, `default-directory` is updated to the enclosing git root. If the project root changes, the navigator file tree refreshes automatically.
 
 ### Keybindings
 

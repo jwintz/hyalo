@@ -40,8 +40,8 @@
   (require 'hyalo-window)
   (hyalo-window--early-setup))
 
-;; Check for module support early
-(unless module-file-suffix
+;; Check for module support early (not required on iOS where modules are statically linked)
+(unless (or (eq window-system 'ios) module-file-suffix)
   (error "Emacs was not compiled with dynamic module support (--with-modules)"))
 
 ;;; ---------------------------------------------------------------------------
@@ -102,6 +102,7 @@
 (when hyalo--needs-bootstrap
   (when (fboundp 'hyalo-set-loading-message) (hyalo-set-loading-message "Loading editor settings…") (sit-for 0.01)))
 (init--require-with-trace 'init-emacs)
+(init--require-with-trace 'init-tty)
 (init--require-with-trace 'init-appearance)
 (init--require-with-trace 'init-editing)
 (init--require-with-trace 'init-help)
