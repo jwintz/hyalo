@@ -25,7 +25,7 @@ public struct EditorTab: Codable, Identifiable, Hashable {
 
 // MARK: - View Model
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @MainActor
 @Observable
 public final class EditorTabViewModel {

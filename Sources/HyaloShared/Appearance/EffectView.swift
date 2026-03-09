@@ -1,6 +1,5 @@
 import SwiftUI
 
-#if os(macOS)
 struct EffectView: NSViewRepresentable {
     let material: NSVisualEffectView.Material
     let blendingMode: NSVisualEffectView.BlendingMode
@@ -23,11 +22,3 @@ struct EffectView: NSViewRepresentable {
         nsView.blendingMode = blendingMode
     }
 }
-#else
-struct EffectView: View {
-    init(_ material: Any? = nil, blendingMode: Any? = nil) {}
-    var body: some View {
-        Rectangle().fill(.ultraThinMaterial)
-    }
-}
-#endif

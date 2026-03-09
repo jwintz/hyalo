@@ -3,7 +3,7 @@
 
 import SwiftUI
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 struct HyaloPaneTextField<LeadingAccessories: View, TrailingAccessories: View>: View {
     enum Style {
         case bordered
@@ -54,11 +54,7 @@ struct HyaloPaneTextField<LeadingAccessories: View, TrailingAccessories: View>: 
     func selectionBackground(_ isFocused: Bool = false) -> some View {
         if controlActive != .inactive || !text.isEmpty || hasValue {
             if isFocused || !text.isEmpty || hasValue {
-                #if os(macOS)
                 Color(.textBackgroundColor)
-                #else
-                Color(UIColor.secondarySystemBackground)
-                #endif
             } else {
                 Color(platformColor: .separator).opacity(0.3)
             }

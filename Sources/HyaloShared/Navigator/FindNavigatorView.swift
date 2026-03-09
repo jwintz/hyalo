@@ -5,7 +5,7 @@
 import SwiftUI
 import KelyphosKit
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct FindNavigatorView: View {
     @State private var searchQuery: String = ""
     @State private var replaceText: String = ""

@@ -27,11 +27,15 @@ final class MinibufferManager {
     // MARK: - Show
 
     func show(from data: Data) {
+        #if DEBUG
         NSLog("[Hyalo:Minibuffer] show called, data size=%d", data.count)
+        #endif
         viewModel.show(from: data)
 
         if panel != nil {
+            #if DEBUG
             NSLog("[Hyalo:Minibuffer] panel already visible, updating state only")
+            #endif
             return
         }
 
@@ -68,26 +72,36 @@ final class MinibufferManager {
 
         // Wire view model callbacks to Emacs channel
         viewModel.onInputChanged = { [weak self] text in
+            #if DEBUG
             NSLog("[Hyalo:Minibuffer] input changed: %@", text)
+            #endif
             self?.onInputChanged?(text)
         }
         viewModel.onCandidateSelected = { [weak self] index in
+            #if DEBUG
             NSLog("[Hyalo:Minibuffer] candidate selected: %d", index)
+            #endif
             self?.onCandidateSelected?(String(index))
         }
         viewModel.onAbort = { [weak self] in
             self?.abort()
         }
         viewModel.onHistoryPrev = { [weak self] in
+            #if DEBUG
             NSLog("[Hyalo:Minibuffer] history prev")
+            #endif
             self?.onHistoryPrev?()
         }
         viewModel.onHistoryNext = { [weak self] in
+            #if DEBUG
             NSLog("[Hyalo:Minibuffer] history next")
+            #endif
             self?.onHistoryNext?()
         }
         viewModel.onTabComplete = { [weak self] in
+            #if DEBUG
             NSLog("[Hyalo:Minibuffer] tab complete")
+            #endif
             self?.onTabComplete?()
         }
 
@@ -103,22 +117,30 @@ final class MinibufferManager {
         searchPanel.positionRelativeToParent(parentWindow)
         parentWindow.addChildWindow(searchPanel, ordered: .above)
         searchPanel.makeKeyAndOrderFront(nil)
+        #if DEBUG
         NSLog("[Hyalo:Minibuffer] panel shown, prompt=%@", viewModel.prompt)
+        #endif
     }
 
     // MARK: - Update
 
     func update(from data: Data) {
+        #if DEBUG
         NSLog("[Hyalo:Minibuffer] update called, data size=%d", data.count)
+        #endif
         viewModel.update(from: data)
+        #if DEBUG
         NSLog("[Hyalo:Minibuffer] after update: %d candidates, selectedIndex=%d",
               viewModel.candidates.count, viewModel.selectedIndex)
+        #endif
     }
 
     // MARK: - Hide
 
     func hide() {
+        #if DEBUG
         NSLog("[Hyalo:Minibuffer] hide called, panel=%@", panel != nil ? "yes" : "nil")
+        #endif
         viewModel.hide()
         dismissPanel()
     }
@@ -126,7 +148,9 @@ final class MinibufferManager {
     // MARK: - Abort (user pressed Escape in Swift panel)
 
     private func abort() {
+        #if DEBUG
         NSLog("[Hyalo:Minibuffer] abort called")
+        #endif
         onAbort?()
         // Don't call viewModel.hide() here — Emacs will call hyalo-minibuffer-hide
         // via the minibuffer-exit-hook after abort-recursive-edit completes.
@@ -156,18 +180,18 @@ final class MinibufferManager {
 
     private func restoreEmacsFirstResponder() {
         guard let window = findParentWindow() else {
+            #if DEBUG
             NSLog("[Hyalo:Minibuffer] restoreEmacsFirstResponder: no parent window")
+            #endif
             return
         }
-        NSLog("[Hyalo:Minibuffer] restoreEmacsFirstResponder: scheduled async")
         DispatchQueue.main.async { [weak self] in
-            // If a new panel was shown (recursive minibuffer), skip focus restore
-            // to avoid stealing key from the new panel (which triggers windowDidResignKey → abort).
             guard self?.panel == nil else {
+                #if DEBUG
                 NSLog("[Hyalo:Minibuffer] restoreEmacsFirstResponder: SKIPPED (new panel active)")
+                #endif
                 return
             }
-            NSLog("[Hyalo:Minibuffer] restoreEmacsFirstResponder: restoring focus to Emacs")
             window.makeKeyAndOrderFront(nil)
             func findEmacsView(in view: NSView) -> NSView? {
                 let className = String(describing: type(of: view))

@@ -1,12 +1,10 @@
 // ProjectNavigatorView.swift - Project file tree navigator
 // Target: macOS 26 Tahoe with Liquid Glass design
-// Uses HyaloProjectNavigator (backed by mchakravarty/ProjectNavigator package)
+// Uses HyaloProjectNavigator backed by native FileManager-based file tree.
 
 import SwiftUI
-import Files
-import ProjectNavigator
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct ProjectNavigatorView: View {
     @Bindable public var viewModel: ProjectNavigatorViewModel
 
@@ -18,23 +16,15 @@ public struct ProjectNavigatorView: View {
         VStack(spacing: 0) {
             if viewModel.projectRoot != nil {
                 HyaloProjectNavigator(
-                    viewState: viewModel.viewState,
-                    gitStatus: viewModel.gitStatus,
-                    folderGitStatus: viewModel.folderGitStatus,
+                    viewModel: viewModel,
                     onFileSelect: { path in
-                        // Guard: skip if already the active file.
-                        // activeFilePath is set immediately in selectFile(),
-                        // so this catches rapid clicks and stale callbacks.
                         let active = viewModel.activeFilePath
                         let skip = (path == active)
                         guard !skip else { return }
                         viewModel.selectFile(path)
-                    },
-                    filter: { name in
-                        filterPredicate(name)
                     }
                 )
-                .id(viewModel.filterText) // Force rebuild on filter change
+                .id(viewModel.filterText)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 HyaloContentUnavailableView(
@@ -99,14 +89,6 @@ public struct ProjectNavigatorView: View {
             .frame(height: 28, alignment: .center)
             .frame(maxWidth: .infinity)
             .overlay(alignment: .top) { Divider() }
-            .background(.clear)
         }
-    }
-
-    /// Filter predicate for dotfiles (static exclusion).
-    private func filterPredicate(_ name: String) -> Bool {
-        // Always hide dotfiles
-        if name.hasPrefix(".") { return false }
-        return true
     }
 }

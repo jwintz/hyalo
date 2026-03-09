@@ -106,19 +106,6 @@ extension HyaloModule {
             return false
         }
 
-        try env.defun("hyalo-update-git-history",
-            with: "Update the inspector git history panel from JSON."
-        ) { (env: EmacsSwiftModule.Environment, jsonData: String) throws -> Bool in
-            if #available(macOS 26.0, *) {
-                guard let data = jsonData.data(using: .utf8) else { return false }
-                MainActor.assumeIsolated {
-                    InspectorManager.shared.updateGitHistory(from: data)
-                }
-                return true
-            }
-            return false
-        }
-
         // MARK: - Utility Area
 
         try env.defun("hyalo-utility-area-toggle",

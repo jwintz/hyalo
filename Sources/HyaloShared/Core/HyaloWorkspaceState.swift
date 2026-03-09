@@ -11,7 +11,7 @@ import KelyphosKit
 
 /// Emacs-specific observable state for the Hyalo workspace.
 /// Shell appearance and panel visibility live in KelyphosShellState.
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @MainActor
 @Observable
 public final class HyaloWorkspaceState {
@@ -33,5 +33,18 @@ public final class HyaloWorkspaceState {
 
     public var colorTheme = HyaloColorTheme()
 
-    public init() {}
+    // MARK: - Terminal Settings
+
+    private static let horizontalMarginKey = "hyalo_horizontalMargin"
+
+    public var horizontalMargin: CGFloat {
+        didSet { UserDefaults.standard.set(horizontalMargin, forKey: Self.horizontalMarginKey) }
+    }
+
+    public init() {
+        UserDefaults.standard.register(defaults: [
+            Self.horizontalMarginKey: 6.0
+        ])
+        self.horizontalMargin = CGFloat(UserDefaults.standard.double(forKey: Self.horizontalMarginKey))
+    }
 }

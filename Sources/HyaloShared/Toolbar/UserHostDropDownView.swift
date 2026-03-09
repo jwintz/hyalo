@@ -6,7 +6,7 @@
 
 import SwiftUI
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct UserHostDropDownView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.controlActiveState) private var activeState

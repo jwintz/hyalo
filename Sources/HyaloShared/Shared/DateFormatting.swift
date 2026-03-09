@@ -1,6 +1,5 @@
 // DateFormatting.swift - Shared date formatting utilities
 // Target: macOS 26 Tahoe / iOS 26
-// Extracted from HistoryInspectorView & SourceControlNavigatorView (AUDIT H1/M1)
 
 import Foundation
 

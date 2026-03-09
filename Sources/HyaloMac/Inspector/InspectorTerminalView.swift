@@ -135,16 +135,14 @@ final class TerminalContainerView: NSView {
 struct InspectorTerminalView: NSViewRepresentable {
     /// The palette to use for theming. Use `.shared` for the global palette.
     var palette: TerminalPalette
+    /// Tracks system appearance; changes here guarantee updateNSView is called.
+    @Environment(\.colorScheme) private var colorScheme
 
     init(palette: TerminalPalette) {
         self.palette = palette
     }
 
     func makeNSView(context: Context) -> TerminalContainerView {
-        logger.info("🔧 InspectorTerminalView.makeNSView called")
-        logger.info("   - palette isDark: \(palette.isDark)")
-        logger.info("   - palette version: \(palette.version)")
-
         let container = TerminalContainerView()
         container.autoresizesSubviews = true
 
@@ -168,7 +166,6 @@ struct InspectorTerminalView: NSViewRepresentable {
         terminalView.terminal.setCursorStyle(.steadyUnderline)
 
         // Apply palette colors
-        logger.info("🎨 Applying palette in makeNSView")
         terminalView.applyPalette(palette)
 
         // Option key sends Meta (ESC prefix) for terminal apps
@@ -192,14 +189,15 @@ struct InspectorTerminalView: NSViewRepresentable {
     }
 
     func updateNSView(_ container: TerminalContainerView, context: Context) {
-        logger.info("🔧 InspectorTerminalView.updateNSView called")
-        logger.info("   - palette isDark: \(palette.isDark)")
-        logger.info("   - palette version: \(palette.version)")
+        // Sync palette appearance from SwiftUI's colorScheme so "auto" mode
+        // picks up system dark/light switches immediately.
+        let systemIsDark = colorScheme == .dark
+        if palette.isDark != systemIsDark {
+            palette.setAppearance(isDark: systemIsDark)
+        }
+
         if let tv = container.terminalView {
-            logger.info("🎨 Reapplying palette in updateNSView")
             tv.applyPalette(palette)
-        } else {
-            logger.error("❌ updateNSView: terminalView is nil")
         }
     }
 

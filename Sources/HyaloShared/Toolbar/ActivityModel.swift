@@ -16,7 +16,7 @@ import SwiftUI
 
 // MARK: - Activity Kind
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public enum ActivityKind: String, Identifiable, CaseIterable {
     case nativeCompilation = "native-compilation"
     case moduleCompilation = "module-compilation"
@@ -43,7 +43,7 @@ public enum ActivityKind: String, Identifiable, CaseIterable {
 
 // MARK: - Activity Item
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct ActivityItem: Identifiable, Equatable {
     public let id: String
     public let kind: ActivityKind
@@ -65,7 +65,7 @@ public struct ActivityItem: Identifiable, Equatable {
 
 // MARK: - Activity Manager
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @MainActor
 @Observable
 public final class ActivityManager {

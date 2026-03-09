@@ -17,7 +17,7 @@ import SwiftUI
 
 // MARK: - Environment Pill View (entry point from HyaloNavigationLayout)
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct EnvironmentPillView: View {
     @Bindable public var workspace: HyaloWorkspaceState
 
@@ -35,7 +35,7 @@ public struct EnvironmentPillView: View {
 
 // MARK: - Breadcrumb Content
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct BreadcrumbContent: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -62,6 +62,7 @@ private struct BreadcrumbContent: View {
         }
         .padding(5)
         .clipShape(Capsule())
+        .glassEffect(in: .capsule)
         // Dynamic width: min width for usability, hug content
         .frame(minWidth: 100)
         .fixedSize(horizontal: true, vertical: false)
@@ -70,7 +71,7 @@ private struct BreadcrumbContent: View {
 
 // MARK: - Build Status View (unchanged from ActivityViewerView)
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct BuildStatusView: View {
     @Environment(\.controlActiveState) private var activeState
 
@@ -142,7 +143,7 @@ private struct BuildStatusView: View {
 
 // MARK: - Circular Progress View (indeterminate or determinate ring)
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 struct ActivityCircularProgressView: View {
     @State private var isAnimating = false
     @State private var previousValue = false
@@ -202,7 +203,7 @@ struct ActivityCircularProgressView: View {
 
 // MARK: - Build Status Detail Popover
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct BuildStatusDetailView: View {
     var activityManager: ActivityManager
 
@@ -228,7 +229,7 @@ private struct BuildStatusDetailView: View {
     }
 }
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct BuildStatusDetailRow: View {
     let activity: ActivityItem
     var activityManager: ActivityManager

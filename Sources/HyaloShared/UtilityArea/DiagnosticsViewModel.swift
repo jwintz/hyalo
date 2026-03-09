@@ -56,7 +56,7 @@ public struct DiagnosticItem: Codable, Identifiable, Hashable {
 
 // MARK: - Diagnostics View Model
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @MainActor
 @Observable
 public final class DiagnosticsViewModel {

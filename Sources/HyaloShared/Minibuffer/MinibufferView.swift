@@ -4,18 +4,14 @@
 
 import SwiftUI
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct MinibufferView: View {
     @Bindable public var viewModel: MinibufferViewModel
 
     @FocusState private var isInputFocused: Bool
 
     @ViewBuilder private var panelBackground: some View {
-#if os(macOS)
-        EffectView(.sidebar, blendingMode: .behindWindow)
-#else
-        EffectView()
-#endif
+        Color.clear.glassEffect(in: RoundedRectangle(cornerRadius: 12))
     }
 
     public init(viewModel: MinibufferViewModel) {
@@ -118,7 +114,7 @@ public struct MinibufferView: View {
 
 // MARK: - Candidate Row
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 struct MinibufferCandidateRow: View {
     let candidate: MinibufferCandidate
     let isSelected: Bool

@@ -15,10 +15,13 @@ public struct MinibufferPayload: Codable {
     public let historyMode: Bool?
 }
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @Observable
 public final class MinibufferViewModel {
     public init() {}
+
+    /// Reusable decoder — avoids allocating a new JSONDecoder per show/update call.
+    private static let decoder = JSONDecoder()
 
     // MARK: - State
 
@@ -55,7 +58,7 @@ public final class MinibufferViewModel {
     private var pendingEmacsInputUpdates = 0
 
     public func show(from jsonData: Data) {
-        guard let payload = try? JSONDecoder().decode(MinibufferPayload.self, from: jsonData) else {
+        guard let payload = try? Self.decoder.decode(MinibufferPayload.self, from: jsonData) else {
             NSLog("[Hyalo] Failed to decode minibuffer show payload")
             return
         }
@@ -79,12 +82,16 @@ public final class MinibufferViewModel {
     public var pendingEmacsSync: Bool = false
 
     public func update(from jsonData: Data) {
+        #if DEBUG
         let t0 = CFAbsoluteTimeGetCurrent()
-        guard let payload = try? JSONDecoder().decode(MinibufferPayload.self, from: jsonData) else {
+        #endif
+        guard let payload = try? Self.decoder.decode(MinibufferPayload.self, from: jsonData) else {
             NSLog("[Hyalo:Minibuffer] Failed to decode update payload (%d bytes)", jsonData.count)
             return
         }
+        #if DEBUG
         let t1 = CFAbsoluteTimeGetCurrent()
+        #endif
         // Reject stale updates from a previous session
         guard payload.sessionId == sessionId else {
             NSLog("[Hyalo:Minibuffer] stale update: got session %d, expected %d",
@@ -104,9 +111,11 @@ public final class MinibufferViewModel {
         } else {
             pendingEmacsSync = false
         }
+        #if DEBUG
         let t2 = CFAbsoluteTimeGetCurrent()
         NSLog("[Hyalo:Minibuffer] update: decode=%.1fms assign=%.1fms cands=%d",
               (t1 - t0) * 1000, (t2 - t1) * 1000, candidates.count)
+        #endif
     }
 
     public func hide() {

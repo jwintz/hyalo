@@ -1,33 +1,23 @@
-// HyaloFilePayload.swift - Minimal FileContents for filesystem-backed file tree
+// HyaloFilePayload.swift - File tree node model for filesystem-backed navigator
 // Target: macOS 26 Tahoe with Liquid Glass design
 //
-// Hyalo does not load file contents into the navigator — Emacs handles editing.
-// This payload stores only the filesystem path; data() returns empty data.
+// Simple recursive tree node used by the native file navigator.
+// Each node has a name, absolute path, directory flag, and optional children.
 
 import Foundation
-import Files
 
-public struct HyaloFilePayload: FileContents, Sendable, Equatable {
+/// A single node in the file tree. Directories have children; files do not.
+public final class FileTreeNode: Identifiable, ObservableObject {
+    public let id = UUID()
+    public let name: String
     public let path: String
+    public let isDirectory: Bool
+    public var children: [FileTreeNode]?
 
-    public init(name: String, data: Data) throws {
-        // Called by Files library when constructing from FileWrapper.
-        // We don't use FileWrapper-based construction — this is a fallback.
-        self.path = name
-    }
-
-    public init(path: String) {
+    public init(name: String, path: String, isDirectory: Bool, children: [FileTreeNode]? = nil) {
+        self.name = name
         self.path = path
+        self.isDirectory = isDirectory
+        self.children = children
     }
-
-    public func data() throws -> Data {
-        // Navigator does not serialize file contents
-        Data()
-    }
-
-    public mutating func flush() throws {
-        // No-op: contents are on disk, managed by Emacs
-    }
-
-    public var text: String? { nil }
 }

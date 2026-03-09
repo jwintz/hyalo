@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct BufferListView: View {
     @Environment(\.bufferListViewModel) private var envVM
     @State private var selection: String?
@@ -63,7 +63,6 @@ public struct BufferListView: View {
             .frame(height: 28, alignment: .center)
             .frame(maxWidth: .infinity)
             .overlay(alignment: .top) { Divider() }
-            .background(.clear)
         }
     }
 

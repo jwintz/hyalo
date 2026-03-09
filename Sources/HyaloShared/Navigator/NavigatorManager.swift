@@ -31,28 +31,6 @@ public struct SearchResult: Codable, Identifiable, Hashable {
     public let matchRange: String?
 }
 
-// MARK: - Source Control Models
-
-public struct GitChangedFile: Codable, Identifiable, Hashable {
-    public let id: String
-    public let fileName: String
-    public let filePath: String
-    public let status: String      // "M", "A", "D", "?", "R"
-    public let isStaged: Bool
-}
-
-public struct GitCommitEntry: Codable, Identifiable, Hashable {
-    public let id: String
-    public let hash: String
-    public let fullHash: String
-    public let message: String
-    public let author: String
-    public let authorEmail: String
-    public let date: String
-    public let refs: [String]
-    public let tag: String
-}
-
 // MARK: - Find Status
 
 public enum FindStatus {
@@ -64,7 +42,7 @@ public enum FindStatus {
 
 // MARK: - Navigator View Model (Legacy — transitioning to focused view models)
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @MainActor
 @Observable
 public final class NavigatorViewModel {
@@ -76,7 +54,7 @@ public final class NavigatorViewModel {
 
 // MARK: - Navigator Manager
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @MainActor
 public final class NavigatorManager {
     public static let shared = NavigatorManager()
@@ -88,7 +66,6 @@ public final class NavigatorManager {
     public let projectNavigatorViewModel = ProjectNavigatorViewModel()
     public let bufferListViewModel = BufferListViewModel()
     public let searchViewModel = SearchViewModel()
-    public let sourceControlViewModel = SourceControlViewModel()
 
     // Callbacks to Emacs (set by channel)
     public var onBufferSelect: ((String) -> Void)?
@@ -97,8 +74,6 @@ public final class NavigatorManager {
     public var onFileSelect: ((String) -> Void)?
     public var onSearchExecute: ((String) -> Void)?
     public var onSearchResultSelect: ((String, Int, Int) -> Void)?
-    public var onCommitSelect: ((String) -> Void)?
-    public var onChangedFileSelect: ((String) -> Void)?
 
     private init() {
         // Wire up focused view model callbacks
@@ -175,16 +150,6 @@ public final class NavigatorManager {
 
     public func saveBuffer(_ bufferName: String) {
         onBufferSave?(bufferName)
-    }
-
-    // MARK: - Source Control Updates
-
-    public func updateChangedFiles(_ files: [GitChangedFile]) {
-        sourceControlViewModel.updateChangedFiles(files)
-    }
-
-    public func updateCommitHistory(_ commits: [GitCommitEntry]) {
-        sourceControlViewModel.updateCommitHistory(commits)
     }
 
     public func updateSearchStatus(resultCount: Int, fileCount: Int) {

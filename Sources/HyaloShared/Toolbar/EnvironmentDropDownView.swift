@@ -6,7 +6,7 @@
 
 import SwiftUI
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct EnvironmentDropDownView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.controlActiveState) private var activeState
@@ -149,7 +149,7 @@ public struct EnvironmentDropDownView: View {
 
 // MARK: - Environment Option View
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct EnvironmentOptionView: View {
     public let environment: DevEnvironment
     public let isChecked: Bool

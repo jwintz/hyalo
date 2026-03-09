@@ -3,7 +3,7 @@
 
 import SwiftUI
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 struct InspectorField<Content: View>: View {
     let label: String
     @ViewBuilder let content: Content

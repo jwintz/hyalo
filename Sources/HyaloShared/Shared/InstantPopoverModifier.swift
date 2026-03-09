@@ -12,7 +12,6 @@
 //
  
 
-#if os(macOS)
 import AppKit
 import SwiftUI
 
@@ -158,18 +157,3 @@ struct InstantPopoverContainer<ContentView: View>: View {
 }
 
 // MARK: - View extension for macOS-only dropdown item style (not moved here)
-#else
-// iOS fallback: use native SwiftUI popover
-import SwiftUI
-
-extension View {
-    func instantPopover<Content: View>(
-        isPresented: Binding<Bool>,
-        arrowEdge: Edge,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        let builtContent = content()
-        return self.popover(isPresented: isPresented, arrowEdge: arrowEdge) { builtContent }
-    }
-}
-#endif

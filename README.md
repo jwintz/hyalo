@@ -1,28 +1,26 @@
 # Hyalo
 
-IDE shell around Emacs. macOS via dynamic module (`.dylib`), iPadOS via embedded framework with statically linked libemacs.a.
+IDE shell around Emacs for macOS, built as a dynamic module (`.dylib`) loaded by Emacs at startup.
 
 ## Architecture
 
 ```
 Sources/
-  HyaloShared/     Cross-platform models, view models, pure SwiftUI views
+  HyaloShared/     SwiftUI views, view models, managers, widget data
   HyaloMac/        macOS: AppKit, EmacsSwiftModule, NSToolbar, NSSplitView
-  HyaloiOS/        iPadOS: UIKit, C FFI bridge, NavigationSplitView
-  HyaloEmacsStubs/ Simulator stubs for libemacs C entry points
+  HyaloWidget/     WidgetKit extension for desktop widget
 
 Products:
   Hyalo            .dynamic macOS library loaded by Emacs (swift build)
-  HyaloKit         .dynamic iOS framework embedded in HyaloApp (xcodebuild)
 ```
 
-- **HyaloShared** (56 files): models, view models, managers, pure SwiftUI views -- compiled into both Hyalo and HyaloKit
-- **HyaloMac** (17 files): AppKit, EmacsSwiftModule `env.defun()` / `env.openChannel()`, NSToolbar, NSSplitViewController, SwiftTerm terminal
-- **HyaloiOS** (6 files): UIKit, `@_cdecl` C FFI bridge to libemacs.a, NavigationSplitView, `UIViewRepresentable` for Emacs
-- **26 Emacs Lisp files** in `lisp/` (macOS: `hyalo.el` + `hyalo-channels.el`, iOS: `hyalo-ios.el` + `hyalo-channels-ios.el`)
+- **HyaloShared**: models, view models, managers, pure SwiftUI views, widget data publisher
+- **HyaloMac**: AppKit, EmacsSwiftModule `env.defun()` / `env.openChannel()`, NSToolbar, NSSplitViewController, SwiftTerm terminal
+- **HyaloWidget**: WidgetKit extension showing live Emacs instance status on the desktop
+- **Emacs Lisp files** in `lisp/` (`hyalo.el`, `hyalo-channels.el`, etc.)
 - **14 modular init files** in `init/`
 - **Channel architecture** for bidirectional Swift/Emacs Lisp communication (see [Channel Architecture](#channel-architecture) below)
-- **ProjectNavigator** (`mchakravarty/ProjectNavigator`) for file tree navigation
+- **Native file tree** using FileManager-based `FileTreeNode` for navigator
 
 ## Test Procedure
 
@@ -50,107 +48,17 @@ This launches Emacs with the modular init system:
 
 - macOS 26+ with Xcode 17+
 - Swift 6.2 or later
-- **Emacs 30.1 or later compiled with `--with-modules`** (macOS)
-- Feedstock at `~/Syntropment/hyalo-feedstock-unified` (iOS). Must be built first: `pixi run ios_sim_prep && pixi run ios_patch && pixi run ios_install_src && pixi run ios_sim_configure && pixi run ios_sim_build && pixi run ios_sim_build_libemacs`
+- **Emacs 30.1 or later compiled with `--with-modules`**
+- Feedstock at `~/Syntropment/hyalo-feedstock` (must be built first)
 
 ### Build
 
-**macOS** (dynamic module for Emacs):
 ```bash
-swift build                    # builds Hyalo.dylib + HyaloKit (empty on macOS)
+swift build                    # builds all targets
 swift build --target Hyalo     # builds Hyalo.dylib only
-```
-
-`swift build` compiles all targets. HyaloiOS files are guarded with `#if canImport(UIKit)` so HyaloKit compiles to an empty dylib on macOS. This is expected.
-
-**iPadOS** (simulator):
-```bash
-cd iOS
-./build.sh                     # copy resources + xcodegen + xcodebuild
-./build.sh --resources-only    # copy feedstock resources only
-
-# Or manually:
-swift run --package-path .. xcodegen generate
-xcodebuild -project HyaloApp.xcodeproj -scheme HyaloApp \
-  -destination 'platform=iOS Simulator,name=iPad Pro 13-inch (M5)' \
-  -derivedDataPath /tmp/hyalo-ios-build build
-
-# Install + launch in simulator:
-xcrun simctl install booted /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app
-xcrun simctl launch booted org.gnu.hyalo
-```
-
-The iOS build uses XcodeGen to generate `HyaloApp.xcodeproj` from `iOS/project.yml`. The Xcode project is not checked in — regenerate it after any `project.yml` change.
-
-### iPadOS Simulator Test Loop
-
-Full rebuild-install-verify cycle. All commands run from the repo root unless noted.
-
-```bash
-# 0. Find and set simulator UDID (run once per shell session)
-UDID=$(xcrun simctl list devices available | grep 'iPad Pro 13' | head -1 | grep -oE '[A-F0-9-]{36}')
-echo "UDID=$UDID"  # verify it is non-empty
-
-# 1. Boot simulator (if not running)
-xcrun simctl boot $UDID
-
-# 2. Regenerate Xcode project after any project.yml change (run from iOS/)
-cd iOS
-swift run --package-path .. xcodegen generate
-
-# 3. Build (must be inside iOS/)
-xcodebuild -project HyaloApp.xcodeproj -scheme HyaloApp \
-  -destination "platform=iOS Simulator,id=$UDID" \
-  -derivedDataPath /tmp/hyalo-ios-build \
-  build 2>&1 | tail -5
-
-# 4. Install + launch
-xcrun simctl install $UDID /tmp/hyalo-ios-build/Build/Products/Debug-iphonesimulator/Hyalo.app
-xcrun simctl launch $UDID org.gnu.hyalo
-
-# 5. Screenshot (wait 20s for Emacs bootstrap to complete)
-sleep 20
-xcrun simctl io $UDID screenshot /tmp/hyalo-verify.png
-open /tmp/hyalo-verify.png
-
-# 6. Logs (Hyalo-specific NSLog output)
-xcrun simctl spawn $UDID log show \
-  --predicate 'processImagePath CONTAINS "Hyalo"' \
-  --last 30s --style compact 2>&1 | grep 'HyaloKit\|ios_term\|ios_clear\|ios_update'
-
-# 7. Crash reports (if app died)
-ls -lt ~/Library/Logs/DiagnosticReports/Hyalo-*.ips 2>/dev/null | head -3
-```
-
-**Note:** Steps 3–7 require `UDID` to be set (step 0). If `xcodebuild` prints its help text instead of building, `UDID` is empty or the command is not being run from inside `iOS/`.
-
-**Expected screenshot**: iPad screen showing SwiftUI `NavigationSplitView` with:
-- Toolbar: `sidebar.left` toggle + branch picker ("Emacs") at the left, environment pill (user@host / No env) in the center, action buttons (PackageManager, OpenQuickly, CommandPalette, Inspector, UtilityArea) at the right
-- Emacs content area rendering the startup screen (`*GNU Emacs*` with keybinding hints)
-- Keyboard accessory bar at the bottom (Esc, Ctrl, Alt, Tab, arrows)
-
-### Feedstock iosterm.m Patch + Rebuild
-
-When `ios/iosterm.m` changes (e.g. the `ios_has_swiftui_host` weak callback), recompile only the changed object file and update the archive without a full Emacs rebuild:
-
-```bash
-cd ~/Syntropment/hyalo-feedstock-unified
-
-# 1. Copy source to build tree (keeps both in sync)
-cp ios/iosterm.m emacs-build-ios-sim/src/iosterm.m
-
-# 2. Recompile
-make -C emacs-build-ios-sim/src iosterm.o
-
-# 3. Update archive
-AR="$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar"
-$AR r emacs-build-ios-sim/src/libemacs.a emacs-build-ios-sim/src/iosterm.o
-
-# 4. Verify weak symbol
-nm -m emacs-build-ios-sim/src/libemacs.a | grep ios_has_swiftui_host
-# Expected: "weak external _ios_has_swiftui_host"
-
-# 5. Rebuild the app (see test loop above)
+pixi run build-release         # release build
+pixi run package               # assemble Hyalo.app bundle
+pixi run dmg                   # create DMG installer
 ```
 
 ### Theme System
@@ -198,7 +106,6 @@ Theme-appearance synchronization:
 | `hyalo-channels.el` | Channel lifecycle, callback handlers, rg search execution |
 | `hyalo-navigator.el` | Buffer list, file tree push to Swift |
 | `hyalo-status.el` | Hook-driven status updates (cursor, tabs, branch, file info, navigator refresh) |
-| `hyalo-source-control.el` | Git changed files and commit history push (debounced on save) |
 | `hyalo-appearance.el` | Vibrancy, background color, divider color, frame transparency |
 | `hyalo-themes.el` | Theme switching, appearance sync, terminal palette |
 | `hyalo-activities.el` | Activities (tab-bar) integration for breadcrumb |
@@ -219,8 +126,6 @@ Theme-appearance synchronization:
 | `nano-light-theme.el` | N Λ N O light theme (Material Design palette) |
 | `nano-dark-theme.el` | N Λ N O dark theme (Nord palette) |
 | `hyalo-doctor.el` | Environment doctor: checks Swift, macOS, Xcode, fonts, tools |
-| `hyalo-ios.el` | iOS module loader (no dlopen, static linking) |
-| `hyalo-channels-ios.el` | iOS channel bridge via C FFI instead of dynamic module |
 | `header2.el` | File header creation and update (vendored) |
 
 ### Channel Architecture
@@ -250,11 +155,8 @@ Defined via `env.defun()` in `Module.swift`. Called directly from Elisp. Execute
 | `hyalo-set-vibrancy-material` | Set vibrancy material level | `main.async` |
 | `hyalo-set-background-color` | Set tint color hex + alpha | `main.async` |
 | `hyalo-update-file-info` | Push file info JSON to inspector | `main.async` |
-| `hyalo-update-git-history` | Push git history JSON to inspector | `main.async` |
 | `hyalo-update-search-results` | Push search results JSON | `main.async` |
 | `hyalo-update-search-status` | Push search status counts | `main.async` |
-| `hyalo-update-changed-files` | Push git changed files JSON | `main.async` |
-| `hyalo-update-commit-history` | Push git commit history JSON | `main.async` |
 | `hyalo-update-diagnostics` | Push flymake diagnostics JSON | `main.async` |
 | `hyalo-update-build-status` | Push native compilation status | `main.async` |
 | `hyalo-update-build-progress` | Push compilation progress | `main.async` |
@@ -279,7 +181,6 @@ Created via `env.openChannel()`. Channel callbacks are Swift closures that, when
 | `hyalo-appearance` | `hyalo-channels--handle-appearance-mode`, `handle-opacity-change` | User changes appearance settings |
 | `hyalo-diagnostics` | `hyalo-channels--handle-diagnostic-navigate` | User clicks diagnostic |
 | `hyalo-package` | `handle-package-refresh`, `upgrade-all`, `upgrade-single`, `list` | Package manager actions |
-| `hyalo-source-control` | `hyalo-channels--handle-show-commit`, `handle-show-diff` | User clicks commit or changed file |
 
 **Key insight**: Channel callbacks invoke `wakeEmacs()` after queuing the callback. Emacs processes the callback when it returns to its event loop. If Emacs is busy (e.g., processing a hook), the callback is deferred. This means there is an **indeterminate delay** between the Swift-side action and the Elisp execution.
 
@@ -323,7 +224,7 @@ The actual race was more subtle — `activeFilePath`/`activeBuffer`/`pendingTabI
 2. User clicks B (before A's callback) → `activeFilePath = nil` → guard passes! → channel sends `find-file B`
 3. Callback for A arrives → `setActiveFile(A)` → sets `activeFilePath = A`, `selection = A` → **revert!**
 
-**Fix** (applied to `ProjectNavigatorViewModel`, `BufferListViewModel`, `EditorTabViewModel`):
+**Fix** (applied to `FileTreeViewModel`, `BufferListViewModel`, `EditorTabViewModel`):
 
 1. **Set active/pending state immediately** when the user clicks (`selectFile`, `selectBuffer`, `selectFile` for tabs) **before** calling the channel callback
 2. **Check for stale callbacks** in the Emacs callback methods (`setActiveFile`, `setActiveBuffer`, `onTabSelected`) — skip if the callback doesn't match what's currently active/pending
@@ -366,9 +267,8 @@ Status updates use Emacs hooks with debounced timers (no polling):
 | File info + git history | `window-buffer-change-functions` | immediate |
 | Branch info + project name | `window-buffer-change-functions` | immediate |
 | Navigator file tree | `window-buffer-change-functions` (on project root change) | 500ms |
-| Source control (changes, history) | `after-save-hook` | 3s |
 
-On buffer switch, `default-directory` is updated to the enclosing git root. If the project root changes, the navigator file tree and source control data refresh automatically.
+On buffer switch, `default-directory` is updated to the enclosing git root. If the project root changes, the navigator file tree refreshes automatically.
 
 ### Keybindings
 

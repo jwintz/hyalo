@@ -9,14 +9,14 @@ import SwiftUI
 
 // MARK: - Package Status Model
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public enum PackageOperation: String, Codable {
     case idle
     case refreshing
     case upgrading
 }
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct UpgradablePackage: Codable, Identifiable {
     public let name: String
     public let installed: String
@@ -26,7 +26,7 @@ public struct UpgradablePackage: Codable, Identifiable {
     public var id: String { name }
 }
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct VCPackage: Codable, Identifiable {
     public let name: String
     public let version: String
@@ -34,7 +34,7 @@ public struct VCPackage: Codable, Identifiable {
     public var id: String { name }
 }
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct PackageStatusPayload: Codable {
     public let status: String
     public let upgradable: [UpgradablePackage]
@@ -44,7 +44,7 @@ public struct PackageStatusPayload: Codable {
 
 // MARK: - Package Manager View
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct PackageManagerView: View {
     @Bindable public var viewModel: ToolbarViewModel
 
@@ -126,7 +126,7 @@ public struct PackageManagerView: View {
 
 // MARK: - Content Height Preference Key
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct ContentHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
@@ -136,7 +136,7 @@ private struct ContentHeightKey: PreferenceKey {
 
 // MARK: - Package Popover Content
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct PackagePopoverContent: View {
     @Bindable var viewModel: ToolbarViewModel
 
@@ -322,13 +322,9 @@ private struct PackagePopoverContent: View {
         .padding(12)
         .frame(width: 340)
         .onAppear {
-            #if os(macOS)
             if let window = NSApp.mainWindow {
                 windowHeight = window.frame.height
             }
-            #else
-            windowHeight = UIScreen.main.bounds.height
-            #endif
         }
     }
 
@@ -351,7 +347,7 @@ private struct PackagePopoverContent: View {
 
 // MARK: - Upgradable Package Row
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct UpgradablePackageRow: View {
     let package: UpgradablePackage
     let isActive: Bool
@@ -405,7 +401,7 @@ private struct UpgradablePackageRow: View {
 
 // MARK: - VC Package Row
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct VCPackageRow: View {
     let package: VCPackage
     let isActive: Bool

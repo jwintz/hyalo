@@ -32,18 +32,14 @@ final class UtilityAreaTerminalHolder {
         currentDirectory: String? = nil,
         palette: TerminalPalette
     ) -> TerminalContainerView {
-        logger.info("🔧 UtilityAreaTerminalHolder.ensureTerminal called")
         if let existing = container {
-            logger.info("✅ Reusing existing terminal container")
-            // Reapply palette in case appearance changed while not visible
             if let tv = existing.terminalView {
-                logger.info("🎨 Reapplying palette to existing terminal")
                 tv.applyPalette(palette)
             }
             return existing
         }
 
-        logger.info("🔧 Creating new terminal container")
+        logger.info("Creating new terminal container")
         let cwd = currentDirectory ?? NSHomeDirectory()
 
         let newContainer = TerminalContainerView()
@@ -101,6 +97,8 @@ final class UtilityAreaTerminalHolder {
 struct UtilityAreaTerminalView: NSViewRepresentable {
     /// The palette binding ensures updates when appearance or colors change
     @Bindable var palette: TerminalPalette
+    /// Tracks system appearance; changes here guarantee updateNSView is called.
+    @Environment(\.colorScheme) private var colorScheme
     private let holder: UtilityAreaTerminalHolder
 
     init(holder: UtilityAreaTerminalHolder, palette: TerminalPalette) {
@@ -109,23 +107,27 @@ struct UtilityAreaTerminalView: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> NSView {
-        logger.info("🔧 UtilityAreaTerminalView.makeNSView called")
         let projectRoot = NavigatorManager.shared.projectNavigatorViewModel.projectRoot
-        logger.info("   - projectRoot: \(projectRoot ?? "nil")")
-        logger.info("   - palette isDark: \(palette.isDark)")
         return holder.ensureTerminal(currentDirectory: projectRoot, palette: palette)
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        logger.info("🔧 UtilityAreaTerminalView.updateNSView called")
         guard let container = nsView as? TerminalContainerView,
               let tv = container.terminalView else {
-            logger.error("❌ updateNSView: container or terminalView is nil")
             return
         }
 
-        // Reapply palette on theme change (version or isDark changes trigger this)
-        logger.info("🎨 Reapplying palette in updateNSView")
+        // Sync palette appearance from SwiftUI's colorScheme so "auto" mode
+        // picks up system dark/light switches immediately.
+        let systemIsDark = colorScheme == .dark
+        if palette.isDark != systemIsDark {
+            palette.setAppearance(isDark: systemIsDark)
+        }
+
+        // Read version to guarantee @Observable tracking triggers future updates.
+        let _ = palette.version
+
+        // Reapply palette on theme change (version, isDark, or colorScheme changes trigger this)
         tv.applyPalette(palette)
     }
 }

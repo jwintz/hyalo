@@ -12,7 +12,7 @@ public enum FooterPattern: String, CaseIterable {
     case circuitBoard = "circuitBoard"
 }
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct FooterPatternView: View {
     public let pattern: FooterPattern
     public let alpha: CGFloat

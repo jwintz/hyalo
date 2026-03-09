@@ -45,7 +45,7 @@ public struct HyaloColorVariant: Equatable {
 /// Observable color theme with light and dark variants.
 /// Both variants are always populated — the active variant is selected
 /// based on `NSAppearance`.
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @MainActor
 @Observable
 public final class HyaloColorTheme: KelyphosColorThemeProtocol {

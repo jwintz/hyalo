@@ -1,85 +1,94 @@
-// HyaloProjectNavigator.swift - File tree navigator using ProjectNavigator package
+// HyaloProjectNavigator.swift - Native file tree navigator
 // Target: macOS 26 Tahoe with Liquid Glass design
 //
-// Wraps FileNavigator from mchakravarty/ProjectNavigator with Hyalo-specific
-// labels (SF Symbol file icons, git status badges) and Emacs integration.
+// Renders a collapsible file tree using native SwiftUI List with
+// recursive DisclosureGroups. No external dependencies.
 
 import SwiftUI
-import Files
-import ProjectNavigator
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct HyaloProjectNavigator: View {
-    @Bindable public var viewState: FileNavigatorViewState<HyaloFilePayload>
-    public let gitStatus: [String: String]
-    public let folderGitStatus: [UUID: String]
+    @Bindable public var viewModel: ProjectNavigatorViewModel
     public let onFileSelect: (String) -> Void
-    public var filter: (String) -> Bool = { _ in true }
 
     public var body: some View {
-        List(selection: $viewState.selection) {
-            FileNavigator(
-                name: nil as String?,
-                item: .constant(viewState.fileTree.root),
-                parent: .constant(nil),
-                viewState: viewState,
-                fileLabel: { cursor, $editedText, proxy in
-                    fileLabel(cursor: cursor, proxy: proxy)
-                },
-                folderLabel: { cursor, $editedText, $folder in
-                    folderLabel(cursor: cursor, folder: folder)
+        List(selection: $viewModel.selection) {
+            if let root = viewModel.displayRoot {
+                ForEach(root.children ?? [], id: \.id) { child in
+                    nodeView(child)
                 }
-            )
+            }
         }
         .listStyle(.sidebar)
         .scrollIndicators(.never)
         .environment(\.defaultMinListRowHeight, 22)
-        .navigatorFilter(filter)
-        .onChange(of: viewState.selection) { oldValue, newValue in
+        .onChange(of: viewModel.selection) { _, newValue in
             guard let uuid = newValue else { return }
-            if let proxy = viewState.fileTree.proxy(for: uuid).file {
-                let path = proxy.contents.path
-                onFileSelect(path)
+            if let root = viewModel.displayRoot, let node = findNode(id: uuid, in: root) {
+                if !node.isDirectory {
+                    onFileSelect(node.path)
+                }
             }
+        }
+    }
+
+    // MARK: - Node View
+
+    private func nodeView(_ node: FileTreeNode) -> AnyView {
+        if node.isDirectory {
+            let isExpanded = Binding<Bool>(
+                get: { viewModel.expansions.contains(node.id) },
+                set: { newValue in
+                    if newValue {
+                        viewModel.expansions.insert(node.id)
+                    } else {
+                        viewModel.expansions.remove(node.id)
+                    }
+                }
+            )
+            return AnyView(
+                DisclosureGroup(isExpanded: isExpanded) {
+                    ForEach(node.children ?? [], id: \.id) { child in
+                        nodeView(child)
+                    }
+                } label: {
+                    folderLabel(node)
+                }
+                .tag(node.id)
+            )
+        } else {
+            return AnyView(
+                fileLabel(node)
+                    .tag(node.id)
+            )
         }
     }
 
     // MARK: - File Label
 
     @ViewBuilder
-    private func fileLabel(
-        cursor: FileNavigatorCursor<HyaloFilePayload>,
-        proxy: File<HyaloFilePayload>.Proxy
-    ) -> some View {
+    private func fileLabel(_ node: FileTreeNode) -> some View {
         HStack(spacing: 0) {
             Label {
-                Text(cursor.name)
+                Text(node.name)
                     .font(.system(size: HyaloDesign.FontSize.large))
             } icon: {
-                Image(systemName: FileTreeIcons.icon(for: cursor.name))
+                Image(systemName: FileTreeIcons.icon(for: node.name))
                     .font(.system(size: HyaloDesign.IconSize.standard))
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            if let file = proxy.file, let status = gitStatus[file.contents.path] {
-                GitStatusBadge(status: status)
-            }
         }
-        .contextMenu { pathContextMenu(path: proxy.file?.contents.path) }
+        .contextMenu { pathContextMenu(path: node.path) }
     }
 
     // MARK: - Folder Label
 
     @ViewBuilder
-    private func folderLabel(
-        cursor: FileNavigatorCursor<HyaloFilePayload>,
-        folder: ProxyFolder<HyaloFilePayload>
-    ) -> some View {
-        let isExpanded = viewState.expansions[folder.id] == true
-
+    private func folderLabel(_ node: FileTreeNode) -> some View {
         HStack(spacing: 0) {
             Label {
-                Text(cursor.name)
+                Text(node.name)
                     .font(.system(size: HyaloDesign.FontSize.large))
             } icon: {
                 Image(systemName: "folder.fill")
@@ -87,24 +96,30 @@ public struct HyaloProjectNavigator: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            if !isExpanded, let status = folderGitStatus[folder.id] {
-                GitStatusBadge(status: status)
-            }
         }
     }
 
     // MARK: - Context Menu
 
     @ViewBuilder
-    private func pathContextMenu(path: String?) -> some View {
-        if let path {
-            Button("Reveal in Finder") {
-                platformRevealInFinder([path])
-            }
-            Divider()
-            Button("Copy Path") {
-                platformCopyToClipboard(path)
-            }
+    private func pathContextMenu(path: String) -> some View {
+        Button("Reveal in Finder") {
+            platformRevealInFinder([path])
         }
+        Divider()
+        Button("Copy Path") {
+            platformCopyToClipboard(path)
+        }
+    }
+
+    // MARK: - Tree Search
+
+    private func findNode(id: UUID, in node: FileTreeNode) -> FileTreeNode? {
+        if node.id == id { return node }
+        guard let children = node.children else { return nil }
+        for child in children {
+            if let found = findNode(id: id, in: child) { return found }
+        }
+        return nil
     }
 }

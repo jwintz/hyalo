@@ -9,7 +9,7 @@
 import SwiftUI
 import KelyphosKit
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct DiagnosticsView: View {
     @Bindable public var viewModel: DiagnosticsViewModel
 
@@ -71,11 +71,7 @@ public struct DiagnosticsView: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
-        .background {
-            Capsule()
-                .fill(severityColor(severity).opacity(0.12))
-                .stroke(severityColor(severity).opacity(0.2), lineWidth: 0.5)
-        }
+        .glassEffect(in: .capsule)
     }
 
     // MARK: - Diagnostics List
@@ -113,9 +109,7 @@ public struct DiagnosticsView: View {
             }
             .padding(.horizontal, HyaloDesign.Padding.horizontal)
             .padding(.vertical, 4)
-            .background {
-                Color(platformColor: .separator).opacity(0.08)
-            }
+            .glassEffect()
 
             // Diagnostic rows
             ForEach(items) { item in

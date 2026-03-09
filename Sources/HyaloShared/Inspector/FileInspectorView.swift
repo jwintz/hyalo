@@ -4,7 +4,7 @@
 
 import SwiftUI
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 struct FileInspectorView: View {
     @Bindable var viewModel: InspectorViewModel
 

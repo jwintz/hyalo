@@ -15,7 +15,7 @@
 
 import SwiftUI
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct KeycastView: View {
     @Bindable public var viewModel: ToolbarViewModel
 
@@ -28,8 +28,8 @@ public struct KeycastView: View {
     /// Tracks whether the pill content is visible (fades after delay)
     @State private var isContentVisible = false
 
-    /// Timer for auto-fade
-    @State private var fadeTimer: Timer?
+    /// Task handle for auto-fade cancellation
+    @State private var fadeTask: Task<Void, Never>?
 
     private var hasContent: Bool {
         !viewModel.keycastKey.isEmpty || !viewModel.keycastCommand.isEmpty
@@ -68,7 +68,7 @@ public struct KeycastView: View {
             // The pill background and clipping live here, not in a ControlGroup
             // wrapper in the toolbar. ControlGroup bridges to NSToolbarItemGroup
             // which applies compression/collapse under space pressure.
-            .background(.regularMaterial, in: Capsule())
+            .glassEffect(in: .capsule)
             .onChange(of: viewModel.keycastKey) { _, _ in
                 showAndScheduleFade()
             }
@@ -87,12 +87,12 @@ public struct KeycastView: View {
 
     private func showAndScheduleFade() {
         isContentVisible = true
-        fadeTimer?.invalidate()
-        fadeTimer = Timer.scheduledTimer(withTimeInterval: fadeDelay, repeats: false) { _ in
-            DispatchQueue.main.async {
-                withAnimation {
-                    isContentVisible = false
-                }
+        fadeTask?.cancel()
+        fadeTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(fadeDelay))
+            guard !Task.isCancelled else { return }
+            withAnimation {
+                isContentVisible = false
             }
         }
     }

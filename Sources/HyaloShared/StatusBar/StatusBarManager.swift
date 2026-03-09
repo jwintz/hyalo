@@ -3,7 +3,7 @@
 
 import Foundation
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @MainActor
 public final class StatusBarManager {
     public static let shared = StatusBarManager()

@@ -7,7 +7,7 @@ import KelyphosKit
 /// HyaloShared cannot import HyaloMac (circular), so the macOS-specific
 /// side-effects (NSAppearance, fringe alpha, Emacs channels) are invoked
 /// via these callbacks instead of a direct dependency.
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public enum InspectorAppearanceCallbacks {
     /// Called when the user changes light/dark/auto appearance mode.
     /// Receives the new mode string ("light", "dark", "auto").
@@ -20,7 +20,7 @@ public enum InspectorAppearanceCallbacks {
 
 // MARK: - View
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 struct InspectorAppearanceView: View {
     @Environment(\.kelyphosShellState) private var shellState
     @Environment(HyaloWorkspaceState.self) private var workspace
@@ -34,38 +34,35 @@ struct InspectorAppearanceView: View {
 
 // MARK: - Content (bindable shell state)
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct InspectorAppearanceContent: View {
     @Bindable var shellState: KelyphosShellState
-    let workspace: HyaloWorkspaceState
+    @Bindable var workspace: HyaloWorkspaceState
 
     private var presetBinding: Binding<AppearancePreset?> {
         Binding(
-            get: {
-                if shellState.backgroundAlpha == 0.0 && shellState.vibrancyMaterial == .ultraThin { return .clear }
-                if shellState.backgroundAlpha == 0.5 && shellState.vibrancyMaterial == .thin { return .balanced }
-                if shellState.backgroundAlpha == 1.0 && shellState.vibrancyMaterial == .none { return .solid }
-                return nil
-            },
+            get: { AppearancePreset.detect(from: shellState) },
             set: { newValue in
                 guard let preset = newValue else { return }
-                switch preset {
-                case .clear:
-                    shellState.backgroundAlpha = 0.0
-                    shellState.vibrancyMaterial = .ultraThin
-                case .balanced:
-                    shellState.backgroundAlpha = 0.5
-                    shellState.vibrancyMaterial = .thin
-                case .solid:
-                    shellState.backgroundAlpha = 1.0
-                    shellState.vibrancyMaterial = .none
-                }
+                preset.apply(to: shellState)
             }
         )
     }
 
     var body: some View {
         Form {
+            Section("Terminal") {
+                LabeledContent("Horizontal Margins") {
+                    HStack(spacing: 8) {
+                        Slider(value: $workspace.horizontalMargin, in: 0...40, step: 1)
+                        Text("\(Int(workspace.horizontalMargin)) px")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .frame(width: 35, alignment: .trailing)
+                    }
+                }
+            }
+
             if !workspace.currentThemeName.isEmpty {
                 Section("Theme") {
                     LabeledContent("Current") {
@@ -76,7 +73,7 @@ private struct InspectorAppearanceContent: View {
                 }
             }
 
-            Section("Window") {
+            Section("Appearance") {
                 LabeledContent("Appearance") {
                     Picker("Appearance", selection: $shellState.windowAppearance) {
                         Label("Auto", systemImage: "circle.lefthalf.filled").tag("auto")
@@ -109,14 +106,15 @@ private struct InspectorAppearanceContent: View {
             }
 
             Section("Presets") {
-                Picker("Presets", selection: presetBinding) {
-                    Text("Clear").tag(AppearancePreset.clear as AppearancePreset?)
-                    Text("Balanced").tag(AppearancePreset.balanced as AppearancePreset?)
-                    Text("Solid").tag(AppearancePreset.solid as AppearancePreset?)
+                LabeledContent("Presets") {
+                    Picker("Presets", selection: presetBinding) {
+                        Text("Clear").tag(AppearancePreset.clear as AppearancePreset?)
+                        Text("Balanced").tag(AppearancePreset.balanced as AppearancePreset?)
+                        Text("Solid").tag(AppearancePreset.solid as AppearancePreset?)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(maxWidth: .infinity)
             }
         }
         .formStyle(.grouped)
@@ -124,7 +122,6 @@ private struct InspectorAppearanceContent: View {
         .font(.system(size: 12))
         .onChange(of: shellState.windowAppearance) { _, newValue in
             shellState.saveAppearance()
-            #if os(macOS)
             let nsAppearance: NSAppearance?
             switch newValue {
             case "light": nsAppearance = NSAppearance(named: .aqua)
@@ -132,7 +129,6 @@ private struct InspectorAppearanceContent: View {
             default: nsAppearance = nil
             }
             NSApp.appearance = nsAppearance
-            #endif
             InspectorAppearanceCallbacks.onAppearanceModeChanged?(newValue)
         }
         .onChange(of: shellState.backgroundAlpha) { _, newValue in
@@ -146,12 +142,3 @@ private struct InspectorAppearanceContent: View {
     }
 }
 
-// MARK: - Presets
-
-private enum AppearancePreset: String, CaseIterable, Identifiable {
-    case clear = "Clear"
-    case balanced = "Balanced"
-    case solid = "Solid"
-
-    var id: String { rawValue }
-}

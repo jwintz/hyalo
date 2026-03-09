@@ -4,7 +4,7 @@
 import SwiftUI
 import KelyphosKit
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public enum UtilityAreaTab: String, CaseIterable, KelyphosPanel {
     case terminal
     case diagnostics
@@ -35,14 +35,14 @@ public enum UtilityAreaTab: String, CaseIterable, KelyphosPanel {
 
 // MARK: - Terminal Content Environment Key
 
-/// Injected by platform-specific code (HyaloMac, HyaloiOS) to provide
+/// Injected by platform-specific code (HyaloMac) to provide
 /// the terminal view into the utility area tab body.
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct TerminalContentKey: @preconcurrency EnvironmentKey {
     @MainActor static let defaultValue: AnyView = AnyView(EmptyView())
 }
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public extension EnvironmentValues {
     var terminalContent: AnyView {
         get { self[TerminalContentKey.self] }
@@ -52,16 +52,18 @@ public extension EnvironmentValues {
 
 // MARK: - Tab Bodies (read view models from environment)
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct TerminalTabBody: View {
     @Environment(\.terminalContent) private var content
+    @Environment(HyaloWorkspaceState.self) private var workspace
 
     var body: some View {
         content
+            .padding(.horizontal, workspace.horizontalMargin)
     }
 }
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct DiagnosticsTabBody: View {
     @Environment(\.utilityAreaViewModel) private var vm
 

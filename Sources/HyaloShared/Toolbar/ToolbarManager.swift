@@ -6,15 +6,11 @@
 
 import SwiftUI
 
-#if os(macOS)
 import AppKit
-#else
-import UIKit
-#endif
 
 // MARK: - Branch Info
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct BranchInfo: Codable {
     public var currentBranch: String
     public var branches: [String]
@@ -22,7 +18,7 @@ public struct BranchInfo: Codable {
 
 // MARK: - Toolbar View Model
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @MainActor
 @Observable
 public final class ToolbarViewModel {
@@ -53,7 +49,7 @@ public final class ToolbarViewModel {
 
 // MARK: - Toolbar Manager
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 @MainActor
 public final class ToolbarManager {
     public static let shared = ToolbarManager()

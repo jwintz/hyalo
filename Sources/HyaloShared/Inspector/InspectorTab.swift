@@ -4,42 +4,38 @@
 import SwiftUI
 import KelyphosKit
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public enum InspectorTab: String, CaseIterable, KelyphosPanel {
     case file
-    case history
-    case appearance
+    case settings
 
     public var id: String { rawValue }
 
     public var title: String {
         switch self {
         case .file: return "File"
-        case .history: return "History"
-        case .appearance: return "Appearance"
+        case .settings: return "Settings"
         }
     }
 
     public var systemImage: String {
         switch self {
         case .file: return "doc"
-        case .history: return "clock.arrow.circlepath"
-        case .appearance: return "paintbrush"
+        case .settings: return "gearshape"
         }
     }
 
     public var body: some View {
         switch self {
         case .file: FileInspectorTabBody()
-        case .history: HistoryInspectorTabBody()
-        case .appearance: AppearanceInspectorTabBody()
+        case .settings: SettingsInspectorTabBody()
         }
     }
 }
 
 // MARK: - Tab Bodies (read managers from environment)
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 private struct FileInspectorTabBody: View {
     @Environment(\.inspectorViewModel) private var envVM
     private var viewModel: InspectorViewModel { envVM ?? InspectorManager.shared.viewModel }
@@ -49,18 +45,8 @@ private struct FileInspectorTabBody: View {
     }
 }
 
-@available(macOS 26.0, iOS 26.0, *)
-private struct HistoryInspectorTabBody: View {
-    @Environment(\.inspectorViewModel) private var envVM
-    private var viewModel: InspectorViewModel { envVM ?? InspectorManager.shared.viewModel }
-
-    var body: some View {
-        HistoryInspectorView(viewModel: viewModel)
-    }
-}
-
-@available(macOS 26.0, iOS 26.0, *)
-private struct AppearanceInspectorTabBody: View {
+@available(macOS 26.0, *)
+private struct SettingsInspectorTabBody: View {
     var body: some View {
         InspectorAppearanceView()
     }

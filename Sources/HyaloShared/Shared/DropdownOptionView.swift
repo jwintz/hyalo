@@ -6,7 +6,7 @@
 
 import SwiftUI
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 struct DropdownOptionView: View {
     let label: String
     let isChecked: Bool

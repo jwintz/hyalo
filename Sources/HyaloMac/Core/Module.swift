@@ -55,7 +55,6 @@ final class HyaloModule: Module {
     static var appearanceChannel: Any?
     static var diagnosticsChannel: Any?
     static var packageChannel: Any?
-    static var sourceControlChannel: Any?
     static var moduleReloadChannel: Any?
     static var environmentChannel: Any?
     static var buildChannel: Any?
@@ -138,10 +137,6 @@ final class HyaloModule: Module {
     static var packageUpgradeAllCallback: (() -> Void)?
     static var packageUpgradeSingleCallback: ((String) -> Void)?
     static var packageListCallback: (() -> Void)?
-
-    // Source control channel callbacks (stored globally)
-    static var sourceControlShowCommitCallback: ((String) -> Void)?
-    static var sourceControlShowDiffCallback: ((String) -> Void)?
 
     // Build channel callbacks — forward async build output to Emacs compilation buffer
     static var buildStartCallback: ((String) -> Void)?

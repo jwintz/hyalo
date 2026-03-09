@@ -4,11 +4,10 @@
 import SwiftUI
 import KelyphosKit
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public enum NavigatorTab: String, CaseIterable, KelyphosPanel {
     case project
     case buffers
-    case sourceControl
     case search
 
     public var id: String { rawValue }
@@ -17,7 +16,6 @@ public enum NavigatorTab: String, CaseIterable, KelyphosPanel {
         switch self {
         case .project: return "Project"
         case .buffers: return "Buffers"
-        case .sourceControl: return "VCS"
         case .search: return "Search"
         }
     }
@@ -26,7 +24,6 @@ public enum NavigatorTab: String, CaseIterable, KelyphosPanel {
         switch self {
         case .project: return "folder"
         case .buffers: return "doc.on.doc"
-        case .sourceControl: return "arrow.triangle.branch"
         case .search: return "magnifyingglass"
         }
     }
@@ -35,7 +32,6 @@ public enum NavigatorTab: String, CaseIterable, KelyphosPanel {
         switch self {
         case .project: ProjectNavigatorView()
         case .buffers: BufferListView()
-        case .sourceControl: SourceControlNavigatorView()
         case .search: FindNavigatorView()
         }
     }

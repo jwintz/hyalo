@@ -8,7 +8,7 @@ import SwiftUI
 
 // MARK: - Git Status Badge
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct GitStatusBadge: View {
     let status: String
     @Environment(\.colorTheme) private var theme
@@ -34,7 +34,7 @@ public struct GitStatusBadge: View {
 
 // MARK: - Highlighted Text Component
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct HighlightedText: View {
     let text: String
     let highlight: String

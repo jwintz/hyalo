@@ -23,6 +23,15 @@ extension HyaloModule {
                         for controller in HyaloModule.allControllers {
                             controller.editorTabViewModel.updateTabs(tabs)
                         }
+                        // Feed widget publisher with tab count
+                        let publisher = HyaloWidgetDataPublisher.shared
+                        let frameId = HyaloModule.allControllers.first.flatMap {
+                            HyaloModule.windowToFrameId[ObjectIdentifier($0.window!)]
+                        }.map(String.init) ?? "default"
+                        var meta = publisher.instanceMetadata[frameId] ?? .init()
+                        meta.bufferCount = tabs.count
+                        meta.pid = ProcessInfo.processInfo.processIdentifier
+                        publisher.instanceMetadata[frameId] = meta
                     }
                     return true
                 } catch { return false }
@@ -38,6 +47,15 @@ extension HyaloModule {
                     if let wc = HyaloModule.activeController {
                         wc.editorTabViewModel.onTabSelected(bufferName)
                     }
+                    // Feed widget publisher with current buffer
+                    let publisher = HyaloWidgetDataPublisher.shared
+                    let frameId = HyaloModule.activeController.flatMap {
+                        HyaloModule.windowToFrameId[ObjectIdentifier($0.window!)]
+                    }.map(String.init) ?? "default"
+                    var meta = publisher.instanceMetadata[frameId] ?? .init()
+                    meta.currentBuffer = bufferName
+                    meta.pid = ProcessInfo.processInfo.processIdentifier
+                    publisher.instanceMetadata[frameId] = meta
                 }
                 return true
             }

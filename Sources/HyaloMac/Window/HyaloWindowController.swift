@@ -112,7 +112,6 @@ final class HyaloWindowController: NSWindowController {
         .environment(\.navigatorManager, NavigatorManager.shared)
         .environment(\.searchViewModel, NavigatorManager.shared.searchViewModel)
         .environment(\.bufferListViewModel, NavigatorManager.shared.bufferListViewModel)
-        .environment(\.sourceControlViewModel, NavigatorManager.shared.sourceControlViewModel)
         .environment(\.utilityAreaViewModel, utilityAreaViewModel)
         .environment(\.colorTheme, workspace.colorTheme)
         .environment(\.terminalContent, AnyView(UtilityAreaTerminalView(

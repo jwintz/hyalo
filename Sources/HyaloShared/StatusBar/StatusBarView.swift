@@ -6,7 +6,7 @@
 import SwiftUI
 import KelyphosKit
 
-@available(macOS 26.0, iOS 26.0, *)
+@available(macOS 26.0, *)
 public struct StatusBarView: View {
     @Bindable public var viewModel: StatusBarViewModel
 
@@ -35,7 +35,6 @@ public struct StatusBarView: View {
         .frame(height: Self.height)
         .overlay(alignment: .top) { topDivider }
         .disabled(controlActive == .inactive)
-        // No opaque background — inherits parent EffectView vibrancy
     }
 
     public init(viewModel: StatusBarViewModel) {
