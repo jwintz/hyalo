@@ -1,6 +1,5 @@
-// MinibufferManager.swift - Manager for the native minibuffer panel
-// Replaces CommandPaletteManager with a single generic panel.
-// Keyboard events handled via SearchPanel's NSEvent monitor.
+// MinibufferManager.swift - Manager for the native minibuffer overlay panel
+// Candidate-list overlay only; text editing happens in the Emacs minibuffer.
 
 import AppKit
 import SwiftUI
@@ -15,12 +14,8 @@ final class MinibufferManager {
     let viewModel = MinibufferViewModel()
 
     // Callbacks to Emacs (wired by Module+Minibuffer.swift channel setup)
-    var onInputChanged: ((String) -> Void)?
     var onCandidateSelected: ((String) -> Void)?
     var onAbort: (() -> Void)?
-    var onHistoryPrev: (() -> Void)?
-    var onHistoryNext: (() -> Void)?
-    var onTabComplete: (() -> Void)?
 
     private init() {}
 
@@ -44,39 +39,10 @@ final class MinibufferManager {
             return
         }
 
-        let searchPanel = SearchPanel { [weak self] in
-            self?.abort()
-        }
-
-        searchPanel.historyMode = viewModel.historyMode
-        searchPanel.onArrowUp = { [weak self] in
-            self?.viewModel.selectPrevious()
-        }
-        searchPanel.onArrowDown = { [weak self] in
-            self?.viewModel.selectNext()
-        }
-        searchPanel.onConfirm = { [weak self] in
-            self?.viewModel.confirm()
-        }
-        searchPanel.onHistoryPrev = { [weak self] in
-            self?.viewModel.historyPrev()
-        }
-        searchPanel.onHistoryNext = { [weak self] in
-            self?.viewModel.historyNext()
-        }
-        searchPanel.onTabComplete = { [weak self] in
-            self?.viewModel.tabComplete()
-        }
-
+        let searchPanel = SearchPanel()
         panel = searchPanel
 
         // Wire view model callbacks to Emacs channel
-        viewModel.onInputChanged = { [weak self] text in
-            #if DEBUG
-            NSLog("[Hyalo:Minibuffer] input changed: %@", text)
-            #endif
-            self?.onInputChanged?(text)
-        }
         viewModel.onCandidateSelected = { [weak self] index in
             #if DEBUG
             NSLog("[Hyalo:Minibuffer] candidate selected: %d", index)
@@ -84,25 +50,10 @@ final class MinibufferManager {
             self?.onCandidateSelected?(String(index))
         }
         viewModel.onAbort = { [weak self] in
-            self?.abort()
-        }
-        viewModel.onHistoryPrev = { [weak self] in
             #if DEBUG
-            NSLog("[Hyalo:Minibuffer] history prev")
+            NSLog("[Hyalo:Minibuffer] abort called")
             #endif
-            self?.onHistoryPrev?()
-        }
-        viewModel.onHistoryNext = { [weak self] in
-            #if DEBUG
-            NSLog("[Hyalo:Minibuffer] history next")
-            #endif
-            self?.onHistoryNext?()
-        }
-        viewModel.onTabComplete = { [weak self] in
-            #if DEBUG
-            NSLog("[Hyalo:Minibuffer] tab complete")
-            #endif
-            self?.onTabComplete?()
+            self?.onAbort?()
         }
 
         let contentView = MinibufferView(viewModel: viewModel)
@@ -116,7 +67,7 @@ final class MinibufferManager {
 
         searchPanel.positionRelativeToParent(parentWindow)
         parentWindow.addChildWindow(searchPanel, ordered: .above)
-        searchPanel.makeKeyAndOrderFront(nil)
+        searchPanel.orderFront(nil)
         #if DEBUG
         NSLog("[Hyalo:Minibuffer] panel shown, prompt=%@", viewModel.prompt)
         #endif
@@ -129,10 +80,6 @@ final class MinibufferManager {
         NSLog("[Hyalo:Minibuffer] update called, data size=%d", data.count)
         #endif
         viewModel.update(from: data)
-        #if DEBUG
-        NSLog("[Hyalo:Minibuffer] after update: %d candidates, selectedIndex=%d",
-              viewModel.candidates.count, viewModel.selectedIndex)
-        #endif
     }
 
     // MARK: - Hide
@@ -145,29 +92,12 @@ final class MinibufferManager {
         dismissPanel()
     }
 
-    // MARK: - Abort (user pressed Escape in Swift panel)
-
-    private func abort() {
-        #if DEBUG
-        NSLog("[Hyalo:Minibuffer] abort called")
-        #endif
-        onAbort?()
-        // Don't call viewModel.hide() here — Emacs will call hyalo-minibuffer-hide
-        // via the minibuffer-exit-hook after abort-recursive-edit completes.
-    }
-
     // MARK: - Panel Lifecycle
 
     private func dismissPanel() {
         guard let p = panel else { return }
         panel = nil
-        // Detach delegate BEFORE close to prevent windowDidResignKey → abort.
-        // Without this, p.close() triggers windowDidResignKey which sends a
-        // spurious abort through the Emacs channel, killing the next minibuffer
-        // session (e.g., M-x compile → compile's read-shell-command).
-        p.delegate = nil
         p.close()
-        restoreEmacsFirstResponder()
     }
 
     // MARK: - Window Discovery
@@ -176,35 +106,5 @@ final class MinibufferManager {
         if let window = NSApp.mainWindow, !window.isMiniaturized { return window }
         if let window = NSApp.keyWindow, !window.isMiniaturized { return window }
         return NSApp.windows.first { $0.isVisible && !$0.isMiniaturized }
-    }
-
-    private func restoreEmacsFirstResponder() {
-        guard let window = findParentWindow() else {
-            #if DEBUG
-            NSLog("[Hyalo:Minibuffer] restoreEmacsFirstResponder: no parent window")
-            #endif
-            return
-        }
-        DispatchQueue.main.async { [weak self] in
-            guard self?.panel == nil else {
-                #if DEBUG
-                NSLog("[Hyalo:Minibuffer] restoreEmacsFirstResponder: SKIPPED (new panel active)")
-                #endif
-                return
-            }
-            window.makeKeyAndOrderFront(nil)
-            func findEmacsView(in view: NSView) -> NSView? {
-                let className = String(describing: type(of: view))
-                if className.contains("EmacsView") { return view }
-                for subview in view.subviews {
-                    if let found = findEmacsView(in: subview) { return found }
-                }
-                return nil
-            }
-            if let contentView = window.contentView,
-               let emacsView = findEmacsView(in: contentView) {
-                window.makeFirstResponder(emacsView)
-            }
-        }
     }
 }

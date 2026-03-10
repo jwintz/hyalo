@@ -1,5 +1,7 @@
 // Module+Minibuffer.swift - Minibuffer bridge bindings
-// Defuns and channel setup for the native Swift minibuffer panel.
+// Defuns and channel setup for the native Swift minibuffer overlay panel.
+// Only select (click-to-select) and abort callbacks remain;
+// text editing and navigation are handled by Emacs natively.
 
 import AppKit
 import HyaloShared
@@ -69,11 +71,6 @@ extension HyaloModule {
                 let channel = try env.openChannel(name: "hyalo-minibuffer")
                 HyaloModule.minibufferChannel = channel
 
-                let inputCallback: (String) -> Void = channel.callback {
-                    (env: EmacsSwiftModule.Environment, text: String) in
-                    try env.funcall("hyalo-channels--handle-minibuffer-input", with: text)
-                }
-
                 let selectCallback: (String) -> Void = channel.callback {
                     (env: EmacsSwiftModule.Environment, index: String) in
                     try env.funcall("hyalo-channels--handle-minibuffer-select", with: index)
@@ -84,29 +81,10 @@ extension HyaloModule {
                     try env.funcall("hyalo-channels--handle-minibuffer-abort")
                 }
 
-                let historyPrevCallback: () -> Void = channel.callback {
-                    (env: EmacsSwiftModule.Environment) in
-                    try env.funcall("hyalo-channels--handle-minibuffer-history-prev")
-                }
-
-                let historyNextCallback: () -> Void = channel.callback {
-                    (env: EmacsSwiftModule.Environment) in
-                    try env.funcall("hyalo-channels--handle-minibuffer-history-next")
-                }
-
-                let tabCompleteCallback: () -> Void = channel.callback {
-                    (env: EmacsSwiftModule.Environment) in
-                    try env.funcall("hyalo-channels--handle-minibuffer-tab")
-                }
-
                 MainActor.assumeIsolated {
                     let manager = MinibufferManager.shared
-                    manager.onInputChanged = inputCallback
                     manager.onCandidateSelected = selectCallback
                     manager.onAbort = abortCallback
-                    manager.onHistoryPrev = historyPrevCallback
-                    manager.onHistoryNext = historyNextCallback
-                    manager.onTabComplete = tabCompleteCallback
                 }
 
                 return true

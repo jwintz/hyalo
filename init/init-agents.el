@@ -49,46 +49,6 @@
 
   (advice-add 'copilot--log :around #'hyalo/copilot-suppress-log))
 
-;;;; Pi Coding Agent (Emacs frontend for pi CLI)
-
-;; Emacs 31 built-in transient has a non-standard version string
-;; ("v0.12.0-15-g....-builtin") that breaks version< parsing.
-;; Sanitize it BEFORE any package that requires transient is loaded.
-;; Must be outside use-package because the error occurs during
-;; package-vc--unpack → package--reload-previously-loaded, which
-;; loads pi-coding-agent files that call (version< transient-version ...).
-;; Use defconst to override even if transient redefines it via defconst.
-(when (require 'transient nil t)
-  (when (and (boundp 'transient-version)
-             (stringp transient-version)
-             (not (string-match-p "\\`[0-9]" transient-version)))
-    (setq transient-version
-          (replace-regexp-in-string "\\`v" "" transient-version))
-    (setq transient-version
-          (car (split-string transient-version "-")))))
-
-;; pi-coding-agent: Emacs frontend for the pi coding agent CLI.
-;; Install from git to avoid MELPA version parsing issues.
-(use-package pi-coding-agent
-  :ensure t
-  :vc (:url "https://github.com/dnouri/pi-coding-agent"
-            :rev :newest
-            :branch "master")
-  :defer t
-  :commands (pi-coding-agent)
-  :init
-  (defalias 'pi 'pi-coding-agent)
-  :config
-  ;; Apply Monaspace Krypton Frozen to pi chat buffers.
-  ;; Buffer-local face remapping avoids affecting editor buffers.
-  (defun hyalo/pi-apply-chat-font ()
-    "Apply Monaspace Krypton Frozen to pi chat buffer."
-    (face-remap-add-relative 'default
-                             :family "Monaspace Krypton Frozen"
-                             :height 110))
-
-  (add-hook 'pi-coding-agent-chat-mode-hook #'hyalo/pi-apply-chat-font))
-
 (provide 'init-agents)
 
 ;;; init-agents.el ends here

@@ -74,9 +74,11 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
         (and prompt
              (or (string-match-p "\\b[Pp]ass\\(word\\|phrase\\)\\b" prompt)
                  (string-match-p "\\bPIN\\b" prompt))))
-      ;; y-or-n-p and yes-or-no-p
+      ;; y-or-n-p, yes-or-no-p, and map-y-or-n-p
       (and (minibuffer-prompt)
-           (string-match-p "\\(y or n\\|yes or no\\)" (minibuffer-prompt)))))
+           (string-match-p "\\(y or n\\|yes or no\\|([ynYN!.,; ]\\)" (minibuffer-prompt)))
+      ;; Ephemeral minibuffer with no real history variable
+      (eq minibuffer-history-variable t)))
 
 ;; ---------------------------------------------------------------------------
 ;; Text cleaning — strip invisible disambiguation chars
@@ -302,9 +304,15 @@ Uses vertico's buffer-local hilit function when available, then
 Used when there is no completion table (e.g. `read-shell-command')."
   (let* ((hist-var (and (boundp 'minibuffer-history-variable)
                         minibuffer-history-variable))
-         (hist (and hist-var (boundp hist-var) (symbol-value hist-var)))
-         (items (seq-take (seq-uniq (seq-filter #'stringp hist))
-                          hyalo-minibuffer--max-history-items))
+         (hist (and hist-var
+                    (symbolp hist-var)
+                    (not (eq hist-var t))
+                    (boundp hist-var)
+                    (symbol-value hist-var)))
+         (items (if (listp hist)
+                    (seq-take (seq-uniq (seq-filter #'stringp hist))
+                              hyalo-minibuffer--max-history-items)
+                  nil))
          (total (length items))
          (result nil))
     (hyalo-minibuffer--log "extract-history: var=%s items=%d" hist-var total)
@@ -322,8 +330,14 @@ Used when there is no completion table (e.g. `read-shell-command')."
   (let* ((input (minibuffer-contents-no-properties))
          (hist-var (and (boundp 'minibuffer-history-variable)
                         minibuffer-history-variable))
-         (hist (and hist-var (boundp hist-var) (symbol-value hist-var)))
-         (all-items (seq-uniq (seq-filter #'stringp hist)))
+         (hist (and hist-var
+                    (symbolp hist-var)
+                    (not (eq hist-var t))
+                    (boundp hist-var)
+                    (symbol-value hist-var)))
+         (all-items (if (listp hist)
+                        (seq-uniq (seq-filter #'stringp hist))
+                      nil))
          (filtered (if (string-empty-p input)
                        all-items
                      (seq-filter (lambda (item)
@@ -388,30 +402,7 @@ Used when there is no completion table (e.g. `read-shell-command')."
        (hyalo-minibuffer--log "push-update error: %s" (error-message-string err))))))
 
 ;; ---------------------------------------------------------------------------
-;; Input injection — Swift → Emacs
-;; ---------------------------------------------------------------------------
-
-(defun hyalo-minibuffer--inject-input (text)
-  "Replace minibuffer contents with TEXT from Swift panel."
-  (when (minibufferp)
-    (delete-minibuffer-contents)
-    (insert text)
-    (hyalo-minibuffer--log "inject-input: inserted=%S actual=%S"
-                           text (minibuffer-contents-no-properties))
-    ;; Trigger completion framework refresh (skip for free-text: no completion table)
-    (unless hyalo-minibuffer--history-mode
-      (cond
-       ((bound-and-true-p vertico-mode)
-        (when (fboundp 'vertico--exhibit)
-          (vertico--exhibit)))
-       ((bound-and-true-p fido-vertical-mode)
-        (when (fboundp 'icomplete-exhibit)
-          (icomplete-exhibit)))))
-    ;; Schedule candidate extraction after framework has processed
-    (hyalo-minibuffer--schedule-update)))
-
-;; ---------------------------------------------------------------------------
-;; Selection — Swift → Emacs
+;; Selection — Swift → Emacs (click-to-select from overlay)
 ;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--select-candidate (index)
@@ -561,11 +552,6 @@ Returns nil (for :before-while) to skip the display function."
 ;; Channel handlers (called from Swift via channel callbacks)
 ;; ---------------------------------------------------------------------------
 
-(defun hyalo-channels--handle-minibuffer-input (text)
-  "Handle input from the Swift minibuffer panel.
-TEXT is the current content of the Swift text field."
-  (hyalo-minibuffer--inject-input text))
-
 (defun hyalo-channels--handle-minibuffer-select (index-str)
   "Handle candidate selection from the Swift minibuffer panel.
 INDEX-STR is the selected candidate index as a string."
@@ -574,32 +560,6 @@ INDEX-STR is the selected candidate index as a string."
 (defun hyalo-channels--handle-minibuffer-abort ()
   "Handle abort from the Swift minibuffer panel."
   (hyalo-minibuffer--abort))
-
-(defun hyalo-channels--handle-minibuffer-history-prev ()
-  "Navigate to the previous history item (M-p equivalent)."
-  (hyalo-minibuffer--log "history-prev")
-  (when (minibufferp)
-    (ignore-errors (previous-history-element 1))
-    (hyalo-minibuffer--schedule-update)))
-
-(defun hyalo-channels--handle-minibuffer-history-next ()
-  "Navigate to the next history item (M-n equivalent)."
-  (hyalo-minibuffer--log "history-next")
-  (when (minibufferp)
-    (ignore-errors (next-history-element 1))
-    (hyalo-minibuffer--schedule-update)))
-
-(defun hyalo-channels--handle-minibuffer-tab ()
-  "Trigger minibuffer completion (Tab equivalent)."
-  (hyalo-minibuffer--log "tab-complete")
-  (when (minibufferp)
-    (cond
-     ((bound-and-true-p vertico-mode)
-      (when (fboundp 'vertico-insert)
-        (ignore-errors (vertico-insert))))
-     (t
-      (ignore-errors (minibuffer-complete))))
-    (hyalo-minibuffer--schedule-update)))
 
 ;; ---------------------------------------------------------------------------
 ;; Minor mode

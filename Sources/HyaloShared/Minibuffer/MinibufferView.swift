@@ -1,14 +1,12 @@
-// MinibufferView.swift - Native Swift panel for Emacs minibuffer
-// Prompt + TextField on top, candidate list on bottom.
-// Keyboard navigation handled by SearchPanel's NSEvent monitor (macOS).
+// MinibufferView.swift - Native Swift overlay for Emacs minibuffer
+// Prompt + input (read-only) on top, candidate list on bottom.
+// Text editing happens in the Emacs minibuffer; this is a display-only overlay.
 
 import SwiftUI
 
 @available(macOS 26.0, *)
 public struct MinibufferView: View {
     @Bindable public var viewModel: MinibufferViewModel
-
-    @FocusState private var isInputFocused: Bool
 
     @ViewBuilder private var panelBackground: some View {
         Color.clear.glassEffect(in: RoundedRectangle(cornerRadius: 12))
@@ -24,7 +22,7 @@ public struct MinibufferView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Prompt + input
+            // Prompt + input (read-only mirror of Emacs minibuffer)
             HStack(alignment: .center, spacing: 0) {
                 if !viewModel.prompt.isEmpty {
                     Text(viewModel.prompt)
@@ -34,10 +32,9 @@ public struct MinibufferView: View {
                         .lineLimit(1)
                 }
 
-                TextField("", text: $viewModel.input)
+                Text(viewModel.input)
                     .font(.system(size: 18, weight: .light))
-                    .textFieldStyle(.plain)
-                    .focused($isInputFocused)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityLabel("Minibuffer input")
             }
             .padding(.vertical, 10)
@@ -100,15 +97,6 @@ public struct MinibufferView: View {
             maxHeight: .infinity,
             alignment: .top
         )
-        .onChange(of: viewModel.input) { _, newValue in
-            guard viewModel.consumeEmacsInputUpdate() else { return }
-            viewModel.onInputChanged?(newValue)
-        }
-        .onAppear {
-            DispatchQueue.main.async {
-                isInputFocused = true
-            }
-        }
     }
 }
 
