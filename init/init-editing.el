@@ -53,60 +53,6 @@
    "l" 'move-dup-duplicate-down
    "L" 'move-dup-duplicate-up))
 
-(use-package multiple-cursors
-  :ensure t
-  :general
-  ("M-s-<down>" 'mc/mark-next-like-this)
-  ("M-s-<up>"   'mc/mark-previous-like-this)
-  :init
-  (defun iota/mc-cursor-is-hbar ()
-    "Return non-nil if cursor-type is hbar."
-    (let ((ct (if (eq cursor-type t)
-                  (frame-parameter nil 'cursor-type)
-                cursor-type)))
-      (or (eq ct 'hbar)
-          (and (listp ct) (eq (car ct) 'hbar)))))
-
-  (defun iota/mc-hbar-face ()
-    "Return face spec for hbar fake cursors."
-    (let ((cursor-color (face-background 'cursor nil t)))
-      `(:underline (:color ,cursor-color :style line)
-        :inverse-video nil)))
-
-  (defun iota/mc-fix-cursor-overlay-inline (orig-fun pos)
-    "Advice to support hbar cursors."
-    (if (and (bound-and-true-p mc/match-cursor-style) (iota/mc-cursor-is-hbar))
-        (let ((overlay (make-overlay pos (1+ pos) nil nil nil)))
-          (overlay-put overlay 'face (iota/mc-hbar-face))
-          overlay)
-      (funcall orig-fun pos)))
-
-  (defun iota/mc-fix-cursor-overlay-at-eol (orig-fun pos)
-    "Advice for hbar cursors at end of line."
-    (if (and (bound-and-true-p mc/match-cursor-style) (iota/mc-cursor-is-hbar))
-        (let ((overlay (make-overlay pos pos nil nil nil)))
-          (overlay-put overlay 'after-string
-                       (propertize " " 'face (iota/mc-hbar-face)))
-          overlay)
-      (funcall orig-fun pos)))
-
-  (defun iota/mc-refresh-cursors ()
-    "Refresh fake cursor faces when cursor-type changes."
-    (when (bound-and-true-p multiple-cursors-mode)
-      (mc/for-each-fake-cursor
-       (when (overlayp cursor)
-         (overlay-put cursor 'face
-                      (if (iota/mc-cursor-is-hbar)
-                          (iota/mc-hbar-face)
-                        'mc/cursor-face))))))
-
-  :config
-  (define-key mc/keymap (kbd "C-g") 'mc/keyboard-quit)
-  (advice-add 'mc/make-cursor-overlay-inline :around #'iota/mc-fix-cursor-overlay-inline)
-  (advice-add 'mc/make-cursor-overlay-at-eol :around #'iota/mc-fix-cursor-overlay-at-eol)
-  (add-hook 'god-mode-enabled-hook #'iota/mc-refresh-cursors)
-  (add-hook 'god-mode-disabled-hook #'iota/mc-refresh-cursors))
-
 (use-package stripspace
   :ensure t
   :diminish stripspace-local-mode
@@ -159,11 +105,10 @@
 (use-package windmove
   :ensure nil
   :general
-  (:prefix "C-x"
-   "<left>"  'windmove-left
-   "<right>" 'windmove-right
-   "<up>"    'windmove-up
-   "<down>"  'windmove-down))
+  ("s-M-<left>"  'windmove-left
+   "s-M-<right>" 'windmove-right
+   "s-M-<up>"    'windmove-up
+   "s-M-<down>"  'windmove-down))
 
 (use-package hl-todo
   :ensure t

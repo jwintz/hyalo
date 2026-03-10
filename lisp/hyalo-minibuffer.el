@@ -53,7 +53,7 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
 ;; Logging
 ;; ---------------------------------------------------------------------------
 
-(defvar hyalo-minibuffer--debug t
+(defvar hyalo-minibuffer--debug nil
   "When non-nil, log minibuffer bridge activity to *Messages*.")
 
 (defun hyalo-minibuffer--log (fmt &rest args)

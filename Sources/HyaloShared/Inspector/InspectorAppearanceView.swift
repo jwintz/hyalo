@@ -103,9 +103,7 @@ private struct InspectorAppearanceContent: View {
                     .labelsHidden()
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-            }
 
-            Section("Presets") {
                 LabeledContent("Presets") {
                     Picker("Presets", selection: presetBinding) {
                         Text("Clear").tag(AppearancePreset.clear as AppearancePreset?)

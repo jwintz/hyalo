@@ -89,15 +89,16 @@ public struct BufferListView: View {
                     Image(systemName: "xmark")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 16, height: 16)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .frame(width: 16, height: 16)
                 .accessibilityLabel("Close buffer: \(buffer.name)")
             } else if buffer.modified {
                 Circle()
                     .fill(theme.accent)
                     .frame(width: 6, height: 6)
+                    .frame(width: 16, height: 16)
             }
         }
         .onHover { hovering in

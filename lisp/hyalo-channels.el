@@ -43,8 +43,7 @@
         ;; Push initial environment state now that channel is ready
         (when (fboundp 'hyalo-environment--push-initial)
           (hyalo-environment--push-initial))
-        (setq hyalo-channels--initialized t)
-        (message "Hyalo: All channels initialized"))
+        (setq hyalo-channels--initialized t))
     (error (message "Hyalo: Channel setup error: %s" (error-message-string err)))))
 
 (defun hyalo-channels-teardown ()

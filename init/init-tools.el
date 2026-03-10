@@ -121,6 +121,8 @@ Falls back to prin1 if pretty-printing fails."
   :ensure t
   :defer t
   :commands (magit-status magit-log magit-blame magit-diff magit-project-status)
+  :custom
+  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
   :general
   (leader-def
     "v s" '(magit-status :wk "status")

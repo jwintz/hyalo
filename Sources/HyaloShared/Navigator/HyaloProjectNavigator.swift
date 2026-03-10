@@ -39,10 +39,14 @@ public struct HyaloProjectNavigator: View {
             let isExpanded = Binding<Bool>(
                 get: { viewModel.expansions.contains(node.id) },
                 set: { newValue in
-                    if newValue {
-                        viewModel.expansions.insert(node.id)
-                    } else {
-                        viewModel.expansions.remove(node.id)
+                    var t = Transaction()
+                    t.animation = nil
+                    withTransaction(t) {
+                        if newValue {
+                            viewModel.expansions.insert(node.id)
+                        } else {
+                            viewModel.expansions.remove(node.id)
+                        }
                     }
                 }
             )

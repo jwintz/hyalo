@@ -99,24 +99,18 @@ Buffers matching these patterns will never be dimmed."
 
 (defun iota-dimmer-info (msg &rest args)
   "Log info level MSG with ARGS."
-  (if (and iota-dimmer-elog (fboundp 'elog-info))
-      (apply #'elog-info iota-dimmer-elog msg args)
-    (let ((out (apply #'format msg args)))
-      (message "[dimmer] %s" out))))
+  (when (and iota-dimmer-elog (fboundp 'elog-info))
+    (apply #'elog-info iota-dimmer-elog msg args)))
 
 (defun iota-dimmer-warn (msg &rest args)
   "Log warning level MSG with ARGS."
-  (if (and iota-dimmer-elog (fboundp 'elog-warn))
-      (apply #'elog-warn iota-dimmer-elog msg args)
-    (let ((out (apply #'format msg args)))
-      (message "[dimmer] WARNING: %s" out))))
+  (when (and iota-dimmer-elog (fboundp 'elog-warn))
+    (apply #'elog-warn iota-dimmer-elog msg args)))
 
 (defun iota-dimmer-error (msg &rest args)
   "Log error level MSG with ARGS."
-  (if (and iota-dimmer-elog (fboundp 'elog-error))
-      (apply #'elog-error iota-dimmer-elog msg args)
-    (let ((out (apply #'format msg args)))
-      (message "[dimmer] ERROR: %s" out))))
+  (when (and iota-dimmer-elog (fboundp 'elog-error))
+    (apply #'elog-error iota-dimmer-elog msg args)))
 
 (defun iota-dimmer-log (msg &rest args)
   "Log MSG with ARGS using elog if available, otherwise `message'.

@@ -330,7 +330,7 @@ Only modifies theme specs - does not set user specs."
                           (iota-theme-transparent--log "    %s: no theme specs, skipping (preserving defaults/inheritance)" face)))))
                 (error
                  (iota-theme-transparent--log "    ERROR: Failed to remove background from %s: %s" face err)
-                 (message "I O T Λ: Error removing background from face %s: %s" face err)))))))
+                 (iota-theme-transparent--log "ERROR: Failed to remove background from face %s: %s" face err)))))))
       (setq iota-theme-transparent--active t)
       (iota-theme-transparent--log "=== Background removal complete ===")
       (iota-theme-transparent--log "Summary: checked=%d modified=%d excluded=%d no-bg=%d"
@@ -484,7 +484,7 @@ THEME is the theme being enabled.  This supports `consult-theme' previews."
                      (not (eq bg 'unspecified))
                      (not (equal bg "unspecified-bg")))
             (setq faces-with-bg (1+ faces-with-bg))))))
-    (message "Terminal: %s | Colors: %s | TrueColor: %s | Active: %s | Should Apply: %s | Faces with BG: %d"
+    (iota-theme-transparent--log "Terminal: %s | Colors: %s | TrueColor: %s | Active: %s | Should Apply: %s | Faces with BG: %d"
              (plist-get info :type)
              (plist-get info :colors)
              (plist-get info :truecolor)
@@ -523,7 +523,7 @@ THEME is the theme being enabled.  This supports `consult-theme' previews."
   (interactive)
   (setq iota-theme-transparent-verbose-logging
         (not iota-theme-transparent-verbose-logging))
-  (message "IOTA transparency logging: %s"
+  (iota-theme-transparent--log "Transparency logging: %s"
            (if iota-theme-transparent-verbose-logging "ENABLED" "DISABLED")))
 
 (defun iota-theme-transparent-test-theme-load (theme)
@@ -535,11 +535,11 @@ This is a diagnostic function to help understand what happens during theme loadi
                                          (custom-available-themes))))))
   (let ((original-logging iota-theme-transparent-verbose-logging))
     (setq iota-theme-transparent-verbose-logging t)
-    (message "[IOTA-TRANSPARENCY] ====== Starting test theme load: %s ======" theme)
+    (iota-theme-transparent--log "====== Starting test theme load: %s ======" theme)
     (load-theme theme t)
     (run-with-timer 0.5 nil
                     (lambda ()
-                      (message "[IOTA-TRANSPARENCY] ====== Theme load test complete ======")
+                      (iota-theme-transparent--log "====== Theme load test complete ======")
                       (setq iota-theme-transparent-verbose-logging original-logging)))))
 
 (defun iota-theme-transparent-check-default-face ()

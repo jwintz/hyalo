@@ -43,8 +43,7 @@ Channel setup and data push happen later in `hyalo-window-setup'."
     ;; is visible and the frame stays hidden until hyalo-loading-done.
     (unless (bound-and-true-p hyalo--needs-bootstrap)
       (make-frame-visible))
-    (setq hyalo-window--early-setup-done t)
-    (message "Hyalo: Chrome installed")))
+    (setq hyalo-window--early-setup-done t)))
 
 ;;; Core Setup
 
@@ -222,9 +221,7 @@ side reveals the window after setup() installs the chrome."
                      (or (frame-parameter frame 'window-id) "0"))))
       (when (> frame-id 0)
         (hyalo-decorate-frame frame-id)
-        ;; Apply appearance settings to the new frame
-        (hyalo-appearance--setup-frame frame)
-        (message "Hyalo: Decorated frame %s (frame-id %d)" frame frame-id)))))
+        (hyalo-appearance--setup-frame frame)))))
 
 (defun hyalo-window--on-frame-deleted (frame)
   "Hook for `delete-frame-functions'.
@@ -235,8 +232,7 @@ Remove Hyalo decoration from FRAME before it is destroyed."
     (let ((frame-id (string-to-number
                      (or (frame-parameter frame 'window-id) "0"))))
       (when (> frame-id 0)
-        (hyalo-undecorate-frame frame-id)
-        (message "Hyalo: Undecorated frame %s (frame-id %d)" frame frame-id)))))
+        (hyalo-undecorate-frame frame-id)))))
 
 ;;; Keybindings (P8: intercept Cmd+O and Cmd+P)
 
@@ -270,8 +266,7 @@ Setup Xcode-like Cmd-0..4 navigator and Cmd-Option-0..3 inspector shortcuts."
     (keymap-global-set "M-s-!" #'hyalo-utility-select-tab-1)
     (keymap-global-set "M-s-@" #'hyalo-utility-select-tab-2)
     ;; Delayed setup in case NS functions load after us
-    (run-with-timer 2 nil #'hyalo-window--setup-ns-advice-delayed)
-    (message "Hyalo: Keybindings installed (Cmd+O/P, Cmd+0-4, Cmd+Opt+0-3, Cmd+Opt+Shift+0-2)")))
+    (run-with-timer 2 nil #'hyalo-window--setup-ns-advice-delayed)))
 
 (defun hyalo-window--setup-ns-advice-delayed ()
   "Delayed setup of NS function advice."
