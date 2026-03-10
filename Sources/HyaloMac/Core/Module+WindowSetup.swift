@@ -313,16 +313,6 @@ extension HyaloModule {
 
         wireCallbacks(to: controller)
 
-        // Start widget publisher on first controller creation
-        let publisher = HyaloWidgetDataPublisher.shared
-        if publisher.instanceMetadata.isEmpty {
-            var meta = HyaloWidgetDataPublisher.InstanceMeta()
-            meta.pid = ProcessInfo.processInfo.processIdentifier
-            meta.startDate = Date.now
-            publisher.instanceMetadata[String(frameId)] = meta
-            publisher.start()
-        }
-
         if loadingProxyWindow == nil && needsBootstrap {
             showLoadingProxy(matching: window)
         }

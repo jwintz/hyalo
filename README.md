@@ -6,17 +6,15 @@ IDE shell around Emacs for macOS, built as a dynamic module (`.dylib`) loaded by
 
 ```
 Sources/
-  HyaloShared/     SwiftUI views, view models, managers, widget data
+  HyaloShared/     SwiftUI views, view models, managers
   HyaloMac/        macOS: AppKit, EmacsSwiftModule, NSToolbar, NSSplitView
-  HyaloWidget/     WidgetKit extension for desktop widget
 
 Products:
   Hyalo            .dynamic macOS library loaded by Emacs (swift build)
 ```
 
-- **HyaloShared**: models, view models, managers, pure SwiftUI views, widget data publisher
+- **HyaloShared**: models, view models, managers, pure SwiftUI views
 - **HyaloMac**: AppKit, EmacsSwiftModule `env.defun()` / `env.openChannel()`, NSToolbar, NSSplitViewController, SwiftTerm terminal
-- **HyaloWidget**: WidgetKit extension showing live Emacs instance status on the desktop
 - **Emacs Lisp files** in `lisp/` (`hyalo.el`, `hyalo-channels.el`, etc.)
 - **14 modular init files** in `init/`
 - **Channel architecture** for bidirectional Swift/Emacs Lisp communication (see [Channel Architecture](#channel-architecture) below)

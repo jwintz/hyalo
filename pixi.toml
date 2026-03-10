@@ -18,93 +18,12 @@ build-release = "swift build -c release"
 # Run tests.
 test = "swift test"
 
-# Build the WidgetKit extension (.appex) from Sources/HyaloWidget/.
-build-widget = { cmd = """bash -c 'set -e
-SDK=$(xcrun --show-sdk-path)
-CONFIG="${1:-debug}"
-APPEX=".build/${CONFIG}/HyaloWidget.appex"
-rm -rf "$APPEX"
-mkdir -p "$APPEX/Contents/MacOS"
-
-OPT_FLAGS=""
-if [ "$CONFIG" = "release" ]; then OPT_FLAGS="-O -whole-module-optimization"; fi
-
-swiftc \
-  -target arm64-apple-macos26.0 \
-  -sdk "$SDK" \
-  -framework WidgetKit \
-  -framework SwiftUI \
-  -parse-as-library \
-  -module-name HyaloWidget \
-  -emit-executable \
-  $OPT_FLAGS \
-  -o "$APPEX/Contents/MacOS/HyaloWidget" \
-  Sources/HyaloWidget/HyaloWidgetData.swift \
-  Sources/HyaloWidget/HyaloTimelineProvider.swift \
-  Sources/HyaloWidget/HyaloWidgetViews.swift \
-  Sources/HyaloWidget/HyaloWidget.swift
-
-cat > "$APPEX/Contents/Info.plist" << PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleDevelopmentRegion</key><string>en</string>
-    <key>CFBundleDisplayName</key><string>Hyalo Widget</string>
-    <key>CFBundleExecutable</key><string>HyaloWidget</string>
-    <key>CFBundleIdentifier</key><string>org.gnu.Emacs.HyaloWidget</string>
-    <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-    <key>CFBundleName</key><string>HyaloWidget</string>
-    <key>CFBundlePackageType</key><string>XPC!</string>
-    <key>CFBundleShortVersionString</key><string>1.0</string>
-    <key>CFBundleVersion</key><string>1</string>
-    <key>LSMinimumSystemVersion</key><string>26.0</string>
-    <key>NSExtension</key>
-    <dict>
-        <key>NSExtensionPointIdentifier</key>
-        <string>com.apple.widgetkit-extension</string>
-    </dict>
-</dict>
-</plist>
-PLIST
-
-codesign --force --sign - --entitlements Sources/HyaloWidget/HyaloWidget.entitlements "$APPEX"
-echo "Built: $APPEX"
-'""" }
-
-# Install the widget into Emacs.app (the actual host) and register with the system.
-install-widget = { cmd = """bash -c 'set -e
-APPEX=".build/debug/HyaloWidget.appex"
-if [ ! -d "$APPEX" ]; then echo "ERROR: Run pixi run build-widget first."; exit 1; fi
-
-# The host app is Emacs.app from hyalo-feedstock
-FEEDSTOCK_DIR="$(cd "$(dirname "$0")/../hyalo-feedstock" 2>/dev/null && pwd || echo "$HOME/Syntropment/hyalo-feedstock")"
-HOST=""
-for candidate in "$FEEDSTOCK_DIR/emacs-build-macos/nextstep/Emacs.app" "$FEEDSTOCK_DIR/emacs/nextstep/Emacs.app"; do
-    if [ -d "$candidate" ]; then HOST="$candidate"; break; fi
-done
-if [ -z "$HOST" ]; then echo "ERROR: No Emacs.app found in hyalo-feedstock."; exit 1; fi
-
-mkdir -p "$HOST/Contents/PlugIns"
-rm -rf "$HOST/Contents/PlugIns/HyaloWidget.appex"
-cp -R "$APPEX" "$HOST/Contents/PlugIns/HyaloWidget.appex"
-
-codesign --force --sign - --entitlements Sources/HyaloWidget/HyaloWidget.entitlements "$HOST/Contents/PlugIns/HyaloWidget.appex"
-
-pluginkit -a "$HOST/Contents/PlugIns/HyaloWidget.appex"
-pluginkit -e use -i org.gnu.Emacs.HyaloWidget
-
-echo "Installed to: $HOST"
-pluginkit -m -p com.apple.widgetkit-extension 2>&1 | grep -i hyalo || echo "(may need app launch to register)"
-'""", depends-on = ["build-widget"] }
-
-# Assemble a Hyalo.app bundle embedding Emacs, the Hyalo dylib, widget extension, and icon.
+# Assemble a Hyalo.app bundle embedding Emacs, the Hyalo dylib, and icon.
 # The bundle structure:
 #   Hyalo.app/
 #     Contents/
 #       MacOS/Emacs          (from feedstock)
 #       Frameworks/libHyalo.dylib
-#       PlugIns/HyaloWidget.appex
 #       Resources/AppIcon.icns
 #       Info.plist
 package = { cmd = """bash -c 'set -e
@@ -140,13 +59,6 @@ for lib in "$BUILD_DIR"/libHyaloShared.dylib "$BUILD_DIR"/libKelyphosKit.dylib; 
     [ -f "$lib" ] && cp "$lib" "$CONTENTS/Frameworks/"
 done
 
-# Widget extension (built separately via Xcode — copy if present)
-WIDGET_APPEX="$BUILD_DIR/HyaloWidget.appex"
-if [ -d "$WIDGET_APPEX" ]; then
-    mkdir -p "$CONTENTS/PlugIns"
-    cp -R "$WIDGET_APPEX" "$CONTENTS/PlugIns/"
-fi
-
 # Compile icon from .icon package
 ICON_PACKAGE="Hyalo-Default.icon"
 if [ -d "$ICON_PACKAGE" ]; then
@@ -174,7 +86,7 @@ fi
 /usr/libexec/PlistBuddy -c "Set :CFBundleIconName AppIcon" "$CONTENTS/Info.plist" 2>/dev/null || true
 
 echo "Packaged: $APP (v$VERSION)"'
-""", depends-on = ["build-release", "build-widget"] }
+""", depends-on = ["build-release"] }
 
 # Create a DMG disk image with the .app and an Applications symlink.
 dmg = { cmd = "bash -c 'set -e; VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed \"s/^v//\" || echo \"0.0.0\"); DMG=\"Hyalo-${VERSION}.dmg\"; rm -f \"$DMG\"; TEMP=$(mktemp -d); cp -R Hyalo.app \"$TEMP/\"; ln -s /Applications \"$TEMP/Applications\"; hdiutil create -volname Hyalo -srcfolder \"$TEMP\" -ov -format UDZO \"$DMG\"; rm -rf \"$TEMP\"; echo \"Created: $DMG\"'", depends-on = ["package"] }
