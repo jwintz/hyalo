@@ -16,10 +16,18 @@ final class SearchPanel: NSPanel {
 
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = true
+        self.level = .floating
+        self.hidesOnDeactivate = false
     }
 
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+
+    // Accept first mouse so clicks work without requiring activation
+    override var acceptsMouseMovedEvents: Bool {
+        get { true }
+        set { super.acceptsMouseMovedEvents = newValue }
+    }
 
     override func standardWindowButton(_ button: NSWindow.ButtonType) -> NSButton? {
         let button = super.standardWindowButton(button)

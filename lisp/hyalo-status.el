@@ -220,8 +220,7 @@ buffers regardless of entry point."
   (let* ((win-buf (window-buffer (selected-window)))
          (win-buf-name (buffer-name win-buf)))
   (unless (or hyalo-sync--inhibit
-              (string-prefix-p " " win-buf-name)
-              (string-prefix-p "*" win-buf-name))
+              (string-prefix-p " " win-buf-name))
   (let ((hyalo-sync--inhibit t))
   (condition-case nil
       (let* ((buf-name win-buf-name)

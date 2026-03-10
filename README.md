@@ -6,16 +6,16 @@ IDE shell around Emacs for macOS, built as a dynamic module (`.dylib`) loaded by
 
 ```
 Sources/
-  HyaloShared/     SwiftUI views, view models, managers
+  HyaloShared/     SwiftUI views, view models, shared models (platform-agnostic)
   HyaloMac/        macOS: AppKit, EmacsSwiftModule, NSToolbar, NSSplitView
 
 Products:
   Hyalo            .dynamic macOS library loaded by Emacs (swift build)
 ```
 
-- **HyaloShared**: models, view models, managers, pure SwiftUI views
+- **HyaloShared**: models, view models, managers, pure SwiftUI views. Separated from HyaloMac so it carries no EmacsSwiftModule dependency and can be tested independently.
 - **HyaloMac**: AppKit, EmacsSwiftModule `env.defun()` / `env.openChannel()`, NSToolbar, NSSplitViewController, SwiftTerm terminal
-- **Emacs Lisp files** in `lisp/` (`hyalo.el`, `hyalo-channels.el`, etc.)
+- **Emacs Lisp files** in `lisp/` (30 files, see table below)
 - **14 modular init files** in `init/`
 - **Channel architecture** for bidirectional Swift/Emacs Lisp communication (see [Channel Architecture](#channel-architecture) below)
 - **Native file tree** using FileManager-based `FileTreeNode` for navigator
@@ -97,34 +97,48 @@ Theme-appearance synchronization:
 
 ### Lisp Files (lisp/)
 
-| File | Purpose |
-|------|---------|
-| `hyalo.el` | Core loader, build, module-load |
-| `hyalo-window.el` | Window controller, setup orchestration, Cmd+O/P, panel toggles |
-| `hyalo-channels.el` | Channel lifecycle, callback handlers, rg search execution |
-| `hyalo-navigator.el` | Buffer list, file tree push to Swift |
-| `hyalo-status.el` | Hook-driven status updates (cursor, tabs, branch, file info, navigator refresh) |
-| `hyalo-appearance.el` | Vibrancy, background color, divider color, frame transparency |
-| `hyalo-themes.el` | Theme switching, appearance sync, terminal palette |
-| `hyalo-activities.el` | Activities (tab-bar) integration for breadcrumb |
-| `hyalo-compile.el` | Native compilation activity tracking |
-| `hyalo-diagnostics.el` | Flymake diagnostics panel integration |
-| `hyalo-environment.el` | Environment detection and breadcrumb push |
-| `hyalo-gutter.el` | Diff-hl gutter integration |
-| `hyalo-keycast.el` | Keycast toolbar integration |
-| `hyalo-lib.el` | Transient hooks, first-use hooks, idle package loader |
-| `hyalo-menu.el` | Menu bar integration |
-| `hyalo-minimap.el` | Minimap integration |
-| `hyalo-package.el` | Package manager toolbar integration |
-| `hyalo-splash.el` | Splash screen |
-| `hyalo-system.el` | System information panel |
-| `iota-dimmer.el` | Inactive window dimming (HSL-based face color manipulation) |
-| `iota-faces.el` | Iota face definitions |
-| `nano-themes.el` | N Λ N O theme infrastructure (built on modus-themes) |
-| `nano-light-theme.el` | N Λ N O light theme (Material Design palette) |
-| `nano-dark-theme.el` | N Λ N O dark theme (Nord palette) |
-| `hyalo-doctor.el` | Environment doctor: checks Swift, macOS, Xcode, fonts, tools |
-| `header2.el` | File header creation and update (vendored) |
+| File | Lines | Purpose |
+|------|------:|---------|
+| `hyalo.el` | 344 | Core loader, build, module-load |
+| `hyalo-window.el` | 431 | Window controller, setup orchestration, Cmd+O/P, panel toggles |
+| `hyalo-channels.el` | 369 | Channel lifecycle, callback handlers, rg search execution |
+| `hyalo-navigator.el` | 76 | Buffer list, file tree push to Swift |
+| `hyalo-status.el` | 861 | Hook-driven status updates (cursor, tabs, branch, file info, navigator refresh) |
+| `hyalo-appearance.el` | 281 | Vibrancy, background color, divider color, frame transparency |
+| `hyalo-themes.el` | 362 | Theme switching, appearance sync, terminal palette |
+| `hyalo-compile.el` | 139 | Native compilation activity tracking |
+| `hyalo-diagnostics.el` | 116 | Flymake diagnostics panel integration |
+| `hyalo-environment.el` | 406 | Environment detection and breadcrumb push |
+| `hyalo-gutter.el` | 308 | Diff-hl gutter integration |
+| `hyalo-keycast.el` | 74 | Keycast toolbar integration |
+| `hyalo-lib.el` | 159 | Transient hooks, first-use hooks, idle package loader |
+| `hyalo-menu.el` | 40 | Menu bar integration |
+| `hyalo-minibuffer.el` | 612 | Minibuffer bridge: candidate extraction, invisible overlay, timer-based JSON push |
+| `hyalo-minimap.el` | 199 | Minimap integration |
+| `hyalo-package.el` | 233 | Package manager toolbar integration |
+| `hyalo-source-control.el` | 138 | Source control integration |
+| `hyalo-splash.el` | 363 | Splash screen |
+| `hyalo-system.el` | 121 | System information panel |
+| `hyalo-doctor.el` | 233 | Environment doctor: checks Swift, macOS, Xcode, fonts, tools |
+| `iota-dimmer.el` | 558 | Inactive window dimming (HSL-based face color manipulation) |
+| `iota-faces.el` | 294 | Iota face definitions |
+| `iota-theme-transparent.el` | 568 | Transparent theme variant |
+| `nano-themes.el` | 204 | N Λ N O theme infrastructure (built on modus-themes) |
+| `nano-light-theme.el` | 290 | N Λ N O light theme (Material Design palette) |
+| `nano-dark-theme.el` | 288 | N Λ N O dark theme (Nord palette) |
+| `header2.el` | 1287 | File header creation and update (vendored) |
+
+### Minibuffer Overlay
+
+The minibuffer bridge provides a native macOS overlay for Emacs completion:
+
+- **Thin overlay architecture**: The Swift panel is display-only (no TextField). All text editing happens in the Emacs minibuffer. Keystrokes go directly to Emacs via a non-activating `NSPanel`.
+- **Emacs owns filtering/ordering**: Vertico, Orderless, Marginalia run natively. Swift only renders their output.
+- **Invisible overlay**: Emacs minibuffer text is hidden via `(overlay-put ... 'invisible t)` while the Swift panel is active, similar to `emacs-mini-frame`.
+- **Candidate rendering**: SwiftUI `List` with match highlighting (accent color on matched ranges), monospaced annotation columns, Liquid Glass background.
+- **Session IDs**: Monotonically increasing counter rejects stale updates from previous minibuffer sessions.
+
+See [AUDIT.md](AUDIT.md) for detailed architecture and bug analysis.
 
 ### Channel Architecture
 
@@ -179,6 +193,7 @@ Created via `env.openChannel()`. Channel callbacks are Swift closures that, when
 | `hyalo-appearance` | `hyalo-channels--handle-appearance-mode`, `handle-opacity-change` | User changes appearance settings |
 | `hyalo-diagnostics` | `hyalo-channels--handle-diagnostic-navigate` | User clicks diagnostic |
 | `hyalo-package` | `handle-package-refresh`, `upgrade-all`, `upgrade-single`, `list` | Package manager actions |
+| `hyalo-minibuffer` | `select-candidate`, `abort` | User selects candidate or aborts |
 
 **Key insight**: Channel callbacks invoke `wakeEmacs()` after queuing the callback. Emacs processes the callback when it returns to its event loop. If Emacs is busy (e.g., processing a hook), the callback is deferred. This means there is an **indeterminate delay** between the Swift-side action and the Elisp execution.
 
@@ -228,23 +243,9 @@ The actual race was more subtle — `activeFilePath`/`activeBuffer`/`pendingTabI
 2. **Check for stale callbacks** in the Emacs callback methods (`setActiveFile`, `setActiveBuffer`, `onTabSelected`) — skip if the callback doesn't match what's currently active/pending
 3. **Use immediate state in guards** — the guard in `onFileSelect`/`onBufferSelect` now uses the immediately-set value to block rapid duplicates
 
-For the editor tab bar specifically, the flow is:
-1. Click file A in navigator → `selectFile(A)` sets `pendingTabId = A` → channel sends `find-file A`
-2. Click file B → `selectFile(B)` sets `pendingTabId = B` → channel sends `find-file B`
-3. Tab callback for B arrives → `onTabSelected(B)` → matches `pendingTabId(B)` → update tab selection → **correct**
-4. Tab callback for A arrives (late) → `onTabSelected(A)` → `A != pendingTabId(B)` → **skip stale callback**
-
-Note: `pendingTabId` is NOT cleared after processing a callback. It always tracks the most recent user-initiated selection, protecting against arbitrarily late stale callbacks.
-
 #### Centralized State Push
 
 All buffer switch operations (file navigator, buffer list, tab bar, command palette) now use a centralized `hyalo-push-active-buffer-state` function in `hyalo-status.el`. This function updates all Swift UI components (buffer list selection, file navigator selection, editor tab bar) in a single call, ensuring consistency.
-
-Channel callbacks use wrapper functions (`hyalo-channels--handle-switch-buffer`, `hyalo-channels--handle-find-file`) that:
-1. Perform the Emacs action (`switch-to-buffer`, `find-file`)
-2. Call `hyalo-push-active-buffer-state` to sync all UI components
-
-The `window-buffer-change-functions` hook also calls `hyalo-push-active-buffer-state` for buffer changes initiated within Emacs (C-x b, etc.).
 
 #### Tracing
 
@@ -284,4 +285,26 @@ Rebuild and reload without restarting Emacs:
 
 ```elisp
 M-x hyalo-rebuild-and-reload
+```
+
+---
+
+## Instruments via CLI
+
+```bash
+# Time Profiler (CPU hotspots in Swift views, minibuffer, completions)
+xctrace record --template "Time Profiler" \
+  --attach <PID> --output hyalo-trace.trace --time-limit 30s
+```
+
+```bash
+# Allocations (object creation in MinibufferViewModel.update, JSON decode)
+xctrace record --template "Allocations" \
+  --attach <PID> --output hyalo-alloc.trace --time-limit 30s
+```
+
+```bash
+# SwiftUI (view body evaluations, redundant updates)
+xctrace record --template "SwiftUI" \
+  --attach <PID> --output hyalo-swiftui.trace --time-limit 30s
 ```

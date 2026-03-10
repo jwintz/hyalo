@@ -40,6 +40,9 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
 (defvar hyalo-minibuffer--history-mode nil
   "Non-nil when the current minibuffer session is free-text (no completion table).")
 
+(defvar hyalo-minibuffer--hide-overlay nil
+  "Overlay that hides the Emacs minibuffer text while the Swift panel is active.")
+
 (defvar hyalo-minibuffer--max-candidates 50
   "Maximum number of candidates to send to Swift for rendering performance.")
 
@@ -385,19 +388,21 @@ Used when there is no completion table (e.g. `read-shell-command')."
                           ,@extracted))
                (json (json-encode payload))
                (t2 (float-time)))
-          (hyalo-minibuffer--log
-           "push-update: input=%s cands=%d json=%d extract=%.1fms encode=%.1fms"
-           input
-           (length (cdr (assq 'candidates extracted)))
-           (length json)
-           (* 1000 (- t1 t0))
-           (* 1000 (- t2 t1)))
+          ;; (hyalo-minibuffer--log
+          ;;  "push-update: input=%s cands=%d json=%d extract=%.1fms encode=%.1fms"
+          ;;  input
+          ;;  (length (cdr (assq 'candidates extracted)))
+          ;;  (length json)
+          ;;  (* 1000 (- t1 t0))
+          ;;  (* 1000 (- t2 t1)))
           (when (and extracted (fboundp 'hyalo-minibuffer-update))
             (hyalo-minibuffer-update json)
-            (let ((t3 (float-time)))
-              (hyalo-minibuffer--log "push-update: defun-call=%.1fms total=%.1fms"
-                                     (* 1000 (- t3 t2))
-                                     (* 1000 (- t3 t0))))))
+            ;; (let ((t3 (float-time)))
+            ;;   (hyalo-minibuffer--log "push-update: defun-call=%.1fms total=%.1fms"
+            ;;                          (* 1000 (- t3 t2))
+            ;;                          (* 1000 (- t3 t0))))
+	    )
+	  )
       (error
        (hyalo-minibuffer--log "push-update error: %s" (error-message-string err))))))
 
@@ -500,6 +505,11 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
                                (length json))
         (when (fboundp 'hyalo-minibuffer-show)
           (hyalo-minibuffer-show json))))
+    ;; Hide the Emacs minibuffer text — the Swift overlay mirrors it
+    (setq hyalo-minibuffer--hide-overlay
+          (make-overlay (point-min) (point-max) nil nil t))
+    (overlay-put hyalo-minibuffer--hide-overlay 'invisible t)
+    (overlay-put hyalo-minibuffer--hide-overlay 'priority 1000)
     ;; Watch for input changes
     (add-hook 'post-command-hook #'hyalo-minibuffer--post-command nil t)
     ;; Schedule initial candidate push (after vertico has computed)
@@ -513,6 +523,10 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
     (hyalo-minibuffer--log "exit-hook: hiding panel")
     (setq hyalo-minibuffer--active nil)
     (setq hyalo-minibuffer--history-mode nil)
+    ;; Remove the hide overlay
+    (when hyalo-minibuffer--hide-overlay
+      (delete-overlay hyalo-minibuffer--hide-overlay)
+      (setq hyalo-minibuffer--hide-overlay nil))
     (when hyalo-minibuffer--update-timer
       (cancel-timer hyalo-minibuffer--update-timer)
       (setq hyalo-minibuffer--update-timer nil))
@@ -523,6 +537,9 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
 (defun hyalo-minibuffer--post-command ()
   "Called after each command in the minibuffer.  Schedule candidate update."
   (when hyalo-minibuffer--active
+    ;; Keep the hide overlay covering all minibuffer text
+    (when hyalo-minibuffer--hide-overlay
+      (move-overlay hyalo-minibuffer--hide-overlay (point-min) (point-max)))
     (hyalo-minibuffer--schedule-update)))
 
 ;; ---------------------------------------------------------------------------
