@@ -32,10 +32,14 @@ public struct MinibufferView: View {
                         .lineLimit(1)
                 }
 
-                Text(viewModel.input)
-                    .font(.system(size: 18, weight: .light))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityLabel("Minibuffer input")
+                // Blinking cursor + input text in monospace
+                HStack(spacing: 0) {
+                    Text(viewModel.input)
+                    Cursor()
+                }
+                .font(.system(size: 14, design: .monospaced))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel("Minibuffer input")
             }
             .padding(.vertical, 10)
             .foregroundColor(.primary.opacity(0.85))
@@ -97,6 +101,17 @@ public struct MinibufferView: View {
             maxHeight: .infinity,
             alignment: .top
         )
+    }
+}
+
+// MARK: - Blinking Cursor
+
+@available(macOS 26.0, *)
+private struct Cursor: View {
+    var body: some View {
+        Rectangle()
+            .fill(Color.accentColor)
+            .frame(width: 1.5, height: 16)
     }
 }
 
