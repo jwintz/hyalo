@@ -114,7 +114,7 @@ public final class NavigatorManager {
     /// Refresh the file tree from the current project root.
     /// Called from Emacs on navigator-refresh.
     public func refreshFileTree() {
-        projectNavigatorViewModel.rebuildFileTree()
+        Task { await projectNavigatorViewModel.rebuildFileTreeAsync() }
     }
 
     public func updateSearchResults(_ results: [SearchResult]) {

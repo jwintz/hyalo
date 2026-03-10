@@ -118,10 +118,16 @@ private struct Cursor: View {
 // MARK: - Candidate Row
 
 @available(macOS 26.0, *)
-struct MinibufferCandidateRow: View {
+struct MinibufferCandidateRow: View, Equatable {
     let candidate: MinibufferCandidate
     let isSelected: Bool
     let annotationColumnChars: Int
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.candidate == rhs.candidate
+            && lhs.isSelected == rhs.isSelected
+            && lhs.annotationColumnChars == rhs.annotationColumnChars
+    }
 
     // Approximate width per character for 10pt monospaced system font (annotation)
     private static let annotationCharWidth: CGFloat = 6.02

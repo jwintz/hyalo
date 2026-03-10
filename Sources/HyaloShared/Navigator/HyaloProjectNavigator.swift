@@ -23,8 +23,8 @@ public struct HyaloProjectNavigator: View {
         .scrollIndicators(.never)
         .environment(\.defaultMinListRowHeight, 22)
         .onChange(of: viewModel.selection) { _, newValue in
-            guard let uuid = newValue else { return }
-            if let root = viewModel.displayRoot, let node = findNode(id: uuid, in: root) {
+            guard let selectedPath = newValue else { return }
+            if let root = viewModel.displayRoot, let node = findNode(id: selectedPath, in: root) {
                 if !node.isDirectory {
                     onFileSelect(node.path)
                 }
@@ -46,6 +46,7 @@ public struct HyaloProjectNavigator: View {
                     }
                 }
             )
+            // AnyView required here: recursive view function cannot return opaque type
             return AnyView(
                 DisclosureGroup(isExpanded: isExpanded) {
                     ForEach(node.children ?? [], id: \.id) { child in
@@ -114,7 +115,7 @@ public struct HyaloProjectNavigator: View {
 
     // MARK: - Tree Search
 
-    private func findNode(id: UUID, in node: FileTreeNode) -> FileTreeNode? {
+    private func findNode(id: String, in node: FileTreeNode) -> FileTreeNode? {
         if node.id == id { return node }
         guard let children = node.children else { return nil }
         for child in children {

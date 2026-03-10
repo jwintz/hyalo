@@ -7,8 +7,9 @@
 import Foundation
 
 /// A single node in the file tree. Directories have children; files do not.
-public final class FileTreeNode: Identifiable, ObservableObject {
-    public let id = UUID()
+/// Uses `path` as stable identity so SwiftUI can diff across tree rebuilds.
+public final class FileTreeNode: Identifiable {
+    public var id: String { path }
     public let name: String
     public let path: String
     public let isDirectory: Bool

@@ -18,11 +18,11 @@ public final class ProjectNavigatorViewModel {
     /// The root node after applying filters (displayed in the UI).
     public var displayRoot: FileTreeNode?
 
-    /// Expanded folder IDs.
-    public var expansions: Set<UUID> = []
+    /// Expanded folder paths (stable across tree rebuilds).
+    public var expansions: Set<String> = []
 
-    /// Selected node ID.
-    public var selection: UUID?
+    /// Selected node path.
+    public var selection: String?
 
     /// Git status map: absolute path -> status code ("M", "A", "D", "?", "R")
     public var gitStatus: [String: String] = [:]
@@ -34,7 +34,7 @@ public final class ProjectNavigatorViewModel {
     }
 
     public var sortFoldersOnTop: Bool = true {
-        didSet { rebuildFileTree() }
+        didSet { Task { await rebuildFileTreeAsync() } }
     }
 
     public var sourceControlFilter: Bool = false {
@@ -69,7 +69,7 @@ public final class ProjectNavigatorViewModel {
         }
 
         projectRoot = root
-        rebuildFileTree()
+        Task { await rebuildFileTreeAsync() }
     }
 
     /// Rebuild the file tree from the current project root.
