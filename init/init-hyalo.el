@@ -120,7 +120,6 @@
   :ensure nil
   :if (eq window-system 'ns)
   :commands (hyalo-keycast-mode))
-; :init (hyalo-keycast-mode))
 
 ;;;; Hyalo Appearance
 

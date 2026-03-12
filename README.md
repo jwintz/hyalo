@@ -35,7 +35,7 @@ This launches Emacs with the modular init system:
 6. `init-completion` — Vertico, Consult, Marginalia, Orderless
 7. `init-tools` — Dev tools (project, magit, eglot, flymake)
 8. `init-help` — Help system (helpful, elisp-refs)
-9. `init-modes` — Language modes (json, swift, toml, typescript, git-modes)
+9. `init-modes` — Language modes (json, swift, toml, typescript, yaml, git-modes)
 10. `init-markdown` — Markdown and knowledge management
 11. `init-header` — File header management (header2)
 12. `init-hyalo` — Module load, window setup, panel toggles, keybindings
@@ -88,7 +88,7 @@ Theme-appearance synchronization:
 | `init-completion.el` | Vertico, Consult, Marginalia, Orderless |
 | `init-tools.el` | Dev tools (project, magit, eglot, flymake, diff-hl) |
 | `init-help.el` | Help system (helpful, elisp-refs) |
-| `init-modes.el` | Language modes (json, swift, toml, typescript, git-modes) |
+| `init-modes.el` | Language modes (json, swift, toml, typescript, yaml, git-modes) |
 | `init-markdown.el` | Markdown and knowledge management |
 | `init-header.el` | File header management (header2) |
 | `init-hyalo.el` | macOS integration, module load, window setup, keybindings |

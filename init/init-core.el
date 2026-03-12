@@ -1,7 +1,6 @@
 ;;; init-core.el --- Core packages: general, which-key, diminish -*- lexical-binding: t; -*-
 
 ;; Minimal core packages for hyalo standalone.
-;; Based on emacs.d/init/init-core.el
 
 ;;; Code:
 

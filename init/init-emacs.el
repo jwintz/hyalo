@@ -1,7 +1,6 @@
 ;;; init-emacs.el --- Core Emacs settings -*- lexical-binding: t; -*-
 
-;; Cursor, startup, UI, built-in packages.
-;; Based on emacs.d/init/init-emacs.el (minimal subset).
+;; Cursor, startup, UI, and built-in packages.
 
 ;;; Code:
 
@@ -64,9 +63,6 @@
   (advice-add 'display-startup-echo-area-message :override #'ignore)
   (blink-cursor-mode 0)
   (show-paren-mode 1)
-  ;; cua-mode variable is read by the built-in Options menu toggle
-  ;; but cua-base is not loaded by default; define it to avoid void error.
-  (defvar cua-mode nil)
   (if (display-graphic-p)
       (menu-bar-mode t) ;; When nil, focus problem on OSX
     (menu-bar-mode -1))

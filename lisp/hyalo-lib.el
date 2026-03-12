@@ -6,9 +6,7 @@
 
 (require 'cl-lib)
 
-;;; --------------------------------------------------------------------------
 ;;; Transient hooks
-;;; --------------------------------------------------------------------------
 
 (defmacro hyalo-add-transient-hook (hook-or-function &rest forms)
   "Attach a self-removing handler to HOOK-OR-FUNCTION.
@@ -34,9 +32,7 @@ variable or a sharp-quoted function (which will be advised)."
               (put ',fn 'permanent-local-hook t)
               (add-hook sym #',fn ,append))))))
 
-;;; --------------------------------------------------------------------------
 ;;; First-use hooks
-;;; --------------------------------------------------------------------------
 
 (defvar hyalo-first-input-hook nil
   "Transient hooks run before the first user input after startup.")
@@ -87,9 +83,7 @@ Called once from `emacs-startup-hook'."
 
 (add-hook 'emacs-startup-hook #'hyalo--init-first-hooks 95)
 
-;;; --------------------------------------------------------------------------
 ;;; Incremental idle loading
-;;; --------------------------------------------------------------------------
 
 (defvar hyalo-incremental-packages '(t)
   "Packages to load incrementally during idle time after startup.

@@ -14,7 +14,7 @@ tags:
   - notes
 ---
 
-`init-markdown` enhances Markdown editing and wires up two complementary note-taking systems: `denote` for structured plain-text notes and `obsidian` for interoperability with Obsidian vaults.
+`init-markdown` enhances Markdown editing and wires up Obsidian integration while intentionally keeping Markdown on plain `markdown-mode` instead of tree-sitter remapping.
 
 ## Packages
 

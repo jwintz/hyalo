@@ -1,7 +1,6 @@
 ;;; init-help.el --- Help system: helpful, elisp-refs -*- lexical-binding: t; -*-
 
 ;; Minimal help system for hyalo standalone.
-;; Based on emacs.d/init/init-help.el
 
 ;;; Code:
 

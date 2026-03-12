@@ -30,7 +30,7 @@ Only runs when inside a git repository."
       (hyalo-source-control--update-changes)
       (hyalo-source-control--update-history))))
 
-;; MARK: - Changed Files
+;; Changed Files
 
 (defun hyalo-source-control--update-changes ()
   "Push git changed files to the navigator."
@@ -69,7 +69,7 @@ Only runs when inside a git repository."
       (hyalo-update-changed-files
        (json-encode (vconcat (nreverse results)))))))
 
-;; MARK: - Commit History
+;; Commit History
 
 (defun hyalo-source-control--update-history ()
   "Push git commit history (last 50) to the navigator.
@@ -124,7 +124,7 @@ Skipped if the repo has no commits."
           (hyalo-update-commit-history
            (json-encode (vconcat (nreverse commits)))))))))
 
-;; MARK: - Utility
+;; Utility
 
 (defun hyalo-source-control--project-root ()
   "Get the project root directory."

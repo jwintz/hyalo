@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Add appearance-aware terminal palette (`TerminalPalette.swift`) with automatic light/dark switching
 - Add terminal color extensions (`TerminalColorExtensions.swift`) with `applyPalette()` method for SwiftTerm
 - Add comprehensive OSLog logging to terminal theming system for debugging theme loading and application
+- Add `init-lang-yaml.el` with YAML mode setup and tree-sitter registration
 
 ### Changed
 
@@ -20,6 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Update `hyalo-window--post-setup` to load `hyalo-shackle` module
 - Update `InspectorTerminalView`, `UtilityAreaTerminalView` (macOS), and `UtilityAreaTerminalViewiOS` to use `@Bindable TerminalPalette` for automatic theme updates
 - Update `HyaloManager` and `InspectorAppearanceCallbacks` to refresh `TerminalPalette` on appearance changes
+- Update editor tab labels to show exact Emacs buffer names without display-side rewriting
+- Update `init-modes.el` and docs to include YAML support and exclude Markdown from `treesit-auto`
+- Update touched init files to remove stale comments and dead config stubs
+- Audit and simplify the full Emacs Lisp configuration surface by removing duplicate setup, dead stubs, and stale commentary while preserving behavior
 
 ### Fixed
 

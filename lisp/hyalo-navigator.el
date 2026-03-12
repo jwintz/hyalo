@@ -48,7 +48,7 @@ and explicitly rebuilds the file tree including git status badges."
      ((derived-mode-p 'term-mode) "terminal")
      (t "doc"))))
 
-;; MARK: - Project Root
+;; Project Root
 
 (defun hyalo-navigator--push-project-root ()
   "Push the project root to Swift so it can build the file tree.

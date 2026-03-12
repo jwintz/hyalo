@@ -1,7 +1,6 @@
 ;;; init-tools.el --- Development tools: project, magit, diff-hl, eglot -*- lexical-binding: t; no-byte-compile: t; -*-
 
 ;; Development tools for hyalo standalone.
-;; Based on emacs.d/init/init-tools.el
 
 ;;; Code:
 
@@ -358,8 +357,7 @@ Runs asynchronously — shows a placeholder while generating."
                         '("typescript-language-server" "--stdio")
                       '("npx" "typescript-language-server" "--stdio"))))
 
-  ;; Disable the events buffer to avoid GC/CPU churn on pretty-printing
-  ;; (set size to 0 in production)
+  ;; Disable the events buffer to avoid GC/CPU churn on pretty-printing.
   (cl-callf plist-put eglot-events-buffer-config :size 0)
 
   ;; Deferred server shutdown: wait 3s before killing the server

@@ -74,7 +74,7 @@ public struct EditorTabBarView: View {
                         .font(.system(size: KelyphosDesign.FontSize.caption))
                         .foregroundStyle(.primary)
 
-                    Text(Self.displayName(for: tab))
+                    Text(tab.name)
                         .font(.system(size: KelyphosDesign.FontSize.body))
                         .lineLimit(1)
                         .foregroundStyle(.primary)
@@ -89,7 +89,7 @@ public struct EditorTabBarView: View {
                         .font(.system(size: KelyphosDesign.FontSize.caption))
                         .foregroundStyle(.primary)
 
-                    Text(id.replacingOccurrences(of: "*", with: "").capitalized)
+                    Text(id)
                         .font(.system(size: KelyphosDesign.FontSize.body))
                         .lineLimit(1)
                         .foregroundStyle(.primary)
@@ -113,17 +113,5 @@ public struct EditorTabBarView: View {
         }
         .glassEffect(in: .capsule)
         .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Helpers
-
-    /// Clean up Emacs buffer names for display (strip `*` wrappers).
-    private static func displayName(for tab: EditorTab) -> String {
-        let name = tab.name
-        if name.hasPrefix("*") && name.hasSuffix("*") && name.count > 2 {
-            let inner = name.dropFirst().dropLast()
-            return inner.prefix(1).uppercased() + inner.dropFirst()
-        }
-        return name
     }
 }

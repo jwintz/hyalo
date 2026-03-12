@@ -10,9 +10,7 @@
 
 ;;; Code:
 
-;;; ---------------------------------------------------------------------------
 ;;; Boot logger — princ to stderr + /tmp/hyalo-boot.log
-;;; ---------------------------------------------------------------------------
 
 ;; Used before the Hyalo module (and its elog integration) is available.
 ;; Writes to stderr (visible in Terminal) and to a file (visible without
@@ -25,9 +23,7 @@
 
 (hyalo--boot-log "early-init started")
 
-;;; ---------------------------------------------------------------------------
 ;;; Frame defaults — hide until chrome is installed
-;;; ---------------------------------------------------------------------------
 
 ;; Frames start invisible.  hyalo-window--early-setup (called at the top of
 ;; init.el, before the blocking package bootstrap) calls make-frame-visible
@@ -51,18 +47,14 @@
 ;; the NSWindow has already been configured with character-cell increments.
 (setq frame-resize-pixelwise t)
 
-;;; ---------------------------------------------------------------------------
 ;;; Load-suffix reduction
-;;; ---------------------------------------------------------------------------
 
 ;; Hyalo does not load .so modules via require.  Removing the suffix
 ;; eliminates one stat() call per require.
 (when (and (boundp 'load-suffixes) (member ".so" load-suffixes))
   (setq load-suffixes (remove ".so" load-suffixes)))
 
-;;; ---------------------------------------------------------------------------
 ;;; eln-cache redirect
-;;; ---------------------------------------------------------------------------
 
 ;; The target directory must exist before startup-redirect-eln-cache is
 ;; called.  On a fresh install (.local/ does not exist yet), the native
@@ -72,9 +64,7 @@
     (make-directory eln-dir t)
     (startup-redirect-eln-cache eln-dir)))
 
-;;; ---------------------------------------------------------------------------
 ;;; Load the Hyalo dylib — before frame creation, before package bootstrap
-;;; ---------------------------------------------------------------------------
 
 ;; At early-init time there is no frame yet, so window decoration cannot
 ;; happen here.  What we CAN do is load the dylib so that by the time
@@ -106,9 +96,7 @@
         (error
          (hyalo--boot-log (format "dylib load error: %s" (error-message-string err))))))))
 
-;;; ---------------------------------------------------------------------------
 ;;; Failsafe visibility hook
-;;; ---------------------------------------------------------------------------
 
 ;; window-setup-hook fires after init.el completes AND after the window
 ;; system is initialized.  hyalo-window-setup registers on this hook at

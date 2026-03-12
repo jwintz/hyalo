@@ -1,13 +1,10 @@
 ;;; init-bootstrap.el --- Bootstrap configuration -*- lexical-binding: t; -*-
 
-;; Minimal bootstrap for hyalo standalone.
-;; Based on emacs.d/init/init-bootstrap.el.
+;; Minimal bootstrap for the standalone Hyalo configuration.
 
 ;;; Code:
 
-;;; ===========================================================================
 ;;; Early Variables (before package-initialize)
-;;; ===========================================================================
 
 ;; Prevent demap load cycle during eager macro-expansion
 ;; Must be defined BEFORE package-initialize
@@ -15,12 +12,9 @@
 
 ;; cua-mode is referenced by the built-in Options menu toggle handler
 ;; during package archive download, before cua-base.el is loaded.
-;; Pre-declare it to avoid a void-variable error that aborts the bootstrap.
 (defvar cua-mode nil)
 
-;;; ===========================================================================
 ;;; Performance & Output
-;;; ===========================================================================
 
 ;; debug-on-error is deferred until after init completes.
 ;; During a fresh install, benign errors from autoload files (e.g.,
@@ -54,10 +48,6 @@
 (setq-default scroll-bar-mode nil)
 (when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (when (fboundp 'horizontal-scroll-bar-mode) (horizontal-scroll-bar-mode -1))
-(push '(tool-bar-lines . 0) default-frame-alist)
-(push '(vertical-scroll-bars . nil) default-frame-alist)
-(push '(horizontal-scroll-bars . nil) default-frame-alist)
-(push '(scroll-bar-mode . nil) default-frame-alist)
 
 ;; Suppress warnings during startup
 (setq byte-compile-warnings nil)
@@ -72,9 +62,7 @@
            (native-comp-available-p))
   (setq native-comp-async-jobs-number 1))
 
-;;; ===========================================================================
 ;;; Directories
-;;; ===========================================================================
 
 (setq user-emacs-directory (expand-file-name ".local/" emacs-config-dir))
 
@@ -89,9 +77,7 @@
 (when (file-exists-p custom-file)
   (load custom-file 'noerror 'nomessage))
 
-;;; ===========================================================================
 ;;; Package System
-;;; ===========================================================================
 
 (require 'package)
 (unless (eq window-system 'ios)
@@ -126,9 +112,7 @@
 (require 'use-package)
 (setq use-package-always-ensure (not (eq window-system 'ios)))
 
-;;; ===========================================================================
 ;;; Logging (elog)
-;;; ===========================================================================
 
 (defvar hyalo-init-start-time (float-time)
   "Timestamp when initialization started.")
@@ -157,9 +141,7 @@ Uses elog if available, otherwise falls back to message."
 
 (hyalo-log-step "Packages initialized")
 
-;;; ===========================================================================
 ;;; Load Paths
-;;; ===========================================================================
 
 (add-to-list 'load-path (expand-file-name "init" emacs-config-dir))
 (add-to-list 'load-path (expand-file-name "lisp" emacs-config-dir))
@@ -197,9 +179,7 @@ Uses elog if available, otherwise falls back to message."
      corfu markdown-mode diff-hl which-key
      eglot project)))
 
-;;; ===========================================================================
 ;;; Environment & Shell
-;;; ===========================================================================
 
 (use-package exec-path-from-shell
   :ensure t
@@ -212,9 +192,7 @@ Uses elog if available, otherwise falls back to message."
       (add-to-list 'exec-path-from-shell-variables var))
     (exec-path-from-shell-initialize)))
 
-;;; ===========================================================================
 ;;; iOS-Specific Setup
-;;; ===========================================================================
 
 ;; iOS uses bundled packages instead of ELPA
 (when (eq window-system 'ios)

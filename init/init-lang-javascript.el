@@ -1,10 +1,7 @@
 ;;; init-lang-javascript.el --- JavaScript/TypeScript language support -*- lexical-binding: t; -*-
 
-;;; Code:
-
 (require 'treesit nil t)
 
-;; Tree-sitter grammars (Emacs 29+)
 (when (and (fboundp 'treesit-available-p) (treesit-available-p))
   (add-to-list 'treesit-language-source-alist
                '(javascript "https://github.com/tree-sitter/tree-sitter-javascript"))
@@ -18,10 +15,6 @@
   (add-to-list 'major-mode-remap-alist '(javascript-mode . js-ts-mode))
   (add-to-list 'major-mode-remap-alist '(typescript-mode . typescript-ts-mode)))
 
-;; ============================================================================
-;; JavaScript
-;; ============================================================================
-
 (use-package js-mode
   :ensure nil
   :mode ("\\.[mc]?js\\'" . js-mode)
@@ -34,23 +27,17 @@
                 (setq-local electric-indent-chars
                             (append "}):" electric-indent-chars)))))
   (add-hook 'js-mode-hook #'eglot-ensure)
-  ;; Also enable eglot for the tree-sitter variant
   (add-hook 'js-ts-mode-hook #'eglot-ensure)
   :general
   (:keymaps 'js-mode-map
    :prefix "C-c J"
    "" '(:ignore t :which-key "javascript")))
 
-;; ============================================================================
-;; TypeScript
-;; ============================================================================
-
 (use-package typescript-mode
   :ensure t
   :mode "\\.ts\\'"
   :config
   (add-hook 'typescript-mode-hook #'eglot-ensure)
-  ;; Also enable eglot for the tree-sitter variant
   (add-hook 'typescript-ts-mode-hook #'eglot-ensure))
 
 (provide 'init-lang-javascript)

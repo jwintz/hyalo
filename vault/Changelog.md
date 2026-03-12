@@ -25,12 +25,17 @@ All notable changes to Hyalo are documented here. The format follows [Keep a Cha
 - Add iTermColors parser to load terminal color schemes from .itermcolors files
 - Add appearance-aware terminal palette with automatic light/dark switching
 - Add terminal color extensions with `applyPalette()` method for SwiftTerm
+- Add `init-lang-yaml.el` with YAML mode setup and tree-sitter registration
 
 ### Changed
 
 - Update `TerminalPalette` to search for nano themes in multiple locations: `~/.config/hyalo/`, `~/Library/Application Support/hyalo/`, and current working directory
 - Update terminal views to use `@Bindable TerminalPalette` for automatic theme updates
 - Update appearance callbacks to refresh `TerminalPalette` on appearance changes
+- Update editor tab labels to show exact Emacs buffer names without display-side rewriting
+- Update `init-modes.el` and docs to include YAML support and keep Markdown on plain `markdown-mode`
+- Remove stale comments and dead config stubs from touched init files
+- Audit and simplify the full Emacs Lisp configuration surface by removing duplicate setup, dead stubs, and stale commentary while preserving behavior
 - Complete NavigatorViewModel migration: remove deprecated properties, route all updates to focused ViewModels
 - Migrate `SourceControlNavigatorView` from legacy `NavigatorViewModel` to `SourceControlViewModel`
 - Move `groupedResults` from `FindNavigatorView` to `SearchViewModel`

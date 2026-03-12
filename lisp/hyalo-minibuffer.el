@@ -5,21 +5,18 @@
 ;; Emacs owns filtering/ordering (vertico, orderless, fido); Swift owns rendering.
 ;;
 ;; Flow:
-;;   User types in Swift TextField
-;;     → channel callback injects text into Emacs minibuffer
+;;   User types in the Emacs minibuffer
 ;;     → completion framework processes input
 ;;     → timer extracts candidates + annotations as JSON
 ;;     → calls hyalo-minibuffer-update (defun registered by Swift module)
 ;;     → Swift decodes JSON, updates MinibufferViewModel
-;;     → SwiftUI re-renders candidate list
+;;     → SwiftUI re-renders the display-only panel
 
 ;;; Code:
 
 (require 'json)
 
-;; ---------------------------------------------------------------------------
 ;; State
-;; ---------------------------------------------------------------------------
 
 (defvar hyalo-minibuffer--active nil
   "Non-nil when the Swift minibuffer panel is active.")
@@ -49,9 +46,7 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
 (defvar hyalo-minibuffer--update-delay 0.01
   "Timer delay in seconds for candidate extraction (coalesces rapid keystrokes).")
 
-;; ---------------------------------------------------------------------------
 ;; Logging
-;; ---------------------------------------------------------------------------
 
 (defvar hyalo-minibuffer--debug nil
   "When non-nil, log minibuffer bridge activity to *Messages*.")
@@ -61,9 +56,7 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
   (when hyalo-minibuffer--debug
     (apply #'message (concat "[hyalo-minibuffer] " fmt) args)))
 
-;; ---------------------------------------------------------------------------
 ;; Skip conditions
-;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--should-skip-p ()
   "Return non-nil if we should fall through to native Emacs minibuffer."
@@ -83,9 +76,7 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
       ;; Ephemeral minibuffer with no real history variable
       (eq minibuffer-history-variable t)))
 
-;; ---------------------------------------------------------------------------
 ;; Text cleaning — strip invisible disambiguation chars
-;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--clean-text (str)
   "Strip consult tofu chars (Unicode PUA-B disambiguation markers) from STR.
@@ -93,9 +84,7 @@ Consult appends invisible U+100000..U+10FFFE chars to multi-source candidates.
 `substring-no-properties' removes the `invisible' property but keeps the char."
   (replace-regexp-in-string "[\U00100000-\U0010FFFE]+" "" str))
 
-;; ---------------------------------------------------------------------------
 ;; Candidate extraction — framework detection
-;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--extract-candidates ()
   "Extract current completion candidates with annotations.
@@ -240,9 +229,7 @@ For free-text inputs (no completion table), extracts history."
      (hyalo-minibuffer--log "get-annotation-fn error: %s" (error-message-string err))
      nil)))
 
-;; ---------------------------------------------------------------------------
 ;; Match highlighting — extract face ranges for Swift bold rendering
-;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--hilit-candidate (cand)
   "Return a copy of CAND with completion face properties applied.
@@ -290,9 +277,7 @@ Uses vertico's buffer-local hilit function when available, then
         (setq pos next)))
     (vconcat (nreverse ranges))))
 
-;; ---------------------------------------------------------------------------
 ;; History extraction — for free-text minibuffers (no completion table)
-;; ---------------------------------------------------------------------------
 
 (defvar hyalo-minibuffer--max-history-items 30
   "Maximum number of history items to send as candidates.")
@@ -354,9 +339,7 @@ Used when there is no completion table (e.g. `read-shell-command')."
           (cons 'selectedIndex (if (> total 0) 0 -1))
           (cons 'totalCandidates total))))
 
-;; ---------------------------------------------------------------------------
 ;; Update timer — push candidates to Swift
-;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--schedule-update ()
   "Schedule a candidate update push to Swift.
@@ -383,27 +366,12 @@ rather than starving it through repeated cancellations."
                           ,@extracted))
                (json (json-encode payload))
                (t2 (float-time)))
-          ;; (hyalo-minibuffer--log
-          ;;  "push-update: input=%s cands=%d json=%d extract=%.1fms encode=%.1fms"
-          ;;  input
-          ;;  (length (cdr (assq 'candidates extracted)))
-          ;;  (length json)
-          ;;  (* 1000 (- t1 t0))
-          ;;  (* 1000 (- t2 t1)))
           (when (and extracted (fboundp 'hyalo-minibuffer-update))
-            (hyalo-minibuffer-update json)
-            ;; (let ((t3 (float-time)))
-            ;;   (hyalo-minibuffer--log "push-update: defun-call=%.1fms total=%.1fms"
-            ;;                          (* 1000 (- t3 t2))
-            ;;                          (* 1000 (- t3 t0))))
-	    )
-	  )
+            (hyalo-minibuffer-update json)))
       (error
        (hyalo-minibuffer--log "push-update error: %s" (error-message-string err))))))
 
-;; ---------------------------------------------------------------------------
 ;; Selection — Swift → Emacs (click-to-select from overlay)
-;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--select-candidate (index)
   "Select candidate at INDEX and exit the minibuffer.
@@ -444,9 +412,7 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
           (insert (cdr (assq 'text cand)))
           (exit-minibuffer)))))))
 
-;; ---------------------------------------------------------------------------
 ;; Abort — Swift → Emacs
-;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--abort ()
   "Abort the current minibuffer session."
@@ -454,9 +420,7 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
   (when (minibufferp)
     (abort-recursive-edit)))
 
-;; ---------------------------------------------------------------------------
 ;; Hooks — minibuffer lifecycle
-;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--setup-hook ()
   "Called from `minibuffer-setup-hook'.  Show the Swift panel."
@@ -537,9 +501,7 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
       (move-overlay hyalo-minibuffer--hide-overlay (point-min) (point-max)))
     (hyalo-minibuffer--schedule-update)))
 
-;; ---------------------------------------------------------------------------
 ;; Display suppression — hide the Emacs-side completion UI
-;; ---------------------------------------------------------------------------
 
 ;; For vertico: We suppress only the DISPLAY, not the computation.
 ;; vertico--exhibit computes candidates, then calls vertico--display-candidates.
@@ -549,9 +511,7 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
 Returns nil (for :before-while) to skip the display function."
   (not hyalo-minibuffer--active))
 
-;; ---------------------------------------------------------------------------
 ;; Channel handlers (called from Swift via channel callbacks)
-;; ---------------------------------------------------------------------------
 
 (defun hyalo-channels--handle-minibuffer-select (index-str)
   "Handle candidate selection from the Swift minibuffer panel.
@@ -562,9 +522,7 @@ INDEX-STR is the selected candidate index as a string."
   "Handle abort from the Swift minibuffer panel."
   (hyalo-minibuffer--abort))
 
-;; ---------------------------------------------------------------------------
 ;; Minor mode
-;; ---------------------------------------------------------------------------
 
 ;;;###autoload
 (define-minor-mode hyalo-minibuffer-mode

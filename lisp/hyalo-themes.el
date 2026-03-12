@@ -121,9 +121,7 @@ which removes backgrounds from all faces automatically."
                                  (mapcar (lambda (c) (/ c 256))
                                          (color-values bg))))))
               (hyalo-set-background-color hex))))
-        ;; NOTE: Terminal palette is now loaded from iTermColors files in Swift.
-        ;; Do not override with Emacs-derived colors to preserve the nano theme.
-        ;; (hyalo-theme-send-palette)
+        ;; Terminal palette is loaded from iTermColors files in Swift.
         ;; Send color theme for SwiftUI views
         (hyalo-theme-send-color-theme)))))
 
@@ -152,17 +150,15 @@ Background transparency in TTY mode is handled by iota-theme-transparent-mode."
             (mapc #'disable-theme custom-enabled-themes)
             (load-theme theme t)
             ;; hyalo-theme--on-enable is skipped because hyalo-theme--loading
-            ;; is t.  Perform its work here: push appearance, theme name,
-            ;; terminal palette, color theme, and divider colors to Swift.
+            ;; is t. Perform its work here: push appearance, theme name,
+            ;; color theme, and divider colors to Swift.
             (when (and (fboundp 'hyalo-available-p) (hyalo-available-p))
               (let ((dark (hyalo-theme--dark-p theme)))
                 (when (fboundp 'hyalo-set-workspace-appearance)
                   (hyalo-set-workspace-appearance (if dark "dark" "light")))
                 (when (fboundp 'hyalo-set-current-theme-name)
                   (hyalo-set-current-theme-name (symbol-name theme))))
-              ;; NOTE: Terminal palette is now loaded from iTermColors files.
-              ;; Do not override with Emacs-derived colors to preserve the nano theme.
-              ;; (hyalo-theme-send-palette)
+              ;; Terminal palette is loaded from iTermColors files in Swift.
               (hyalo-theme-send-color-theme))
             ;; Apply divider, fringe, mode-line, and background colors.
             ;; enable-theme-functions fires hyalo-appearance--on-theme-load

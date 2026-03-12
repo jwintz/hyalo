@@ -16,27 +16,21 @@
 
 ;;; Code:
 
-;; -----------------------------------------------------------------------------
 ;; Logging
-;; -----------------------------------------------------------------------------
 
 (defun hyalo-environment--log (format-string &rest args)
   "Log environment detection debug message using elog."
   (when (fboundp 'hyalo-log)
     (apply #'hyalo-log 'environment format-string args)))
 
-;; -----------------------------------------------------------------------------
 ;; User/Host Detection
-;; -----------------------------------------------------------------------------
 
 (defun hyalo-environment--user-host-info ()
   "Return user@hostname info as an alist."
   `((username . ,(user-login-name))
     (hostname . ,(system-name))))
 
-;; -----------------------------------------------------------------------------
 ;; Development Environment Detection
-;; -----------------------------------------------------------------------------
 ;;
 ;; Uses `hyalo-status--project-root' for consistent project detection across
 ;; all hyalo modules. This ensures a single source of truth for project root.
@@ -217,9 +211,7 @@ of previous environment state for non-project buffers."
                                  buffer-name (length environments)))
         environments))))
 
-;; -----------------------------------------------------------------------------
 ;; State Push
-;; -----------------------------------------------------------------------------
 
 (defvar hyalo-environment--last-user-host nil
   "Cache of last user/host info to avoid redundant pushes.")
@@ -274,9 +266,7 @@ Called after debounce timer fires."
       (when (fboundp 'hyalo-update-environments)
         (hyalo-update-environments (json-encode (vconcat (or environments '()))))))))
 
-;; -----------------------------------------------------------------------------
 ;; Hook Management
-;; -----------------------------------------------------------------------------
 
 (defun hyalo-environment--on-buffer-change (&rest _)
   "Hook for buffer/window changes."
@@ -310,9 +300,7 @@ Called from `hyalo-channels-setup' after environment channel is ready."
   ;; Push immediately (channel is now ready)
   (hyalo-environment--do-push))
 
-;; -----------------------------------------------------------------------------
 ;; Cleanup
-;; -----------------------------------------------------------------------------
 
 (defun hyalo-environment-teardown ()
   "Remove environment detection hooks and cancel pending timers."
@@ -324,9 +312,7 @@ Called from `hyalo-channels-setup' after environment channel is ready."
   (remove-hook 'after-save-hook #'hyalo-environment--on-save)
   (remove-hook 'project-switch-project-hook #'hyalo-environment-refresh))
 
-;; -----------------------------------------------------------------------------
 ;; Interactive Commands
-;; -----------------------------------------------------------------------------
 
 ;;;###autoload
 (defun hyalo-environment-refresh ()
@@ -371,9 +357,7 @@ Clears all caches to force fresh detection."
         (princ "  None detected\n"))
       (princ "\nCheck *Messages* buffer for detailed logs.\n"))))
 
-;; -----------------------------------------------------------------------------
 ;; Channel Callbacks (called from Swift)
-;; -----------------------------------------------------------------------------
 
 (defun hyalo-environment--switch (env-type)
   "Switch to environment of type ENV-TYPE."

@@ -1,8 +1,5 @@
 ;;; init-editing.el --- Editing: god-mode, windmove, outline -*- lexical-binding: t; -*-
 
-;; Editing packages for hyalo standalone.
-;; Based on emacs.d/init/init-editing.el
-
 ;;; Code:
 
 (use-package display-line-numbers
@@ -22,11 +19,11 @@
    ("C-x C-0" . delete-window)
    ("C-x C-o" . other-window))
   :config
-  (defun iota/god-mode-update-cursor-type ()
+  (defun hyalo-god-mode-update-cursor-type ()
     "Change cursor shape based on god-mode state."
     (let ((new-cursor (if god-local-mode 'box '(hbar . 2))))
       (setq cursor-type new-cursor)
-      (when (not (display-graphic-p))
+      (unless (display-graphic-p)
         (run-with-idle-timer 0.01 nil
           (lambda ()
             (let ((escape-seq (if (eq new-cursor 'box)
@@ -34,15 +31,15 @@
                                 "\033[4 q")))
               (send-string-to-terminal escape-seq)))))))
 
-  (defun iota/god-mode-restore-cursor ()
+  (defun hyalo-god-mode-restore-cursor ()
     "Restore cursor to underline on exit."
-    (when (not (display-graphic-p))
+    (unless (display-graphic-p)
       (send-string-to-terminal "\033[4 q")))
 
-  (add-hook 'post-command-hook #'iota/god-mode-update-cursor-type)
-  (add-hook 'buffer-list-update-hook #'iota/god-mode-update-cursor-type)
-  (add-hook 'window-configuration-change-hook #'iota/god-mode-update-cursor-type)
-  (add-hook 'kill-emacs-hook #'iota/god-mode-restore-cursor))
+  (add-hook 'post-command-hook #'hyalo-god-mode-update-cursor-type)
+  (add-hook 'buffer-list-update-hook #'hyalo-god-mode-update-cursor-type)
+  (add-hook 'window-configuration-change-hook #'hyalo-god-mode-update-cursor-type)
+  (add-hook 'kill-emacs-hook #'hyalo-god-mode-restore-cursor))
 
 (use-package move-dup
   :ensure t

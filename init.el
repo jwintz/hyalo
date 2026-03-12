@@ -3,9 +3,7 @@
 ;; Hyalo standalone init.
 ;; Test with: emacs --init-directory /path/to/hyalo
 
-;;; ===========================================================================
 ;;; Bootstrap
-;;; ===========================================================================
 
 (defvar emacs-config-dir
   (file-name-directory (or load-file-name buffer-file-name))
@@ -44,9 +42,7 @@
 (unless (or (eq window-system 'ios) module-file-suffix)
   (error "Emacs was not compiled with dynamic module support (--with-modules)"))
 
-;;; ---------------------------------------------------------------------------
 ;;; Global message redirect to loading proxy
-;;; ---------------------------------------------------------------------------
 ;;
 ;; Forward `message' output to the loading proxy window for the entire
 ;; duration of init.  This covers: init-bootstrap (package-refresh,
@@ -85,9 +81,7 @@
   (hyalo-set-loading-message "Bootstrapping packages…") (sit-for 0.01))
 (require 'init-bootstrap)
 
-;;; ===========================================================================
 ;;; Modules
-;;; ===========================================================================
 
 ;; hyalo-lib is loaded by init-bootstrap after load-path setup
 (require 'init-core)
@@ -124,9 +118,7 @@
   (when (fboundp 'hyalo-set-loading-message) (hyalo-set-loading-message "Loading agents…") (sit-for 0.01)))
 (init--require-with-trace 'init-agents)
 
-;;; ===========================================================================
 ;;; Finalize
-;;; ===========================================================================
 
 ;; Remove the global message redirect now that init is complete.
 ;; From this point, `message' goes to the echo area as usual.

@@ -11,7 +11,7 @@
 (defvar hyalo-font-mono "SF Mono"
   "Default monospace font family.")
 
-(defvar hyalo-font-prose "Lilex" ;; "Monaspace Radon Var" ;; "Recursive Mono Casual Static"
+(defvar hyalo-font-prose "Lilex"
   "Default variable-pitch (prose) font family.")
 
 (defvar hyalo-font-height 110
@@ -82,10 +82,7 @@
       '((min-height . 1)
         (height     . 45)
         (min-width  . 1)
-        (width      . 81)
-        (vertical-scroll-bars . nil)
-        (horizontal-scroll-bars . nil)
-        (tool-bar-lines . 0)))
+        (width      . 81)))
 
 ;; Transparent background for Liquid Glass pass-through.
 ;; Only on macOS (ns).

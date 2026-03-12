@@ -1,20 +1,6 @@
 ;;; init-markdown.el --- Markdown and knowledge management -*- lexical-binding: t; -*-
 
-;; Markdown support for hyalo standalone.
-;; Based on emacs.d/init/init-markdown.el (without svg-lib, hyalo-markdown-mode)
-
 ;;; Code:
-
-(require 'treesit nil t)
-
-;; Tree-sitter Markdown grammar (Emacs 29+)
-(when (and (fboundp 'treesit-available-p) (treesit-available-p))
-  (add-to-list 'treesit-language-source-alist
-               '(markdown "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
-                          nil "tree-sitter-markdown/src"))
-  (add-to-list 'treesit-language-source-alist
-               '(markdown-inline "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
-                                 nil "tree-sitter-markdown-inline/src")))
 
 (use-package markdown-mode
   :ensure t
@@ -22,7 +8,7 @@
          ("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
   :config
-  (defun hyalo-markdown--setup-pre-face ()
+  (defun hyalo-markdown--setup-pre-face (&rest _)
     "Set subtle background for markdown pre blocks based on theme.
 In terminal mode with transparency, skip setting background."
     (let* ((bg (face-background 'default))
@@ -37,7 +23,7 @@ In terminal mode with transparency, skip setting background."
       (set-face-attribute 'markdown-pre-face nil
                           :background (or subtle-bg 'unspecified)
                           :extend t)))
-  (add-hook 'enable-theme-functions (lambda (&rest _) (hyalo-markdown--setup-pre-face)))
+  (add-hook 'enable-theme-functions #'hyalo-markdown--setup-pre-face)
   (hyalo-markdown--setup-pre-face)
   :general
   (:keymaps 'markdown-mode-map

@@ -18,12 +18,10 @@
 
 (require 'json)
 
-;; MARK: - Debounce Timers
+;; Debounce Timers
 
 (defvar hyalo-status--cursor-timer nil
   "Debounce timer for cursor/status bar updates.")
-;; hyalo-status--tabs-timer removed — hyalo-sync--push is called directly
-;; from window-buffer-change-functions (fires once per redisplay cycle).
 (defvar hyalo-status--branch-timer nil
   "Debounce timer for branch info updates.")
 (defvar hyalo-status--navigator-timer nil
@@ -31,9 +29,7 @@
 (defvar hyalo-status--file-info-timer nil
   "Debounce timer for file info + git history updates.")
 
-;; MARK: - Caches
-
-;; hyalo-status--last-tab-state removed — hyalo-sync--push replaces dedup.
+;; Caches
 
 (defvar hyalo-status--last-file-info-path nil
   "Last file path for which file info was pushed.")
@@ -73,7 +69,7 @@ Branch list rarely changes; invalidated on save and project switch.")
   "Cache: project-root -> t/nil for whether the repo has any commits.
 Invalidated when branch cache is invalidated (on save, magit refresh).")
 
-;; MARK: - Hook-based Setup/Teardown
+;; Hook-based Setup/Teardown
 
 (defun hyalo-status-setup ()
   "Register hooks for event-driven status updates.
@@ -141,7 +137,7 @@ Clear cached project roots to ensure fresh detection on startup."
       (cancel-timer (symbol-value sym))
       (set sym nil))))
 
-;; MARK: - Debounced Dispatchers
+;; Debounced Dispatchers
 
 (defun hyalo-status--schedule-cursor-update ()
   "Schedule a status bar update after 50ms debounce."
@@ -191,7 +187,7 @@ Captures the project root so stale callbacks are skipped."
                             (when (equal target-root hyalo-status--last-project-root)
                               (hyalo-status--do-navigator-refresh)))))))
 
-;; MARK: - Unified Sync Push
+;; Unified Sync Push
 
 (defun hyalo-sync--push ()
   "Push buffer/tab state and active buffer to all Swift UI components.
@@ -453,7 +449,7 @@ views: branch info, source control changes, file tree, and file info."
   (when (fboundp 'hyalo-source-control--schedule-update)
     (hyalo-source-control--schedule-update)))
 
-;; MARK: - Cached Project Root
+;; Cached Project Root
 
 (defun hyalo-status--update-project-root-cached ()
   "Update `default-directory' and project root from cache.
@@ -530,7 +526,7 @@ inspector file info git fields, and inspector git history."
   ;; Reset file info cache so it re-fetches when returning to a git buffer
   (setq hyalo-status--last-file-info-path nil))
 
-;; MARK: - Push Functions
+;; Push Functions
 
 (defun hyalo-status--push-cursor ()
   "Push current cursor status to the Swift status bar."
@@ -550,8 +546,6 @@ inspector file info git fields, and inspector git history."
          (hyalo-status--modeline-lhs)
          (hyalo-status--modeline-rhs))
       (error nil))))
-
-;; hyalo-status--push-editor-tabs removed — replaced by hyalo-sync--push.
 
 (defun hyalo-status--push-branch-info ()
   "Push git branch info and project name to the toolbar.
@@ -779,7 +773,7 @@ Skipped if the repo has no commits."
                  (json-encode (vconcat (nreverse commits))))))
           (error nil))))))
 
-;; MARK: - Status Bar Helpers
+;; Status Bar Helpers
 
 (defun hyalo-status--minor-modes-json ()
   "Return a JSON array of active minor mode names."
@@ -846,7 +840,7 @@ Extracts the portion after the align-to spacer, if any."
           ""))
     ""))
 
-;; MARK: - Channel Callbacks (user-initiated changes from status bar)
+;; Channel Callbacks (user-initiated changes from status bar)
 
 (defun hyalo-status--set-encoding (encoding)
   "Set buffer encoding from status bar.  ENCODING is the coding system name."

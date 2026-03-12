@@ -17,7 +17,7 @@
 ;;   - macOS >= 26.0
 ;;   - Swift >= 6.2
 ;;   - Xcode >= 17 (reported as 26.x on macOS 26)
-;;   - Fonts: SF Mono, Lilex, Recursive Mono Casual Static, Symbols Nerd Font Mono
+;;   - Fonts: SF Mono, Lilex, Symbols Nerd Font Mono
 ;;   - Tools: rg, git, node
 ;;
 ;;   Optional
@@ -43,7 +43,7 @@
   "Required macOS major version.")
 
 (defconst hyalo-doctor--required-fonts
-  '("SF Mono" "Recursive Mono Casual Static" "Lilex" "Symbols Nerd Font Mono")
+  '("SF Mono" "Lilex" "Symbols Nerd Font Mono")
   "Fonts required by hyalo init-appearance and nerd-icons.")
 
 (defconst hyalo-doctor--required-tools

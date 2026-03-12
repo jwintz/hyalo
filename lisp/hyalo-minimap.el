@@ -1,7 +1,6 @@
 ;;; hyalo-minimap.el --- Mouse interaction for demap -*- lexical-binding: t -*-
 
-;; Defer demap require to avoid load cycle - demap is loaded by init-appearance.el
-;; (require 'demap)
+;; demap is loaded by init-appearance.el to avoid a load cycle here.
 (require 'cl-lib)
 (require 'hyalo)
 
