@@ -88,12 +88,14 @@ final class HyaloWindowController: NSWindowController {
                     AnyView(EnvironmentPillView(workspace: workspace)
                         .fixedSize(horizontal: true, vertical: false))
                 },
-                trailingToolbarPrefix: {
-                    AnyView(HStack(spacing: 0) {
-                        KeycastView(viewModel: toolbarVM)
-                        PackageManagerView(viewModel: toolbarVM)
-                    })
-                },
+                trailingToolbarItems: [
+                    {
+                        AnyView(KeycastView(viewModel: toolbarVM))
+                    },
+                    {
+                        AnyView(PackageManagerView(viewModel: toolbarVM))
+                    },
+                ],
                 detail: { [emacsView, editorTabViewModel, terminalPalette, shellState] in
                     AnyView(MainContentView(
                         emacsView: emacsView,

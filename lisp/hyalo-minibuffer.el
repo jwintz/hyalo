@@ -46,7 +46,7 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
 (defvar hyalo-minibuffer--max-candidates 50
   "Maximum number of candidates to send to Swift for rendering performance.")
 
-(defvar hyalo-minibuffer--update-delay 0.05
+(defvar hyalo-minibuffer--update-delay 0.01
   "Timer delay in seconds for candidate extraction (coalesces rapid keystrokes).")
 
 ;; ---------------------------------------------------------------------------
@@ -110,11 +110,6 @@ For free-text inputs (no completion table), extracts history."
        ;; Vertico (macOS desktop)
        ((bound-and-true-p vertico-mode)
         (hyalo-minibuffer--extract-vertico))
-
-       ;; Fido / icomplete (iOS)
-       ((and (bound-and-true-p fido-vertical-mode)
-             (fboundp 'completion-all-sorted-completions))
-        (hyalo-minibuffer--extract-fido))
 
        ;; Generic fallback
        (t
@@ -364,13 +359,13 @@ Used when there is no completion table (e.g. `read-shell-command')."
 ;; ---------------------------------------------------------------------------
 
 (defun hyalo-minibuffer--schedule-update ()
-  "Schedule a candidate update push to Swift."
-  (when hyalo-minibuffer--update-timer
-    (cancel-timer hyalo-minibuffer--update-timer))
-  ;; Use run-with-timer (not idle timer) so it fires even during minibuffer input
-  (setq hyalo-minibuffer--update-timer
-        (run-with-timer hyalo-minibuffer--update-delay nil
-                        #'hyalo-minibuffer--push-update)))
+  "Schedule a candidate update push to Swift.
+If an update is already scheduled, do nothing to allow it to fire
+rather than starving it through repeated cancellations."
+  (unless hyalo-minibuffer--update-timer
+    (setq hyalo-minibuffer--update-timer
+          (run-with-timer hyalo-minibuffer--update-delay nil
+                          #'hyalo-minibuffer--push-update))))
 
 (defun hyalo-minibuffer--push-update ()
   "Extract candidates and push them to Swift."
@@ -554,17 +549,6 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
 Returns nil (for :before-while) to skip the display function."
   (not hyalo-minibuffer--active))
 
-;; For icomplete: suppress the exhibit function that renders in the minibuffer.
-;; Note: on iOS with fido-vertical-mode, we still need icomplete-exhibit to
-;; compute completion-all-sorted-completions, so we only suppress the display.
-(defun hyalo-minibuffer--suppress-icomplete-display (orig-fn &rest args)
-  "Around advice for icomplete-exhibit.  Skip display when Swift panel active."
-  (if hyalo-minibuffer--active
-      ;; Still compute completions but don't display
-      (let ((icomplete-mode nil))
-        (apply orig-fn args))
-    (apply orig-fn args)))
-
 ;; ---------------------------------------------------------------------------
 ;; Channel handlers (called from Swift via channel callbacks)
 ;; ---------------------------------------------------------------------------
@@ -594,19 +578,12 @@ INDEX-STR is the selected candidate index as a string."
         ;; Suppress vertico's candidate display (not computation)
         (when (fboundp 'vertico--display-candidates)
           (advice-add 'vertico--display-candidates :before-while
-                      #'hyalo-minibuffer--suppress-vertico-display))
-        ;; Suppress icomplete's display
-        (when (fboundp 'icomplete-exhibit)
-          (advice-add 'icomplete-exhibit :around
-                      #'hyalo-minibuffer--suppress-icomplete-display)))
+                      #'hyalo-minibuffer--suppress-vertico-display)))
     (remove-hook 'minibuffer-setup-hook #'hyalo-minibuffer--setup-hook)
     (remove-hook 'minibuffer-exit-hook #'hyalo-minibuffer--exit-hook)
     (when (fboundp 'vertico--display-candidates)
       (advice-remove 'vertico--display-candidates
-                     #'hyalo-minibuffer--suppress-vertico-display))
-    (when (fboundp 'icomplete-exhibit)
-      (advice-remove 'icomplete-exhibit
-                     #'hyalo-minibuffer--suppress-icomplete-display))))
+                     #'hyalo-minibuffer--suppress-vertico-display))))
 
 (provide 'hyalo-minibuffer)
 ;;; hyalo-minibuffer.el ends here

@@ -36,18 +36,6 @@
     (require 'hyalo-window)
     (hyalo-window--early-setup)))
 
-;;;; Hyalo iOS Module
-
-(use-package hyalo-ios
-  :ensure nil
-  :if (eq window-system 'ios)
-  :config
-  (hyalo-ios-init)
-  ;; Decorate the window immediately after the module loads
-  (when (hyalo-available-p)
-    (require 'hyalo-window)
-    (hyalo-window--early-setup)))
-
 ;;;; Hyalo Window Controller
 
 ;; Keybindings: C-c t {n,i,u,m} for navigator, inspector, utility, minimap
@@ -67,19 +55,19 @@
 
 (use-package hyalo-status
   :ensure nil
-  :if (memq window-system '(ns ios)))
+  :if (eq window-system 'ns))
 
 ;;;; Hyalo Navigator
 
 (use-package hyalo-navigator
   :ensure nil
-  :if (memq window-system '(ns ios)))
+  :if (eq window-system 'ns))
 
 ;;;; Hyalo Source Control
 
 (use-package hyalo-source-control
   :ensure nil
-  :if (memq window-system '(ns ios)))
+  :if (eq window-system 'ns))
 
 ;;;; Hyalo Menu
 
@@ -114,7 +102,7 @@
 
 (use-package hyalo-compile
   :ensure nil
-  :if (memq window-system '(ns ios))
+  :if (eq window-system 'ns)
   :config
   (hyalo-compile-setup))
 
@@ -122,7 +110,7 @@
 
 (use-package hyalo-package
   :ensure nil
-  :if (memq window-system '(ns ios))
+  :if (eq window-system 'ns)
   :config
   (hyalo-package-setup))
 
@@ -130,7 +118,7 @@
 
 (use-package hyalo-keycast
   :ensure nil
-  :if (memq window-system '(ns ios))
+  :if (eq window-system 'ns)
   :commands (hyalo-keycast-mode))
 ; :init (hyalo-keycast-mode))
 
@@ -138,7 +126,7 @@
 
 (use-package hyalo-appearance
   :ensure nil
-  :if (memq window-system '(ns ios))
+  :if (eq window-system 'ns)
   :config
   ;; Push theme-derived settings to Swift (background color, dividers, fringe).
   ;; Opacity and material persist in UserDefaults, managed by the Swift panel.
@@ -148,7 +136,7 @@
 
 (use-package hyalo-doctor
   :ensure nil
-  :if (memq window-system '(ns))
+  :if (eq window-system 'ns)
   :commands (hyalo-doctor))
 
 (provide 'init-hyalo)
