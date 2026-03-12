@@ -6,11 +6,11 @@ channels = ["conda-forge"]
 platforms = ["osx-arm64", "osx-64"]
 
 [tasks]
-# Build the shared library target (debug).
-build = "swift build --target HyaloShared"
+# Build all targets (debug) — SwiftPM is already incremental.
+build = "swift build"
 
-# Build the dynamic module target (debug) — produces libHyalo.dylib.
-build-module = "swift build --target Hyalo"
+# Alias for naming consistency across projects.
+build-if-needed = "swift build"
 
 # Build all targets in release configuration.
 build-release = "swift build -c release"
@@ -103,7 +103,7 @@ notarize = { cmd = "bash -c 'set -e; VERSION=$(git describe --tags --abbrev=0 2>
 changelog = "bash -c 'TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo \"\"); if [ -z \"$TAG\" ]; then echo \"# Changelog\"; echo \"\"; git log --pretty=format:\"- %s (%h)\" --no-merges; else echo \"# Changelog since $TAG\"; echo \"\"; git log \"${TAG}..HEAD\" --pretty=format:\"- %s (%h)\" --no-merges; fi'"
 
 # Build and launch Emacs with Hyalo module loaded.
-run = { cmd = "bash -c 'FEEDSTOCK=\"$HOME/Syntropment/hyalo-feedstock\"; EMACS=\"$FEEDSTOCK/emacs-build-macos/nextstep/Emacs.app/Contents/MacOS/Emacs\"; if [ ! -x \"$EMACS\" ]; then echo \"ERROR: Emacs not found at $EMACS\"; exit 1; fi; DYLIB=\".build/debug/libHyalo.dylib\"; echo \"Launching Emacs with Hyalo...\"; \"$EMACS\" --load \"$DYLIB\" 2>&1 || \"$EMACS\"'", depends-on = ["build-module"] }
+run = { cmd = "bash -c 'FEEDSTOCK=\"$HOME/Syntropment/hyalo-feedstock\"; EMACS=\"$FEEDSTOCK/emacs-build-macos/nextstep/Emacs.app/Contents/MacOS/Emacs\"; if [ ! -x \"$EMACS\" ]; then echo \"ERROR: Emacs not found at $EMACS\"; exit 1; fi; DYLIB=\".build/debug/libHyalo.dylib\"; echo \"Launching Emacs with Hyalo...\"; \"$EMACS\" --load \"$DYLIB\" 2>&1 || \"$EMACS\"'", depends-on = ["build"] }
 
 # Remove all build artifacts.
 distclean = "rm -rf .build Hyalo.app Hyalo-*.dmg DerivedData build && echo 'distclean complete'"
