@@ -98,9 +98,11 @@ Clear cached project roots to ensure fresh detection on startup."
   (add-hook 'kill-buffer-hook #'hyalo-status--on-buffer-killed)
   ;; Window selection change: windmove, mouse click into different window
   (add-hook 'window-selection-change-functions #'hyalo-status--on-window-selection-change)
-  ;; Tab state refresh on save (modified flag changes) and first edit
+  ;; Tab state refresh on save (modified flag changes)
   (add-hook 'after-save-hook #'hyalo-sync--push-from-hook)
-  (add-hook 'first-change-hook #'hyalo-sync--push-from-hook)
+  ;; Detect modification state changes on every command.
+  ;; This catches: first edit, undo-to-unmodified, revert, etc.
+  (add-hook 'post-command-hook #'hyalo-sync--check-modified-state)
   ;; Project switch: advice catches project-switch-project dispatch
   (advice-add 'project-switch-project :after #'hyalo-status--on-project-switch)
   ;; Special mode hooks: dired/magit may open without triggering window-buffer-change
@@ -122,7 +124,7 @@ Clear cached project roots to ensure fresh detection on startup."
   (remove-hook 'kill-buffer-hook #'hyalo-status--on-buffer-killed)
   (remove-hook 'window-selection-change-functions #'hyalo-status--on-window-selection-change)
   (remove-hook 'after-save-hook #'hyalo-sync--push-from-hook)
-  (remove-hook 'first-change-hook #'hyalo-sync--push-from-hook)
+  (remove-hook 'post-command-hook #'hyalo-sync--check-modified-state)
   (advice-remove 'project-switch-project #'hyalo-status--on-project-switch)
   (remove-hook 'dired-mode-hook #'hyalo-status--on-special-buffer-enter)
   (remove-hook 'magit-status-mode-hook #'hyalo-status--on-special-buffer-enter)
@@ -296,8 +298,21 @@ buffers regardless of entry point."
 
 (defun hyalo-sync--push-from-hook ()
   "Wrapper for `hyalo-sync--push' suitable for hooks with no args.
-Used by `after-save-hook' and `first-change-hook' to refresh modified flags."
+Used by `after-save-hook' to refresh modified flags."
   (hyalo-sync--push))
+
+(defvar-local hyalo-sync--last-modified-state nil
+  "Cached `buffer-modified-p' state for the current buffer.
+Used by `hyalo-sync--check-modified-state' to detect transitions.")
+
+(defun hyalo-sync--check-modified-state ()
+  "Push sync state when the current buffer's modification flag changes.
+Added to `post-command-hook' to catch all modification transitions:
+first edit, undo-to-unmodified, revert, etc."
+  (let ((modified (buffer-modified-p)))
+    (unless (eq modified hyalo-sync--last-modified-state)
+      (setq hyalo-sync--last-modified-state modified)
+      (hyalo-sync--push))))
 
 (defun hyalo-push-active-buffer-state ()
   "Push complete state for active buffer to all Swift UI components.

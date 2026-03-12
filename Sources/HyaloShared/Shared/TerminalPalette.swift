@@ -1,5 +1,5 @@
 // TerminalPalette.swift - Appearance-aware terminal color palette
-// Target: macOS 26 Tahoe / iOS 26 with Liquid Glass design
+// Target: macOS 26 Tahoe with Liquid Glass design
 //
 // Provides 16 ANSI colors, foreground, background, and cursor colors for
 // SwiftTerm terminal views. Automatically switches between light and dark

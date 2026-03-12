@@ -1,5 +1,5 @@
 // ITermColorsParser.swift - Parser for iTerm2 color scheme files (.itermcolors)
-// Target: macOS 26 Tahoe / iOS 26 with Liquid Glass design
+// Target: macOS 26 Tahoe with Liquid Glass design
 //
 // Parses XML plist format used by iTerm2 color schemes and extracts
 // ANSI colors, foreground, background, cursor, and selection colors.

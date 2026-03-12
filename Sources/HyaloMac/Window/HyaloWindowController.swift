@@ -85,8 +85,7 @@ final class HyaloWindowController: NSWindowController {
                 utilityTabs: UtilityAreaTab.allCases.map { $0 },
                 scrollable: false,
                 principalToolbar: { [workspace] in
-                    AnyView(EnvironmentPillView(workspace: workspace)
-                        .fixedSize(horizontal: true, vertical: false))
+                    AnyView(EnvironmentPillView(workspace: workspace))
                 },
                 trailingToolbarItems: [
                     {

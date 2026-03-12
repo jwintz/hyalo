@@ -1,5 +1,5 @@
 // HyaloWorkspaceState.swift - Emacs-specific workspace state for Hyalo
-// Cross-platform: macOS 26 / iOS 26
+// Target: macOS 26 Tahoe
 //
 // Shell state (appearance, panel visibility, dimensions) is owned by
 // KelyphosShellState. This class holds only Emacs-specific state.

@@ -1,5 +1,5 @@
 // TerminalColorExtensions.swift - Color conversion helpers for SwiftTerm
-// Target: macOS 26 Tahoe / iOS 26 with Liquid Glass design
+// Target: macOS 26 Tahoe with Liquid Glass design
 //
 // Provides platform-agnostic color conversion utilities for applying
 // TerminalPalette colors to SwiftTerm terminal views.

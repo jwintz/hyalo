@@ -1,92 +1,33 @@
-;;; init-modes.el --- Major language modes -*- lexical-binding: t; -*-
+;;; init-modes.el --- Language mode loader -*- lexical-binding: t; -*-
 
-;; Language modes for hyalo standalone.
-;; Based on emacs.d/init/init-modes.el (with swift-mode moved from tools)
-;; Tree-sitter is disabled — standard major modes only.
+;; Loads per-language init files from init/init-lang-*.el.
+;; Each file sets up its major mode, tree-sitter grammar (when enabled),
+;; LSP server, keybindings, and language-specific settings.
+;;
+;; To add a new language: create init/init-lang-<name>.el following the
+;; pattern in existing files (see ~/Development/doom modules/lang/ for
+;; reference).
 
 ;;; Code:
 
-;; ============================================================================
-;; JSON Mode
-;; ============================================================================
+;;;; Tree-sitter auto-install
 
-(use-package json-mode
+;; treesit-auto automatically installs missing grammars on first use
+;; and remaps major modes to their tree-sitter variants.
+(use-package treesit-auto
   :ensure t
-  :mode "\\.js\\(?:on\\|[hl]int\\(?:rc\\)?\\)\\'"
+  :when (and (fboundp 'treesit-available-p) (treesit-available-p))
   :config
-  (when (fboundp 'electric-indent-mode)
-    (add-hook 'json-mode-hook
-              (lambda ()
-                (setq-local electric-indent-chars
-                            (append "{}:,\n" electric-indent-chars)))))
-  :general
-  (:keymaps 'json-mode-map
-   :prefix "C-c j"
-   "" '(:ignore t :which-key "json")
-   "p" #'json-mode-show-path
-   "t" #'json-toggle-boolean
-   "+" #'json-increment-number-at-point
-   "-" #'json-decrement-number-at-point))
+  (setq treesit-auto-install 'prompt)
+  (global-treesit-auto-mode))
 
-(use-package json-snatcher
-  :ensure t
-  :defer t)
+;;;; Language modules
 
-;; ============================================================================
-;; Swift Mode
-;; ============================================================================
-
-(use-package swift-mode
-  :ensure t
-  :defer t
-  :mode "\\.swift\\'")
-
-;; ============================================================================
-;; TOML Mode
-;; ============================================================================
-
-(use-package toml-mode
-  :ensure t
-  :mode "\\.toml\\'")
-
-;; ============================================================================
-;; JavaScript/TypeScript Mode (with eglot)
-;; ============================================================================
-
-(use-package js-mode
-  :ensure nil
-  :mode ("\\.[mc]?js\\'" . js-mode)
-  :mode ("\\.es6\\'" . js-mode)
-  :mode ("\\.pac\\'" . js-mode)
-  :config
-  (when (fboundp 'electric-indent-mode)
-    (add-hook 'js-mode-hook
-              (lambda ()
-                (setq-local electric-indent-chars
-                            (append "}):" electric-indent-chars)))))
-  (add-hook 'js-mode-hook #'eglot-ensure)
-  :general
-  (:keymaps 'js-mode-map
-   :prefix "C-c J"
-   "" '(:ignore t :which-key "javascript")))
-
-(use-package typescript-mode
-  :ensure t
-  :mode "\\.ts\\'"
-  :config
-  (add-hook 'typescript-mode-hook #'eglot-ensure))
-
-;; ============================================================================
-;; Git Modes (gitignore, gitconfig, gitattributes)
-;; ============================================================================
-
-(use-package git-modes
-  :ensure t
-  :mode (("/\\.gitignore\\'" . gitignore-mode)
-         ("/\\.git/info/attributes\\'" . gitattributes-mode)
-         ("/\\.gitattributes\\'" . gitattributes-mode)
-         ("/\\.git/config\\'" . gitconfig-mode)
-         ("/\\.gitconfig\\'" . gitconfig-mode)))
+(require 'init-lang-json)
+(require 'init-lang-swift)
+(require 'init-lang-toml)
+(require 'init-lang-javascript)
+(require 'init-lang-git)
 
 (provide 'init-modes)
 ;;; init-modes.el ends here

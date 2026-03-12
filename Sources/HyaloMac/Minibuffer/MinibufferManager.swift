@@ -79,7 +79,18 @@ final class MinibufferManager {
         #if DEBUG
         NSLog("[Hyalo:Minibuffer] update called, data size=%d", data.count)
         #endif
+        let hadCandidates = !viewModel.candidates.isEmpty
         viewModel.update(from: data)
+        let hasCandidates = !viewModel.candidates.isEmpty
+
+        // Re-center panel when candidates appear/disappear (height changes)
+        if hadCandidates != hasCandidates, let searchPanel = panel,
+           let parentWindow = searchPanel.parent {
+            let panelWidth: CGFloat = 680
+            let panelHeight: CGFloat = hasCandidates ? 400 : 60
+            searchPanel.setContentSize(NSSize(width: panelWidth, height: panelHeight))
+            searchPanel.positionRelativeToParent(parentWindow)
+        }
     }
 
     // MARK: - Hide

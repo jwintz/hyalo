@@ -5,6 +5,17 @@
 
 ;;; Code:
 
+(require 'treesit nil t)
+
+;; Tree-sitter Markdown grammar (Emacs 29+)
+(when (and (fboundp 'treesit-available-p) (treesit-available-p))
+  (add-to-list 'treesit-language-source-alist
+               '(markdown "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
+                          nil "tree-sitter-markdown/src"))
+  (add-to-list 'treesit-language-source-alist
+               '(markdown-inline "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
+                                 nil "tree-sitter-markdown-inline/src")))
+
 (use-package markdown-mode
   :ensure t
   :mode (("README\\.md\\'" . markdown-mode)

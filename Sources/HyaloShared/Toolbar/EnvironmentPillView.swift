@@ -43,29 +43,51 @@ private struct BreadcrumbContent: View {
     var model: EnvironmentBreadcrumbModel
     var activityManager = ActivityManager.shared
 
+    /// Available width from toolbar layout
+    @State private var availableWidth: CGFloat = .infinity
+
+    // Breakpoints for progressive elision (right to left)
+    private static let showActivityText: CGFloat = 400
+    private static let showEnvironment: CGFloat = 280
+    private static let showUserText: CGFloat = 160
+
     var body: some View {
         HStack(spacing: 0) {
             // Segment 1: user/host
-            UserHostDropDownView(model: model)
+            UserHostDropDownView(model: model, compact: availableWidth < Self.showUserText)
 
-            // Segment 2: environment
-            EnvironmentDropDownView(model: model)
+            // Segment 2: environment (hidden when narrow)
+            if availableWidth >= Self.showEnvironment {
+                EnvironmentDropDownView(model: model)
+            }
 
             Spacer(minLength: 0)
 
-            // Segment 3: build/activity status (existing, right-aligned)
-            // Trailing padding matches segments 1 and 2 (.padding(.horizontal, 6))
-            // which combined with the outer .padding(5) gives 11pt from the capsule edge.
-            BuildStatusView(activityManager: activityManager)
-                .fixedSize()
-                .padding(.trailing, 6)
+            // Segment 3: build/activity status
+            BuildStatusView(
+                activityManager: activityManager,
+                compact: availableWidth < Self.showActivityText
+            )
+            .fixedSize()
+            .padding(.trailing, 6)
         }
         .padding(5)
         .clipShape(Capsule())
         .glassEffect(in: .capsule)
-        // Dynamic width: min width for usability, hug content
-        .frame(minWidth: 100)
-        .fixedSize(horizontal: true, vertical: false)
+        .frame(minWidth: 60)
+        .background {
+            GeometryReader { geo in
+                Color.clear.preference(key: PillWidthKey.self, value: geo.size.width)
+            }
+        }
+        .onPreferenceChange(PillWidthKey.self) { availableWidth = $0 }
+    }
+}
+
+private struct PillWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = .infinity
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
@@ -76,6 +98,7 @@ private struct BuildStatusView: View {
     @Environment(\.controlActiveState) private var activeState
 
     var activityManager: ActivityManager
+    var compact: Bool = false
 
     @State private var isPresented = false
     @State private var displayed: ActivityItem?
@@ -84,7 +107,9 @@ private struct BuildStatusView: View {
         Group {
             if let activity = displayed {
                 HStack(spacing: 6) {
-                    buildStatusText(activity)
+                    if !compact {
+                        buildStatusText(activity)
+                    }
                     buildStatusIndicator(activity)
                 }
                 .transition(.opacity.combined(with: .move(edge: .trailing)))

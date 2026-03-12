@@ -12,7 +12,8 @@ public struct UserHostDropDownView: View {
     @Environment(\.controlActiveState) private var activeState
     
     public var model: EnvironmentBreadcrumbModel
-    
+    public var compact: Bool = false
+
     @State private var isPopoverPresented = false
     @State private var isHovering = false
     
@@ -30,16 +31,7 @@ public struct UserHostDropDownView: View {
     public var body: some View {
         HStack(spacing: 4) {
             label
-            chevronSeparator
-                .opacity(isHovering || isPopoverPresented ? 0 : 1)
-        }
-        .background {
-            if isHovering || isPopoverPresented {
-                HStack {
-                    Spacer()
-                    chevronDown
-                }
-            }
+            chevron
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 6)
@@ -57,8 +49,9 @@ public struct UserHostDropDownView: View {
         .accessibilityHint("SSH actions")
     }
 
-    public init(model: EnvironmentBreadcrumbModel) {
+    public init(model: EnvironmentBreadcrumbModel, compact: Bool = false) {
         self.model = model
+        self.compact = compact
     }
     
     // MARK: - Label
@@ -67,28 +60,27 @@ public struct UserHostDropDownView: View {
         HStack(spacing: 6) {
             Image(systemName: "person.crop.circle")
                 .imageScale(.medium)
-            Text(displayName)
-                .font(.subheadline)
-                .lineLimit(1)
-                .frame(minWidth: 0)
+            if !compact {
+                Text(displayName)
+                    .font(.subheadline)
+                    .lineLimit(1)
+                    .frame(minWidth: 0)
+            }
         }
     }
     
-    // MARK: - Chevrons
-    
-    @ViewBuilder private var chevronSeparator: some View {
-        Image(systemName: "chevron.compact.right")
-            .font(.system(size: 9, weight: .medium))
-            .foregroundStyle(.secondary)
-            .scaleEffect(x: 1.3, y: 1.0, anchor: .center)
-            .imageScale(.large)
-    }
-    
-    @ViewBuilder private var chevronDown: some View {
+    // MARK: - Chevron
+
+    @ViewBuilder private var chevron: some View {
         Image(systemName: "chevron.down")
             .font(.system(size: 8, weight: .semibold))
-            .padding(.top, 0.5)
-            .padding(.trailing, 2)
+            .foregroundStyle(.secondary)
+            .rotationEffect(
+                .degrees(isHovering || isPopoverPresented ? 0 : -90),
+                anchor: .center
+            )
+            .animation(.easeInOut(duration: 0.2), value: isHovering || isPopoverPresented)
+            .frame(width: 12, height: 12)
     }
     
     // MARK: - Popover Content

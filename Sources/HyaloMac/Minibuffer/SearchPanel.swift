@@ -35,12 +35,12 @@ final class SearchPanel: NSPanel {
         return button
     }
 
-    /// Position like Spotlight/Xcode Quick Open: horizontally centered, top quarter of parent
+    /// Position centered horizontally and vertically in parent window
     func positionRelativeToParent(_ parent: NSWindow) {
         let parentFrame = parent.frame
         let panelSize = self.frame.size
         let x = parentFrame.midX - panelSize.width / 2
-        let y = parentFrame.origin.y + parentFrame.height * 0.70 - panelSize.height / 2
+        let y = parentFrame.midY - panelSize.height / 2
         self.setFrameOrigin(NSPoint(x: x, y: y))
     }
 }

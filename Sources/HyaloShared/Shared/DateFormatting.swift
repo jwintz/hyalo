@@ -1,5 +1,5 @@
 // DateFormatting.swift - Shared date formatting utilities
-// Target: macOS 26 Tahoe / iOS 26
+// Target: macOS 26 Tahoe
 
 import Foundation
 
