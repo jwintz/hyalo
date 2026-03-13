@@ -84,14 +84,131 @@
 
 ;;; Package System
 
+(require 'cl-lib)
 (require 'package)
 (unless (eq window-system 'ios)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
+
+;; Cache package-initialize results (Doom-style autoload cache).
+;; package-initialize scans every installed package, reads its -pkg.el
+;; and loads its -autoloads.el.  This takes 200-400ms on a typical
+;; install.  We cache the resulting autoloads into a single file and
+;; set package--initialized, package-alist, and load-path directly,
+;; bypassing the per-package stat() calls on subsequent starts.
+;;
+;; Cache is invalidated when:
+;;  - The cache file does not exist
+;;  - elpa/ directory mtime is newer than the cache
+;;  - Emacs version changes (byte-code compatibility)
+
+(defvar hyalo--package-cache-file
+  (expand-file-name "package-cache.el" user-emacs-directory)
+  "File caching package-initialize results for faster startup.")
+
+(defun hyalo--package-cache-valid-p ()
+  "Return non-nil if the package cache exists and is newer than elpa/."
+  (let ((cache-file hyalo--package-cache-file)
+        (elpa-dir package-user-dir))
+    (and (file-exists-p cache-file)
+         (file-exists-p elpa-dir)
+         ;; Cache must be newer than last elpa/ modification
+         (time-less-p
+          (file-attribute-modification-time (file-attributes elpa-dir))
+          (file-attribute-modification-time (file-attributes cache-file))))))
+
+(defun hyalo--package-cache-write ()
+  "Dump current package state to cache file for fast reload.
+Called after a full package-initialize so all autoloads are active."
+  (with-temp-file hyalo--package-cache-file
+    (let ((print-level nil)
+          (print-length nil))
+      (insert ";;; hyalo package cache -*- lexical-binding: t; no-byte-compile: t -*-\n")
+      (insert ";; Auto-generated — do not edit.  Delete to rebuild.\n")
+      (insert (format ";; Emacs %s\n\n" emacs-version))
+      ;; Save the Emacs version for invalidation
+      (insert (format "(unless (equal emacs-version %S)\n  (error \"Package cache version mismatch\"))\n\n"
+                      emacs-version))
+      ;; Restore package-alist (needed for package-installed-p, describe-package, etc.)
+      (insert (format "(setq package-alist '%S)\n\n" package-alist))
+      ;; Restore load-path entries added by package-initialize
+      ;; (only the elpa/ entries, not the whole load-path)
+      (let ((elpa-paths (cl-remove-if-not
+                         (lambda (p) (string-prefix-p (expand-file-name package-user-dir) p))
+                         load-path)))
+        (insert (format "(setq load-path (append '%S load-path))\n\n" elpa-paths)))
+      ;; Load all autoload files — this is the expensive part we're caching
+      (insert ";; Concatenated autoloads\n")
+      (dolist (pkg-desc (apply #'append (mapcar #'cdr package-alist)))
+        (let* ((dir (package-desc-dir pkg-desc))
+               (auto-file (expand-file-name
+                           (format "%s-autoloads.el" (package-desc-name pkg-desc))
+                           dir)))
+          (when (file-exists-p auto-file)
+            (insert (format "\n;;; %s\n" (package-desc-name pkg-desc)))
+            (insert (format "(let ((load-file-name %S))\n" auto-file))
+            ;; Insert autoload file contents, stripping header/footer
+            (let ((contents (with-temp-buffer
+                              (insert-file-contents auto-file)
+                              (buffer-string))))
+              ;; Remove the ;;; commentary and provide/require boilerplate
+              (insert contents))
+            (insert ")\n"))))
+      ;; Mark as initialized
+      (insert "\n(setq package--initialized t)\n"))))
+
+;; Saved here (before profiler is loaded) and injected later by init.el.
+(defvar hyalo--package-init-timing nil
+  "Cons of (PHASE-SYMBOL . ELAPSED-SECONDS) for package init profiling.")
+
+(defun hyalo--package-initialize-cached ()
+  "Load packages from cache if valid, otherwise initialize and build cache."
+  (let ((start (float-time)))
+    (if (hyalo--package-cache-valid-p)
+        ;; Fast path: load the single cache file
+        (condition-case err
+            (progn
+              (load hyalo--package-cache-file nil 'nomessage 'nosuffix)
+              (setq hyalo--package-init-timing
+                    (cons 'package-cache-load (- (float-time) start))))
+          (error
+           ;; Cache is corrupt or version mismatch — fall back to full init
+           (message "Package cache invalid (%s), rebuilding…" (error-message-string err))
+           (delete-file hyalo--package-cache-file)
+           (hyalo--package-initialize-cached)))
+      ;; Slow path: full package-initialize, then write cache
+      (let ((debug-on-error nil))
+        (package-initialize))
+      (setq hyalo--package-init-timing
+            (cons 'package-initialize (- (float-time) start)))
+      ;; Write cache for next startup
+      (hyalo--package-cache-write))))
+
 ;; Some packages (e.g. modus-themes) have autoload files that call their own
 ;; macros before those macros are loaded.  debug-on-error t would enter the
 ;; debugger on those benign errors.  Silence them during package-initialize.
-(let ((debug-on-error nil))
-  (package-initialize))
+(hyalo--package-initialize-cached)
+
+;; Rebuild package cache after any install so next startup is fast.
+(advice-add 'package-install :after
+            (lambda (&rest _)
+              (when (file-exists-p hyalo--package-cache-file)
+                (delete-file hyalo--package-cache-file)
+                (hyalo--package-cache-write)))
+            '((name . hyalo-rebuild-cache)))
+(advice-add 'package-delete :after
+            (lambda (&rest _)
+              (when (file-exists-p hyalo--package-cache-file)
+                (delete-file hyalo--package-cache-file)))
+            '((name . hyalo-invalidate-cache)))
+
+(defun hyalo-package-cache-rebuild ()
+  "Force rebuild of the package autoload cache."
+  (interactive)
+  (when (file-exists-p hyalo--package-cache-file)
+    (delete-file hyalo--package-cache-file))
+  (package-initialize)
+  (hyalo--package-cache-write)
+  (message "Package cache rebuilt: %s" hyalo--package-cache-file))
 
 ;; package-refresh-contents is deferred to the first interactive
 ;; package-install via a transient hook.  See below, after hyalo-lib

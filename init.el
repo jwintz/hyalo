@@ -79,12 +79,19 @@
 
 (when (and hyalo--needs-bootstrap (fboundp 'hyalo-set-loading-message))
   (hyalo-set-loading-message "Bootstrapping packages…") (sit-for 0.01))
+(defvar hyalo--bootstrap-start (float-time))
 (require 'init-bootstrap)
 
 ;;; Modules
 
 ;; hyalo-lib is loaded by init-bootstrap after load-path setup
 (require 'hyalo-profiler)
+;; Inject package-initialize timing (collected before profiler was loaded)
+(when hyalo--package-init-timing
+  (hyalo-profiler-record (car hyalo--package-init-timing)
+                         (cdr hyalo--package-init-timing)))
+;; Record init-bootstrap time (full bootstrap including use-package, elog, etc.)
+(hyalo-profiler-record 'init-bootstrap (- (float-time) hyalo--bootstrap-start))
 (require 'init-core)
 
 ;; Helper to trace module initialization time

@@ -22,15 +22,9 @@ final class MinibufferManager {
     // MARK: - Show
 
     func show(from data: Data) {
-        #if DEBUG
-        NSLog("[Hyalo:Minibuffer] show called, data size=%d", data.count)
-        #endif
         viewModel.show(from: data)
 
         if panel != nil {
-            #if DEBUG
-            NSLog("[Hyalo:Minibuffer] panel already visible, updating state only")
-            #endif
             return
         }
 
@@ -44,15 +38,9 @@ final class MinibufferManager {
 
         // Wire view model callbacks to Emacs channel
         viewModel.onCandidateSelected = { [weak self] index in
-            #if DEBUG
-            NSLog("[Hyalo:Minibuffer] candidate selected: %d", index)
-            #endif
             self?.onCandidateSelected?(String(index))
         }
         viewModel.onAbort = { [weak self] in
-            #if DEBUG
-            NSLog("[Hyalo:Minibuffer] abort called")
-            #endif
             self?.onAbort?()
         }
 
@@ -68,17 +56,11 @@ final class MinibufferManager {
         searchPanel.positionRelativeToParent(parentWindow)
         parentWindow.addChildWindow(searchPanel, ordered: .above)
         searchPanel.orderFront(nil)
-        #if DEBUG
-        NSLog("[Hyalo:Minibuffer] panel shown, prompt=%@", viewModel.prompt)
-        #endif
     }
 
     // MARK: - Update
 
     func update(from data: Data) {
-        #if DEBUG
-        NSLog("[Hyalo:Minibuffer] update called, data size=%d", data.count)
-        #endif
         let hadCandidates = !viewModel.candidates.isEmpty
         viewModel.update(from: data)
         let hasCandidates = !viewModel.candidates.isEmpty
@@ -96,9 +78,6 @@ final class MinibufferManager {
     // MARK: - Hide
 
     func hide() {
-        #if DEBUG
-        NSLog("[Hyalo:Minibuffer] hide called, panel=%@", panel != nil ? "yes" : "nil")
-        #endif
         viewModel.hide()
         dismissPanel()
     }

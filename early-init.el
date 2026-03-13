@@ -15,11 +15,17 @@
 ;; Used before the Hyalo module (and its elog integration) is available.
 ;; Writes to stderr (visible in Terminal) and to a file (visible without
 ;; a window, e.g., when launched from Finder or the dock).
+;; Silent by default; enable with --debug-init or HYALO_DEBUG=1.
+(defvar hyalo-debug (or init-file-debug (getenv "HYALO_DEBUG"))
+  "Non-nil enables verbose boot logging to stderr and /tmp/hyalo-boot.log.
+Set via --debug-init flag or HYALO_DEBUG=1 environment variable.")
+
 (defun hyalo--boot-log (msg)
-  "Write MSG to stderr and /tmp/hyalo-boot.log."
-  (let ((line (concat "[hyalo:boot] " msg "\n")))
-    (princ line #'external-debugging-output)
-    (write-region line nil "/tmp/hyalo-boot.log" 'append 'silent)))
+  "Write MSG to stderr and /tmp/hyalo-boot.log when `hyalo-debug' is non-nil."
+  (when hyalo-debug
+    (let ((line (concat "[hyalo:boot] " msg "\n")))
+      (princ line #'external-debugging-output)
+      (write-region line nil "/tmp/hyalo-boot.log" 'append 'silent))))
 
 (hyalo--boot-log "early-init started")
 

@@ -61,8 +61,11 @@
   (let ((formatted (format "[%s] %s" context msg)))
     (if (and hyalo-elog (fboundp 'elog-info))
         (apply #'elog-info hyalo-elog formatted args)
-      (let ((out (apply #'format formatted args)))
-        (message "[hyalo] %s" out)))))
+      ;; Fallback to message only when debugging (avoids stderr noise
+      ;; during normal startup before elog is initialized).
+      (when (bound-and-true-p hyalo-debug)
+        (let ((out (apply #'format formatted args)))
+          (message "[hyalo] %s" out))))))
 
 (defun hyalo-warn (context msg &rest args)
   "Log warning level MSG with ARGS in CONTEXT."

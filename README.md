@@ -52,11 +52,52 @@ This launches Emacs with the modular init system:
 ### Build
 
 ```bash
-swift build                    # builds all targets
+swift build                    # debug build (default)
 swift build --target Hyalo     # builds Hyalo.dylib only
 pixi run build-release         # release build
 pixi run package               # assemble Hyalo.app bundle
 pixi run dmg                   # create DMG installer
+```
+
+#### Debug vs Release builds
+
+| | Debug (`swift build`) | Release (`swift build -c release`) |
+|---|---|---|
+| Output | `.build/debug/libHyalo.dylib` | `.build/release/libHyalo.dylib` |
+| `#if DEBUG` code | Compiled in | Stripped out |
+| Optimization | `-Onone` (fast compile) | `-O` (optimized) |
+| Used by | `pixi run run` | `pixi run run-release`, `pixi run package`, Finder (Hyalo.app) |
+
+**Debug builds** include `#if DEBUG`-gated `NSLog` calls (e.g. `[Hyalo:Minibuffer]` trace messages). These are useful during development but produce noisy console output.
+
+**Release builds** strip all `#if DEBUG` code at compile time — no trace messages, smaller binary, better performance. The `package` task depends on `build-release`, so Hyalo.app bundles are always release builds.
+
+**For day-to-day development**: use the default `swift build` (debug). The `pixi run run` task loads from `.build/debug/`.
+
+**To run with the release build**:
+
+```bash
+pixi run run-release           # build release + launch Emacs with .build/release/libHyalo.dylib
+```
+
+**To silence Swift trace logs without a release build**: the `#if DEBUG` logs have already been removed from `MinibufferManager.swift`. If new trace logs are added during development, gate them behind `#if DEBUG` — they'll be stripped from Hyalo.app automatically.
+
+### Logging
+
+Hyalo has three log layers:
+
+| Layer | Output | Control |
+|---|---|---|
+| **Elisp boot** (`[hyalo:boot]`) | stderr + `/tmp/hyalo-boot.log` | `--debug-init` flag or `HYALO_DEBUG=1` env var |
+| **Elisp runtime** (`[hyalo]`) | `*elog*` buffer (after init) | `hyalo-elog` level (default: `info`) |
+| **Swift** (`NSLog`) | stderr / Console.app | `#if DEBUG` (compile-time) |
+
+Boot logs are silent by default. To enable verbose boot logging:
+
+```bash
+HYALO_DEBUG=1 emacs --init-directory /path/to/hyalo
+# or
+emacs --init-directory /path/to/hyalo --debug-init
 ```
 
 ### Theme System

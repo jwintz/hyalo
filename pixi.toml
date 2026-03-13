@@ -105,5 +105,8 @@ changelog = "bash -c 'TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo \
 # Build and launch Emacs with Hyalo module loaded.
 run = { cmd = "bash -c 'FEEDSTOCK=\"$HOME/Syntropment/hyalo-feedstock\"; EMACS=\"$FEEDSTOCK/emacs-build-macos/nextstep/Emacs.app/Contents/MacOS/Emacs\"; if [ ! -x \"$EMACS\" ]; then echo \"ERROR: Emacs not found at $EMACS\"; exit 1; fi; DYLIB=\".build/debug/libHyalo.dylib\"; echo \"Launching Emacs with Hyalo...\"; \"$EMACS\" --load \"$DYLIB\" 2>&1 || \"$EMACS\"'", depends-on = ["build"] }
 
+# Build release and launch Emacs with the optimized dylib (no #if DEBUG code).
+run-release = { cmd = "bash -c 'FEEDSTOCK=\"$HOME/Syntropment/hyalo-feedstock\"; EMACS=\"$FEEDSTOCK/emacs-build-macos/nextstep/Emacs.app/Contents/MacOS/Emacs\"; if [ ! -x \"$EMACS\" ]; then echo \"ERROR: Emacs not found at $EMACS\"; exit 1; fi; DYLIB=\".build/release/libHyalo.dylib\"; echo \"Launching Emacs with Hyalo (release)...\"; \"$EMACS\" --load \"$DYLIB\" 2>&1 || \"$EMACS\"'", depends-on = ["build-release"] }
+
 # Remove all build artifacts.
 distclean = "rm -rf .build Hyalo.app Hyalo-*.dmg DerivedData build && echo 'distclean complete'"
