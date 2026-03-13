@@ -120,6 +120,43 @@
   (global-auto-revert-non-file-buffers nil)
   (auto-revert-interval 3))
 
+(defvar hyalo--defer-vc-refresh-state nil
+  "Non-nil while file visiting should defer VC state refresh to idle.")
+
+(defvar-local hyalo--vc-refresh-state-pending nil
+  "Non-nil while an idle VC refresh has been scheduled for the current buffer.")
+
+(defun hyalo--find-file-noselect-defer-vc-a (fn &rest args)
+  "Defer synchronous VC refresh while visiting a file interactively."
+  (let ((hyalo--defer-vc-refresh-state (not noninteractive)))
+    (apply fn args)))
+
+(defun hyalo--vc-refresh-state-deferred-a (fn &rest args)
+  "Move VC state refresh off the synchronous file-open path."
+  (if (or (not hyalo--defer-vc-refresh-state)
+          noninteractive
+          hyalo--vc-refresh-state-pending
+          (not buffer-file-name)
+          (file-remote-p buffer-file-name))
+      (apply fn args)
+    (setq hyalo--vc-refresh-state-pending t)
+    (let ((buffer (current-buffer))
+          (captured-args args))
+      (run-with-idle-timer
+       0 nil
+       (lambda ()
+         (when (buffer-live-p buffer)
+           (with-current-buffer buffer
+             (setq hyalo--vc-refresh-state-pending nil)
+             (apply fn captured-args)
+             (force-mode-line-update)
+             (when (bound-and-true-p diff-hl-mode)
+               (ignore-errors (diff-hl-update)))))))
+      nil)))
+
+(advice-add 'find-file-noselect :around #'hyalo--find-file-noselect-defer-vc-a)
+(advice-add 'vc-refresh-state :around #'hyalo--vc-refresh-state-deferred-a)
+
 ;;;; Pixel-Perfect Scrolling (ultra-scroll)
 
 ;; ultra-scroll provides smooth pixel-precise scrolling on macOS

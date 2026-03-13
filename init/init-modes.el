@@ -6,11 +6,11 @@
   :ensure t
   :when (and (fboundp 'treesit-available-p) (treesit-available-p))
   :config
-  ;; Don't prompt during startup — grammars should be pre-installed.
+  ;; Keep grammar recipes available, but do not auto-remap modes globally.
+  ;; The global mode is currently the strongest regression suspect for file-open
+  ;; latency, so tree-sitter mode switching remains opt-in for now.
   (setq treesit-auto-install nil
-        treesit-auto-langs (delq 'markdown (copy-sequence treesit-auto-langs)))
-  ;; Defer tree-sitter activation to first file open to speed up init.
-  (add-hook 'hyalo-first-file-hook #'global-treesit-auto-mode))
+        treesit-auto-langs (delq 'markdown (copy-sequence treesit-auto-langs))))
 
 (require 'init-lang-json)
 (require 'init-lang-swift)

@@ -96,9 +96,8 @@ Clear cached project roots to ensure fresh detection on startup."
   (add-hook 'window-selection-change-functions #'hyalo-status--on-window-selection-change)
   ;; Tab state refresh on save (modified flag changes)
   (add-hook 'after-save-hook #'hyalo-sync--push-from-hook)
-  ;; Detect modification state changes on every command.
-  ;; This catches: first edit, undo-to-unmodified, revert, etc.
-  (add-hook 'post-command-hook #'hyalo-sync--check-modified-state)
+  ;; Detect modified-flag transitions precisely, without taxing every command.
+  (advice-add 'set-buffer-modified-p :around #'hyalo-sync--on-modified-flag-change-a)
   ;; Project switch: advice catches project-switch-project dispatch
   (advice-add 'project-switch-project :after #'hyalo-status--on-project-switch)
   ;; Special mode hooks: dired/magit may open without triggering window-buffer-change
@@ -120,7 +119,7 @@ Clear cached project roots to ensure fresh detection on startup."
   (remove-hook 'kill-buffer-hook #'hyalo-status--on-buffer-killed)
   (remove-hook 'window-selection-change-functions #'hyalo-status--on-window-selection-change)
   (remove-hook 'after-save-hook #'hyalo-sync--push-from-hook)
-  (remove-hook 'post-command-hook #'hyalo-sync--check-modified-state)
+  (advice-remove 'set-buffer-modified-p #'hyalo-sync--on-modified-flag-change-a)
   (advice-remove 'project-switch-project #'hyalo-status--on-project-switch)
   (remove-hook 'dired-mode-hook #'hyalo-status--on-special-buffer-enter)
   (remove-hook 'magit-status-mode-hook #'hyalo-status--on-special-buffer-enter)
@@ -217,7 +216,8 @@ global value of that hook).  The buffer-name guard rejects internal
 buffers regardless of entry point."
   (let* ((win-buf (window-buffer (selected-window)))
          (win-buf-name (buffer-name win-buf)))
-  (unless (or hyalo-sync--inhibit
+  (unless (or hyalo-sync--shutting-down
+              hyalo-sync--inhibit
               (string-prefix-p " " win-buf-name))
   (let ((hyalo-sync--inhibit t))
   (condition-case nil
@@ -297,18 +297,21 @@ buffers regardless of entry point."
 Used by `after-save-hook' to refresh modified flags."
   (hyalo-sync--push))
 
-(defvar-local hyalo-sync--last-modified-state nil
-  "Cached `buffer-modified-p' state for the current buffer.
-Used by `hyalo-sync--check-modified-state' to detect transitions.")
-
-(defun hyalo-sync--check-modified-state ()
-  "Push sync state when the current buffer's modification flag changes.
-Added to `post-command-hook' to catch all modification transitions:
-first edit, undo-to-unmodified, revert, etc."
-  (let ((modified (buffer-modified-p)))
-    (unless (eq modified hyalo-sync--last-modified-state)
-      (setq hyalo-sync--last-modified-state modified)
-      (hyalo-sync--push))))
+(defun hyalo-sync--on-modified-flag-change-a (fn &rest args)
+  "Push sync state when the selected buffer's modified flag actually changes."
+  (let* ((buffer (current-buffer))
+         (was-modified (buffer-modified-p))
+         (result (apply fn args))
+         (is-modified (buffer-modified-p)))
+    (when (and (not hyalo-sync--shutting-down)
+               (not (eq was-modified is-modified))
+               (eq buffer (window-buffer (selected-window)))
+               (let ((name (buffer-name buffer)))
+                 (and name
+                      (not (minibufferp buffer))
+                      (not (string-prefix-p " " name)))))
+      (hyalo-sync--push))
+    result))
 
 (defun hyalo-push-active-buffer-state ()
   "Push complete state for active buffer to all Swift UI components.
@@ -331,7 +334,8 @@ transient internal buffers."
     ;; Skip if the buffer hasn't changed — prevents redundant pushes when
     ;; window-buffer-change-functions fires during resize (resize_frame_windows
     ;; can recreate windows without changing their buffer associations).
-    (unless (or (string-prefix-p " " buf-name)
+    (unless (or hyalo-sync--shutting-down
+                (string-prefix-p " " buf-name)
                 (eq win-buf hyalo-status--last-pushed-buffer))
       ;; Phase 1: Push all UI state (tabs, selection, buffer list)
       (hyalo-sync--push)
@@ -380,35 +384,37 @@ transient internal buffers."
 buffer is still current.  The buffer will be absent from `buffer-list'
 only after the kill completes, so we defer via `run-at-time' to let Emacs
 finish removing the buffer before we snapshot the list."
-  (run-at-time 0 nil
-               (lambda ()
-                 (when (fboundp 'hyalo-update-editor-tabs)
-                   (let* ((tab-bufs (cl-remove-if
-                                     (lambda (b)
-                                       (string-prefix-p " " (buffer-name b)))
-                                     (buffer-list)))
-                          (tab-data
-                           (mapcar
-                            (lambda (b)
-                              (let* ((name (buffer-name b))
-                                     (file (buffer-file-name b))
-                                     (modified (buffer-modified-p b))
-                                     (icon (cond
-                                            ((string-suffix-p ".swift" (or name "")) "swift")
-                                            ((string-suffix-p ".el" (or name "")) "doc.text")
-                                            ((string-suffix-p ".md" (or name "")) "doc.plaintext")
-                                            ((string-suffix-p ".json" (or name "")) "curlybraces")
-                                            ((string-suffix-p ".html" (or name ""))
-                                             "chevron.left.forwardslash.chevron.right")
-                                            (t "doc"))))
-                                `((id . ,name)
-                                  (name . ,name)
-                                  (icon . ,icon)
-                                  (isModified . ,(if modified t :json-false))
-                                  (isTemporary . :json-false)
-                                  (filePath . ,file))))
-                            tab-bufs)))
-                     (hyalo-update-editor-tabs (json-encode (vconcat tab-data))))))))
+  (unless hyalo-sync--shutting-down
+    (run-at-time 0 nil
+                 (lambda ()
+                   (unless hyalo-sync--shutting-down
+                     (when (fboundp 'hyalo-update-editor-tabs)
+                       (let* ((tab-bufs (cl-remove-if
+                                         (lambda (b)
+                                           (string-prefix-p " " (buffer-name b)))
+                                         (buffer-list)))
+                              (tab-data
+                               (mapcar
+                                (lambda (b)
+                                  (let* ((name (buffer-name b))
+                                         (file (buffer-file-name b))
+                                         (modified (buffer-modified-p b))
+                                         (icon (cond
+                                                ((string-suffix-p ".swift" (or name "")) "swift")
+                                                ((string-suffix-p ".el" (or name "")) "doc.text")
+                                                ((string-suffix-p ".md" (or name "")) "doc.plaintext")
+                                                ((string-suffix-p ".json" (or name "")) "curlybraces")
+                                                ((string-suffix-p ".html" (or name ""))
+                                                 "chevron.left.forwardslash.chevron.right")
+                                                (t "doc"))))
+                                    `((id . ,name)
+                                      (name . ,name)
+                                      (icon . ,icon)
+                                      (isModified . ,(if modified t :json-false))
+                                      (isTemporary . :json-false)
+                                      (filePath . ,file))))
+                                tab-bufs)))
+                         (hyalo-update-editor-tabs (json-encode (vconcat tab-data))))))))))
 
 (defun hyalo-status--on-window-selection-change (_frame)
   "Handle selected window change in FRAME.
@@ -418,8 +424,9 @@ Delegates to `hyalo-status--on-buffer-change' only when the window
 buffer differs from the last pushed buffer, to avoid redundant work
 when `window-buffer-change-functions' already handled the transition."
   (let ((buf (window-buffer (selected-window))))
+    (unless hyalo-sync--shutting-down
     (unless (eq buf hyalo-status--last-pushed-buffer)
-      (hyalo-status--on-buffer-change _frame))))
+      (hyalo-status--on-buffer-change _frame)))))
 
 (defun hyalo-status--on-project-switch (&rest _)
   "Handle `project-switch-project' dispatch.

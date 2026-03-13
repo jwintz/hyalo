@@ -230,7 +230,8 @@ of previous environment state for non-project buffers."
 Skips temp/internal buffers. Debounces rapid calls."
   ;; Skip temp/internal buffers entirely
   (let ((name (buffer-name)))
-    (when (and name
+    (when (and (not hyalo-sync--shutting-down)
+               name
                (not (minibufferp))
                (not (string-prefix-p " " name))
                (not (string-match-p "temp" name))
@@ -244,27 +245,28 @@ Skips temp/internal buffers. Debounces rapid calls."
 (defun hyalo-environment--do-push ()
   "Actually perform the push to Swift.
 Called after debounce timer fires."
-  (let* ((user-host (hyalo-environment--user-host-info))
-         (project-root (hyalo-status--project-root))
-         (has-project (not (null project-root)))
-         (had-project hyalo-environment--last-had-project)
-         ;; Only detect when in project, otherwise preserve last
-         (environments (if has-project
-                          (hyalo-environment--detect-all)
-                        hyalo-environment--last-environments)))
-    ;; Update state tracking
-    (setq hyalo-environment--last-had-project has-project)
-    ;; Push user/host if changed
-    (unless (equal user-host hyalo-environment--last-user-host)
-      (setq hyalo-environment--last-user-host user-host)
-      (when (fboundp 'hyalo-update-user-host)
-        (hyalo-update-user-host (json-encode user-host))))
-    ;; Push environments if changed or project state changed
-    (when (or (not (equal environments hyalo-environment--last-environments))
-              (not (eq has-project had-project)))
-      (setq hyalo-environment--last-environments environments)
-      (when (fboundp 'hyalo-update-environments)
-        (hyalo-update-environments (json-encode (vconcat (or environments '()))))))))
+  (unless hyalo-sync--shutting-down
+    (let* ((user-host (hyalo-environment--user-host-info))
+           (project-root (hyalo-status--project-root))
+           (has-project (not (null project-root)))
+           (had-project hyalo-environment--last-had-project)
+           ;; Only detect when in project, otherwise preserve last
+           (environments (if has-project
+                            (hyalo-environment--detect-all)
+                          hyalo-environment--last-environments)))
+      ;; Update state tracking
+      (setq hyalo-environment--last-had-project has-project)
+      ;; Push user/host if changed
+      (unless (equal user-host hyalo-environment--last-user-host)
+        (setq hyalo-environment--last-user-host user-host)
+        (when (fboundp 'hyalo-update-user-host)
+          (hyalo-update-user-host (json-encode user-host))))
+      ;; Push environments if changed or project state changed
+      (when (or (not (equal environments hyalo-environment--last-environments))
+                (not (eq has-project had-project)))
+        (setq hyalo-environment--last-environments environments)
+        (when (fboundp 'hyalo-update-environments)
+          (hyalo-update-environments (json-encode (vconcat (or environments '())))))))))
 
 ;; Hook Management
 

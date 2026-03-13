@@ -107,7 +107,7 @@
 ;;;; Hyalo Minibuffer Bridge
 
 (require 'hyalo-minibuffer nil t)
-(when (featurep 'hyalo-minibuffer)
+(when (and (featurep 'hyalo-minibuffer) (display-graphic-p))
   (hyalo-minibuffer-mode 1))
 
 (provide 'init-completion)

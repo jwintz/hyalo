@@ -61,6 +61,7 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
 (defun hyalo-minibuffer--should-skip-p ()
   "Return non-nil if we should fall through to native Emacs minibuffer."
   (or hyalo-minibuffer--inhibit
+      (not (display-graphic-p))
       ;; Recursive minibuffer (depth > 2): skip for deep nesting
       (> (minibuffer-depth) 2)
       ;; Password prompts
@@ -530,18 +531,21 @@ INDEX-STR is the selected candidate index as a string."
   :global t
   :lighter nil
   (if hyalo-minibuffer-mode
-      (progn
-        (add-hook 'minibuffer-setup-hook #'hyalo-minibuffer--setup-hook)
-        (add-hook 'minibuffer-exit-hook #'hyalo-minibuffer--exit-hook)
-        ;; Suppress vertico's candidate display (not computation)
-        (when (fboundp 'vertico--display-candidates)
-          (advice-add 'vertico--display-candidates :before-while
-                      #'hyalo-minibuffer--suppress-vertico-display)))
+      (if (display-graphic-p)
+          (progn
+            (add-hook 'minibuffer-setup-hook #'hyalo-minibuffer--setup-hook)
+            (add-hook 'minibuffer-exit-hook #'hyalo-minibuffer--exit-hook)
+            ;; Suppress vertico's candidate display (not computation)
+            (when (fboundp 'vertico--display-candidates)
+              (advice-add 'vertico--display-candidates :before-while
+                          #'hyalo-minibuffer--suppress-vertico-display)))
+        (setq hyalo-minibuffer-mode nil)
+        (message "hyalo-minibuffer-mode requires a graphical display"))
     (remove-hook 'minibuffer-setup-hook #'hyalo-minibuffer--setup-hook)
     (remove-hook 'minibuffer-exit-hook #'hyalo-minibuffer--exit-hook)
     (when (fboundp 'vertico--display-candidates)
       (advice-remove 'vertico--display-candidates
-                     #'hyalo-minibuffer--suppress-vertico-display))))
+                      #'hyalo-minibuffer--suppress-vertico-display))))
 
 (provide 'hyalo-minibuffer)
 ;;; hyalo-minibuffer.el ends here

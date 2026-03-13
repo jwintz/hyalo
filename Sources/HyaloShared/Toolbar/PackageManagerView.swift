@@ -76,7 +76,7 @@ public struct PackageManagerView: View {
                         Image(systemName: "shippingbox")
                     }
                 }
-                .font(.system(size: 14))
+                .font(.body)
                 .foregroundStyle(activeState == .inactive ? .tertiary : .primary)
 
                 // Badge — only archive-upgradable packages
@@ -94,10 +94,8 @@ public struct PackageManagerView: View {
                 }
             }
         }
-        // .bordered gives the Liquid Glass single-action toolbar button look in
-        // macOS 26 without wrapping in a ControlGroup (which bridges to
-        // NSToolbarItemGroup and causes compression/collapse under space pressure).
         .buttonStyle(.bordered)
+        .fixedSize()
         .help(helpText)
         .onHover { isHovering = $0 }
         .popover(isPresented: $showPopover, arrowEdge: .bottom) {

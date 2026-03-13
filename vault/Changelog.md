@@ -56,6 +56,14 @@ All notable changes to Hyalo are documented here. The format follows [Keep a Cha
 
 ### Fixed
 
+- Suppress nested major-mode hooks during native Markdown code-block fontification to avoid extra Markdown buffer-open work
+- Defer synchronous VC state refresh off the interactive file-open path so visiting tracked files does not block on immediate VC bookkeeping
+- Stop polling buffer modified-state changes from a global `post-command-hook`; track real modified-flag transitions instead
+- Disable automatic `global-treesit-auto-mode` activation while investigating the recent file-open latency regression
+- Stop Hyalo status and environment sync hooks from rebuilding/pushing UI state during Emacs shutdown
+- Guard `hyalo-minibuffer` behind a graphical display and fall back to the native minibuffer in TTY sessions
+- Hide the shared Liquid Glass toolbar background for custom trailing items so keycast and package manager render as standalone pills without nested capsules
+- Let the keycast toolbar pill use system-default height and give the package toolbar item its own Liquid Glass capsule pill
 - Remove duplicate `relativeDate(from:)` implementations (now shared via `DateFormatting`)
 - Fix SwiftTerm terminal not loading theme by default: `TerminalPalette` now auto-loads nano themes from .itermcolors files on initialization, with embedded fallback colors
 - Fix `hyalo-set-terminal-palette` Emacs function to use new `updateCurrentScheme()` API

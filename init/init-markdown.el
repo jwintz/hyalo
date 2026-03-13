@@ -8,6 +8,10 @@
          ("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
   :config
+  (defun hyalo-markdown--delay-src-block-mode-hooks-a (fn &rest args)
+    "Suppress expensive nested mode hooks during Markdown src block fontification."
+    (delay-mode-hooks (apply fn args)))
+
   (defun hyalo-markdown--setup-pre-face (&rest _)
     "Set subtle background for markdown pre blocks based on theme.
 In terminal mode with transparency, skip setting background."
@@ -25,6 +29,8 @@ In terminal mode with transparency, skip setting background."
                           :extend t)))
   (add-hook 'enable-theme-functions #'hyalo-markdown--setup-pre-face)
   (hyalo-markdown--setup-pre-face)
+  (advice-add 'markdown-fontify-code-block-natively :around
+              #'hyalo-markdown--delay-src-block-mode-hooks-a)
   :general
   (:keymaps 'markdown-mode-map
    :prefix "C-c m"

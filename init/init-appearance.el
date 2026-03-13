@@ -17,7 +17,7 @@
 (defvar hyalo-font-height 110
   "Default font height (1/10th of a point).")
 
-(defvar hyalo-font-weight 'regular
+(defvar hyalo-font-weight 'light
   "Default font weight.")
 
 ;; Set font preferences before loading themes

@@ -9,9 +9,9 @@
 // shrinks to its minimal size.  When active, the HStack with key and
 // command replaces the placeholder.
 //
-// The pill shape and clipping are owned by this view. The enclosing toolbar
-// must NOT wrap this in a ControlGroup — that would create an
-// NSToolbarItemGroup at the AppKit layer with compression/collapse behaviour.
+// This custom toolbar item owns a single outer Liquid Glass capsule.
+// The toolbar item itself is separated from neighboring groups at the toolbar
+// layer, so this view must not introduce any additional nested capsule.
 
 import SwiftUI
 
@@ -54,21 +54,18 @@ public struct KeycastView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
-                    .padding(.horizontal, 6)
                 } else {
                     Image(systemName: "keyboard")
-                        .font(.system(size: 11))
+                        .font(.body)
                         .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 6)
                 }
             }
-            .padding(.vertical, 5)
+            .padding(5)
+            .clipShape(Capsule())
+            .glassEffect(in: .capsule)
+            .fixedSize()
             .contentTransition(.opacity)
             .animation(.easeInOut(duration: 0.2), value: showContent)
-            // The pill background and clipping live here, not in a ControlGroup
-            // wrapper in the toolbar. ControlGroup bridges to NSToolbarItemGroup
-            // which applies compression/collapse under space pressure.
-            .glassEffect(in: .capsule)
             .onChange(of: viewModel.keycastKey) { _, _ in
                 showAndScheduleFade()
             }
