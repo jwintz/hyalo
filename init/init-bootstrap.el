@@ -32,13 +32,18 @@
 
 (add-hook 'emacs-startup-hook
           (lambda ()
-            (setq gc-cons-threshold hyalo--default-gc-cons-threshold)
+            ;; gcmh-style GC: keep a high threshold during editing and
+            ;; only collect during idle.  Prevents GC pauses mid-keystroke.
+            (setq gc-cons-threshold (* 64 1024 1024))
+            (run-with-idle-timer 15 t #'garbage-collect)
             ;; Merge rather than replace: packages may have added handlers
             ;; during init that we want to preserve.
             (setq file-name-handler-alist
                   (delete-dups
                    (append file-name-handler-alist
                            hyalo--default-file-name-handler-alist)))
+            ;; Restore load-prefer-newer (disabled in early-init.el)
+            (setq load-prefer-newer t)
             ;; Enable debug-on-error now that the frame is (or will be)
             ;; visible.  Safe to interact with the debugger from here.
             (setq debug-on-error t)))
@@ -181,6 +186,9 @@ Uses elog if available, otherwise falls back to message."
 
 ;;; Environment & Shell
 
+;; exec-path-from-shell spawns a login shell to extract PATH (~300-800ms).
+;; Defer to first input: PATH is only needed when invoking external commands,
+;; not during init.  The shell is still spawned, just after the frame is visible.
 (use-package exec-path-from-shell
   :ensure t
   :config
@@ -190,7 +198,17 @@ Uses elog if available, otherwise falls back to message."
     (setq exec-path-from-shell-arguments '("-l"))
     (dolist (var '("SYNTHETIC_API_KEY"))
       (add-to-list 'exec-path-from-shell-variables var))
-    (exec-path-from-shell-initialize)))
+    ;; Run on first input, or after 2s idle (whichever comes first).
+    ;; The idle fallback ensures PATH is set before incremental package
+    ;; loading starts (eglot, magit need correct PATH).
+    (defvar hyalo--exec-path-initialized nil)
+    (defun hyalo--exec-path-deferred ()
+      "Initialize exec-path-from-shell exactly once."
+      (unless hyalo--exec-path-initialized
+        (setq hyalo--exec-path-initialized t)
+        (exec-path-from-shell-initialize)))
+    (add-hook 'hyalo-first-input-hook #'hyalo--exec-path-deferred)
+    (run-with-idle-timer 2 nil #'hyalo--exec-path-deferred)))
 
 ;;; iOS-Specific Setup
 

@@ -47,6 +47,9 @@
 ;; the NSWindow has already been configured with character-cell increments.
 (setq frame-resize-pixelwise t)
 
+;; Avoid mtime stat calls during startup.  Restored on emacs-startup-hook.
+(setq load-prefer-newer nil)
+
 ;;; Load-suffix reduction
 
 ;; Hyalo does not load .so modules via require.  Removing the suffix

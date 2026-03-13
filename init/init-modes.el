@@ -6,9 +6,11 @@
   :ensure t
   :when (and (fboundp 'treesit-available-p) (treesit-available-p))
   :config
-  (setq treesit-auto-install 'prompt
+  ;; Don't prompt during startup — grammars should be pre-installed.
+  (setq treesit-auto-install nil
         treesit-auto-langs (delq 'markdown (copy-sequence treesit-auto-langs)))
-  (global-treesit-auto-mode))
+  ;; Defer tree-sitter activation to first file open to speed up init.
+  (add-hook 'hyalo-first-file-hook #'global-treesit-auto-mode))
 
 (require 'init-lang-json)
 (require 'init-lang-swift)

@@ -14,7 +14,12 @@ public final class StatusBarViewModel {
 
     // Mode information
     public var mode: String = "Fundamental"
-    public var minorModes: [String] = []
+    public var minorModes: [String] = [] {
+        didSet { classifiedMinorModes = minorModes.map { ($0, $0.containsNerdIconGlyph) } }
+    }
+
+    /// Pre-classified minor modes to avoid Unicode scanning in view body.
+    public private(set) var classifiedMinorModes: [(text: String, isNerdGlyph: Bool)] = []
 
     // File metadata
     public var encoding: String = "UTF-8"
@@ -39,5 +44,20 @@ public final class StatusBarViewModel {
 
     public var indentDescription: String {
         "\(indentStyle): \(indentWidth)"
+    }
+}
+
+// MARK: - Nerd Font Glyph Detection
+
+extension String {
+    /// Whether this string contains any Nerd Fonts Private Use Area glyphs.
+    /// Nerd Fonts use PUA ranges: U+E000–U+F8FF (BMP PUA),
+    /// U+F0000–U+FFFFD (Supplementary PUA-A), U+100000–U+10FFFD (Supplementary PUA-B).
+    var containsNerdIconGlyph: Bool {
+        unicodeScalars.contains { scalar in
+            (0xE000...0xF8FF).contains(scalar.value) ||
+            (0xF0000...0xFFFFD).contains(scalar.value) ||
+            (0x100000...0x10FFFD).contains(scalar.value)
+        }
     }
 }

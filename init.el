@@ -84,14 +84,22 @@
 ;;; Modules
 
 ;; hyalo-lib is loaded by init-bootstrap after load-path setup
+(require 'hyalo-profiler)
 (require 'init-core)
 
 ;; Helper to trace module initialization time
 (defmacro init--require-with-trace (feature &optional filename)
   `(let ((start (float-time)))
+     ;; Emit OSSignposter interval if Swift module is loaded
+     (when (fboundp 'hyalo-signpost-begin)
+       (hyalo-signpost-begin (symbol-name ,feature)))
      (require ,feature ,filename)
-     (when (and (fboundp 'elog-info) (boundp 'emacs-logger))
-       (elog-info emacs-logger "[%s] Loaded (%.3fs)" ,feature (- (float-time) start)))))
+     (let ((elapsed (- (float-time) start)))
+       (hyalo-profiler-record ,feature elapsed)
+       (when (fboundp 'hyalo-signpost-end)
+         (hyalo-signpost-end (symbol-name ,feature)))
+       (when (and (fboundp 'elog-info) (boundp 'emacs-logger))
+         (elog-info emacs-logger "[%s] Loaded (%.3fs)" ,feature elapsed)))))
 
 (when hyalo--needs-bootstrap
   (when (fboundp 'hyalo-set-loading-message) (hyalo-set-loading-message "Loading editor settings…") (sit-for 0.01)))

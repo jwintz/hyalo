@@ -210,6 +210,7 @@ final class HyaloModule: Module {
             InspectorAppearanceCallbackWirer.wire()
         }
 
+        try setupProfilingBindings(env)
         try setupCoreBindings(env)
         try setupLoadingBindings(env)
         try setupKeycastBindings(env)

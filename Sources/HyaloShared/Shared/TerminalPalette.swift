@@ -60,11 +60,19 @@ public final class TerminalPalette {
 
     // MARK: - Initialization
 
+    nonisolated(unsafe) private var appearanceObserver: NSObjectProtocol?
+
     private init() {
         // Try to load nano themes from iTermColors files
         loadNanoThemes()
         // Subscribe to appearance changes from HyaloColorTheme
         setupAppearanceObserver()
+    }
+
+    deinit {
+        if let observer = appearanceObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     // MARK: - Nano Theme Loading
@@ -264,16 +272,16 @@ public final class TerminalPalette {
     // MARK: - Private
 
     private func setupAppearanceObserver() {
-        NotificationCenter.default.addObserver(
+        appearanceObserver = NotificationCenter.default.addObserver(
             forName: .init("HyaloAppearanceChanged"),
             object: nil,
             queue: .main
-        ) { [weak self] notification in
-            Task { @MainActor [weak self] in
+        ) { [unowned self] notification in
+            Task { @MainActor in
                 if let isDark = notification.userInfo?["isDark"] as? Bool {
-                    self?.setAppearance(isDark: isDark)
+                    self.setAppearance(isDark: isDark)
                 } else {
-                    self?.refreshAppearance()
+                    self.refreshAppearance()
                 }
             }
         }

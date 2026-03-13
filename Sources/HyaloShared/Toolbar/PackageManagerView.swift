@@ -161,19 +161,9 @@ private struct PackagePopoverContent: View {
         !viewModel.vcPackages.isEmpty
     }
 
-    /// Group upgradable packages by archive
+    /// Cached archive groups from view model.
     private var archiveGroups: [(archive: String, packages: [UpgradablePackage])] {
-        let grouped = Dictionary(grouping: viewModel.upgradablePackages) { $0.archive }
-        return grouped.sorted { $0.key < $1.key }
-            .map { (archive: $0.key, packages: $0.value) }
-    }
-
-    /// Unique archive names from available packages (for "all up to date" sections)
-    private var knownArchives: [String] {
-        let archives = Set(viewModel.upgradablePackages.map(\.archive))
-        // If no upgradable packages, we can't know archives — just show generic
-        if archives.isEmpty { return ["Archives"] }
-        return archives.sorted()
+        viewModel.archiveGroups
     }
 
     var body: some View {

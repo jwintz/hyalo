@@ -105,11 +105,10 @@ public final class ActivityManager {
 
     public func appendLog(id: String, line: String) {
         guard let idx = activities.firstIndex(where: { $0.id == id }) else { return }
-        activities[idx].logLines.append(line)
-        // Keep last 200 lines
-        if activities[idx].logLines.count > 200 {
-            activities[idx].logLines.removeFirst(activities[idx].logLines.count - 200)
+        if activities[idx].logLines.count >= 200 {
+            activities[idx].logLines.removeFirst()
         }
+        activities[idx].logLines.append(line)
     }
 
     public func clearLog(id: String) {
@@ -139,8 +138,8 @@ public final class ActivityManager {
     }
 
     public func removeAfterDelay(id: String, delay: TimeInterval = 5.0) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            self?.remove(id: id)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [unowned self] in
+            self.remove(id: id)
         }
     }
 

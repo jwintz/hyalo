@@ -31,7 +31,12 @@ public struct EditorTab: Codable, Identifiable, Hashable {
 public final class EditorTabViewModel {
     public init() {}
     public var tabs: [EditorTab] = []
-    public var selectedTabId: String?
+    public var selectedTabId: String? {
+        didSet { updateSelectedTab() }
+    }
+
+    /// Cached selected tab — avoids O(n) scan in view body.
+    public private(set) var selectedTab: EditorTab?
 
     // Callbacks (set by channel)
     public var onTabSelect: ((String) -> Void)?
@@ -39,8 +44,8 @@ public final class EditorTabViewModel {
     public var onNavigateBack: (() -> Void)?
     public var onNavigateForward: (() -> Void)?
 
-    public var selectedTab: EditorTab? {
-        tabs.first { $0.id == selectedTabId }
+    private func updateSelectedTab() {
+        selectedTab = tabs.first { $0.id == selectedTabId }
     }
 
     // MARK: - User Actions (called from SwiftUI)
@@ -70,6 +75,7 @@ public final class EditorTabViewModel {
             result.append(tab)
         }
         tabs = result
+        updateSelectedTab()
     }
 
     /// Called from Emacs via hyalo-select-editor-tab when a buffer becomes active.

@@ -57,18 +57,18 @@ public final class EnvironmentBreadcrumbModel {
     public var userHost: UserHostInfo?
     
     // Segment 2: Environments
-    public var environments: [DevEnvironment] = []
-    
-    public var primaryEnvironment: DevEnvironment? {
-        environments.first(where: { $0.isActive == true }) ?? environments.first
+    public var environments: [DevEnvironment] = [] {
+        didSet { rebuildDerivedCollections() }
     }
-    
-    public var activeEnvironments: [DevEnvironment] {
-        environments.filter { $0.isActive == true }
-    }
-    
-    public var inactiveEnvironments: [DevEnvironment] {
-        environments.filter { $0.isActive != true }
+
+    public private(set) var primaryEnvironment: DevEnvironment?
+    public private(set) var activeEnvironments: [DevEnvironment] = []
+    public private(set) var inactiveEnvironments: [DevEnvironment] = []
+
+    private func rebuildDerivedCollections() {
+        activeEnvironments = environments.filter { $0.isActive == true }
+        inactiveEnvironments = environments.filter { $0.isActive != true }
+        primaryEnvironment = activeEnvironments.first ?? environments.first
     }
     
     // Callbacks wired by channel setup in Module.swift

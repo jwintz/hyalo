@@ -109,19 +109,19 @@ public struct StatusBarView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
 
-            if !viewModel.minorModes.isEmpty {
+            if !viewModel.classifiedMinorModes.isEmpty {
                 statusBarDivider()
                 HStack(spacing: 4) {
-                    ForEach(viewModel.minorModes, id: \.self) { mode in
-                        if mode.containsNerdIconGlyph {
-                            Text(mode)
+                    ForEach(viewModel.classifiedMinorModes, id: \.text) { item in
+                        if item.isNerdGlyph {
+                            Text(item.text)
                                 .font(.custom(
                                     "Symbols Nerd Font Mono",
                                     size: HyaloDesign.FontSize.large
                                 ))
                                 .foregroundStyle(.tertiary)
                         } else {
-                            Text(mode)
+                            Text(item.text)
                                 .font(statusFont)
                                 .foregroundStyle(.tertiary)
                         }
@@ -190,17 +190,4 @@ public struct StatusBarView: View {
     }
 }
 
-// MARK: - Nerd Font Glyph Detection
-
-private extension String {
-    /// Whether this string contains any Nerd Fonts Private Use Area glyphs.
-    /// Nerd Fonts use PUA ranges: U+E000–U+F8FF (BMP PUA),
-    /// U+F0000–U+FFFFD (Supplementary PUA-A), U+100000–U+10FFFD (Supplementary PUA-B).
-    var containsNerdIconGlyph: Bool {
-        unicodeScalars.contains { scalar in
-            (0xE000...0xF8FF).contains(scalar.value) ||
-            (0xF0000...0xFFFFD).contains(scalar.value) ||
-            (0x100000...0x10FFFD).contains(scalar.value)
-        }
-    }
-}
+// Nerd Font glyph detection moved to StatusBarViewModel.swift

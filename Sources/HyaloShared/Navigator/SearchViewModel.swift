@@ -15,6 +15,7 @@ public final class SearchViewModel {
             if query.isEmpty {
                 status = .none
                 results = []
+                groupedResults = []
             }
         }
     }
@@ -24,10 +25,12 @@ public final class SearchViewModel {
     public var resultCount: Int = 0
     public var fileCount: Int = 0
     
-    /// Results grouped by file (moved from FindNavigatorView per AUDIT H4)
-    public var groupedResults: [(file: String, results: [SearchResult])] {
+    /// Results grouped by file, cached to avoid recomputation on every view update.
+    public private(set) var groupedResults: [(file: String, results: [SearchResult])] = []
+
+    private func rebuildGroupedResults() {
         let dict = Dictionary(grouping: results, by: \.file)
-        return dict.map { (file: $0.key, results: $0.value) }
+        groupedResults = dict.map { (file: $0.key, results: $0.value) }
             .sorted { $0.file < $1.file }
     }
 
@@ -55,5 +58,6 @@ public final class SearchViewModel {
         self.resultCount = resultCount
         self.fileCount = fileCount
         self.status = resultCount > 0 ? .found : .noResults
+        rebuildGroupedResults()
     }
 }

@@ -30,7 +30,17 @@ public final class ToolbarViewModel {
 
     // Package management
     public var packageOperation: PackageOperation = .idle
-    public var upgradablePackages: [UpgradablePackage] = []
+    public var upgradablePackages: [UpgradablePackage] = [] {
+        didSet { rebuildArchiveGroups() }
+    }
+    /// Cached archive groups — avoids Dictionary grouping + sort in view body.
+    public private(set) var archiveGroups: [(archive: String, packages: [UpgradablePackage])] = []
+
+    private func rebuildArchiveGroups() {
+        let grouped = Dictionary(grouping: upgradablePackages) { $0.archive }
+        archiveGroups = grouped.sorted { $0.key < $1.key }
+            .map { (archive: $0.key, packages: $0.value) }
+    }
     public var vcPackages: [VCPackage] = []
     public var lastChecked: Date? = nil
 

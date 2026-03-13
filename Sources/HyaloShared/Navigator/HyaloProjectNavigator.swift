@@ -15,7 +15,7 @@ public struct HyaloProjectNavigator: View {
         List(selection: $viewModel.selection) {
             if let root = viewModel.displayRoot {
                 ForEach(root.children ?? [], id: \.id) { child in
-                    nodeView(child)
+                    ProjectNodeView(node: child, viewModel: viewModel)
                 }
             }
         }
@@ -32,47 +32,60 @@ public struct HyaloProjectNavigator: View {
         }
     }
 
-    // MARK: - Node View
+    // MARK: - Tree Search
 
-    private func nodeView(_ node: FileTreeNode) -> AnyView {
+    private func findNode(id: String, in node: FileTreeNode) -> FileTreeNode? {
+        if node.id == id { return node }
+        guard let children = node.children else { return nil }
+        for child in children {
+            if let found = findNode(id: id, in: child) { return found }
+        }
+        return nil
+    }
+}
+
+// MARK: - Node View (concrete type, enables structural diffing)
+
+@available(macOS 26.0, *)
+private struct ProjectNodeView: View {
+    let node: FileTreeNode
+    @Bindable var viewModel: ProjectNavigatorViewModel
+
+    var body: some View {
         if node.isDirectory {
-            let isExpanded = Binding<Bool>(
-                get: { viewModel.expansions.contains(node.id) },
-                set: { newValue in
-                    var t = Transaction()
-                    t.animation = nil
-                    withTransaction(t) {
-                        if newValue {
-                            viewModel.expansions.insert(node.id)
-                        } else {
-                            viewModel.expansions.remove(node.id)
-                        }
-                    }
+            DisclosureGroup(isExpanded: expansionBinding) {
+                ForEach(node.children ?? [], id: \.id) { child in
+                    ProjectNodeView(node: child, viewModel: viewModel)
                 }
-            )
-            // AnyView required here: recursive view function cannot return opaque type
-            return AnyView(
-                DisclosureGroup(isExpanded: isExpanded) {
-                    ForEach(node.children ?? [], id: \.id) { child in
-                        nodeView(child)
-                    }
-                } label: {
-                    folderLabel(node)
-                }
-                .tag(node.id)
-            )
+            } label: {
+                folderLabel
+            }
+            .tag(node.id)
         } else {
-            return AnyView(
-                fileLabel(node)
-                    .tag(node.id)
-            )
+            fileLabel
+                .tag(node.id)
         }
     }
 
-    // MARK: - File Label
+    private var expansionBinding: Binding<Bool> {
+        Binding<Bool>(
+            get: { viewModel.expansions.contains(node.id) },
+            set: { newValue in
+                var t = Transaction()
+                t.animation = nil
+                withTransaction(t) {
+                    if newValue {
+                        viewModel.expansions.insert(node.id)
+                    } else {
+                        viewModel.expansions.remove(node.id)
+                    }
+                }
+            }
+        )
+    }
 
     @ViewBuilder
-    private func fileLabel(_ node: FileTreeNode) -> some View {
+    private var fileLabel: some View {
         HStack(spacing: 0) {
             Label {
                 Text(node.name)
@@ -87,10 +100,8 @@ public struct HyaloProjectNavigator: View {
         .contextMenu { pathContextMenu(path: node.path) }
     }
 
-    // MARK: - Folder Label
-
     @ViewBuilder
-    private func folderLabel(_ node: FileTreeNode) -> some View {
+    private var folderLabel: some View {
         HStack(spacing: 0) {
             Label {
                 Text(node.name)
@@ -104,8 +115,6 @@ public struct HyaloProjectNavigator: View {
         }
     }
 
-    // MARK: - Context Menu
-
     @ViewBuilder
     private func pathContextMenu(path: String) -> some View {
         Button("Reveal in Finder") {
@@ -115,16 +124,5 @@ public struct HyaloProjectNavigator: View {
         Button("Copy Path") {
             platformCopyToClipboard(path)
         }
-    }
-
-    // MARK: - Tree Search
-
-    private func findNode(id: String, in node: FileTreeNode) -> FileTreeNode? {
-        if node.id == id { return node }
-        guard let children = node.children else { return nil }
-        for child in children {
-            if let found = findNode(id: id, in: child) { return found }
-        }
-        return nil
     }
 }

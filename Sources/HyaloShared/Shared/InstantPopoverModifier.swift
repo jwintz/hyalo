@@ -85,10 +85,8 @@ struct InstantPopoverPresenter<ContentView: View>: NSViewRepresentable {
                 object: window,
                 queue: .main
             ) { [weak self] _ in
-                DispatchQueue.main.async {
-                    self?.isPresented = false
-                    self?.popover?.close()
-                }
+                self?.isPresented = false
+                self?.popover?.close()
             }
         }
 
