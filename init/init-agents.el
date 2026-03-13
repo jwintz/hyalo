@@ -19,7 +19,7 @@
   (copilot-indent-offset-warning-disable t)
   (copilot-install-dir (locate-user-emacs-file "copilot/"))
   :config
-  (diminish 'copilot-mode (concat " " (nerd-icons-codicon "nf-cod-copilot")))
+  ;; (diminish 'copilot-mode (concat " " (nerd-icons-codicon "nf-cod-copilot")))
 
   (general-def copilot-completion-map
     "<tab>" 'copilot-accept-completion

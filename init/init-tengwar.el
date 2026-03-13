@@ -11,7 +11,7 @@
 
 ;;; Code:
 
-(defcustom hyalo-tengwar-path nil
+(defcustom hyalo-tengwar-path "~/Syntropment/hyalo-tengwar"
   "Path to external hyalo-tengwar repository.
 If nil, looks for ../hyalo-tengwar relative to user-emacs-directory."
   :type '(choice (const :tag "Auto-detect" nil)
