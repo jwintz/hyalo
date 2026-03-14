@@ -18,6 +18,9 @@
 ## ###################################################################
 
 .claude
+AGENTS.md
+PLAN.md
+TODO.md
 .sisyphus/evidence/*.png
 .sisyphus/evidence/**/*.png
 
