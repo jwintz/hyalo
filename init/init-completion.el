@@ -71,6 +71,24 @@
   :ensure t
   :hook (embark-collect-mode . consult-preview-at-point-mode))
 
+;;;; Cape (completion-at-point extensions)
+
+;; Adds file path and dabbrev as capf sources for inline completion.
+;; No popup — corfu popup is suppressed; only inline preview is shown.
+;; Zero startup cost — deferred to first input.
+(use-package cape
+  :if (not (eq window-system 'ios))
+  :ensure t
+  :defer t
+  :init
+  (add-hook 'hyalo-first-input-hook
+            (lambda ()
+              ;; Prepend so cape sources are tried before mode-specific capfs
+              (add-hook 'completion-at-point-functions #'cape-file -90)
+              (add-hook 'completion-at-point-functions #'cape-dabbrev -80))))
+
+;;;; Corfu (in-buffer completion)
+
 (defun my/corfu-complete-and-send ()
   "Insert completion and send input if in eshell at end of line."
   (interactive)

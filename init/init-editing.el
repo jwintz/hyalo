@@ -41,6 +41,27 @@
   (add-hook 'window-configuration-change-hook #'hyalo-god-mode-update-cursor-type)
   (add-hook 'kill-emacs-hook #'hyalo-god-mode-restore-cursor))
 
+;;;; Undo (linear undo/redo + persistent undo)
+
+(use-package undo-fu
+  :ensure t
+  :defer t
+  :bind (("C-z"   . undo-fu-only-undo)
+         ("C-S-z" . undo-fu-only-redo)
+         ("s-z"   . undo-fu-only-undo)
+         ("s-Z"   . undo-fu-only-redo)))
+
+(use-package undo-fu-session
+  :ensure t
+  :defer t
+  :after undo-fu
+  :custom
+  (undo-fu-session-incompatible-files '("/COMMIT_EDITMSG\\'" "/git-rebase-todo\\'"))
+  :init
+  (add-hook 'hyalo-first-input-hook #'undo-fu-session-global-mode))
+
+;;;; Line Operations
+
 (use-package move-dup
   :ensure t
   :general

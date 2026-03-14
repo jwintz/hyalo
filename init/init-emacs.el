@@ -47,13 +47,21 @@
   (bidi-inhibit-bpa t)
   ;; Performance: do not render highlights in non-focused windows
   (highlight-nonselected-windows nil)
-  ;; Performance: read 64kb chunks from subprocesses (default 4kb)
-  (read-process-output-max (* 64 1024))
+  ;; Performance: read 2MB chunks from subprocesses (default 4kb)
+  ;; Improves throughput for eglot/magit/ripgrep output
+  (read-process-output-max (* 2 1024 1024))
+  ;; Minibuffer
+  (enable-recursive-minibuffers t)
+  (minibuffer-prompt-properties '(read-only t intangible t cursor-intangible t face minibuffer-prompt))
   ;; Misc
   (use-short-answers t)
   (use-dialog-box nil)
   (frame-title-format nil)
   :config
+  ;; Skip adaptive read buffering delays for subprocess output
+  (setq process-adaptive-read-buffering nil)
+  ;; Reduce CPU churn from eldoc/which-key idle updates
+  (setq idle-update-delay 1.0)
   (setq visible-bell nil)
   (setq ring-bell-function 'ignore)
   (setq inhibit-compacting-font-caches t)
@@ -70,6 +78,14 @@
   (setq-default fringe-indicator-alist
                 (delq (assq 'continuation fringe-indicator-alist)
                       fringe-indicator-alist))
+  ;; TAB indents first, then completes (pairs with corfu)
+  (setq tab-always-indent 'complete)
+  ;; Dired defaults
+  (setq dired-dwim-target t)
+  (setq dired-auto-revert-buffer t)
+  ;; TLS security
+  (setq gnutls-verify-error t)
+  (setq gnutls-min-prime-bits 3072)
   ;; Coding systems
   (set-default-coding-systems 'utf-8)
   ;; macOS-specific scrolling: disable native smooth scroll for ultra-scroll

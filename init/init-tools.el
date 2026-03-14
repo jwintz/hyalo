@@ -339,7 +339,7 @@ Runs asynchronously — shows a placeholder while generating."
   :hook ((swift-mode . eglot-ensure))
   :init
   ;; Defaults for eglot
-  (setq eglot-sync-connect 1
+  (setq eglot-sync-connect 0  ; async connect — don't block file open
         eglot-autoshutdown t
         eglot-auto-display-help-buffer nil
         ;; Disable margin indicators — they can increase line height
@@ -377,11 +377,8 @@ Runs asynchronously — shows a placeholder while generating."
       (funcall fn server)))
   (advice-add 'eglot--managed-mode :around #'hyalo--eglot-defer-shutdown-a)
 
-  ;; LSP optimization: increase process output buffer for talkative
-  ;; language servers.
-  (add-hook 'eglot-managed-mode-hook
-            (lambda ()
-              (setq-local read-process-output-max (* 64 1024))))
+  ;; LSP optimization: global read-process-output-max is already 2MB
+  ;; (set in init-emacs.el).  No per-buffer override needed.
 
   ;; Inlay hint face: smaller, no box, non-intrusive
   (with-eval-after-load 'eglot

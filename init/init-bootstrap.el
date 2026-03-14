@@ -27,11 +27,19 @@
 ;; Temporarily reduce garbage collection during startup
 (defvar hyalo--default-gc-cons-threshold gc-cons-threshold)
 (setq gc-cons-threshold most-positive-fixnum)
+
+;; Suppress internal redisplay during init (frame is invisible anyway).
+;; Only safe during normal startup — bootstrap needs sit-for redisplay
+;; for the loading proxy progress messages.
+(unless hyalo--needs-bootstrap
+  (setq inhibit-redisplay t))
 (defvar hyalo--default-file-name-handler-alist file-name-handler-alist)
 (setq file-name-handler-alist nil)
 
 (add-hook 'emacs-startup-hook
           (lambda ()
+            ;; Re-enable redisplay (suppressed during normal init)
+            (setq inhibit-redisplay nil)
             ;; gcmh-style GC: keep a high threshold during editing and
             ;; only collect during idle.  Prevents GC pauses mid-keystroke.
             (setq gc-cons-threshold (* 64 1024 1024))
@@ -42,8 +50,6 @@
                   (delete-dups
                    (append file-name-handler-alist
                            hyalo--default-file-name-handler-alist)))
-            ;; Restore load-prefer-newer (disabled in early-init.el)
-            (setq load-prefer-newer t)
             ;; Enable debug-on-error now that the frame is (or will be)
             ;; visible.  Safe to interact with the debugger from here.
             (setq debug-on-error t)))
@@ -122,7 +128,7 @@ Called after a full package-initialize so all autoloads are active."
   (with-temp-file hyalo--package-cache-file
     (let ((print-level nil)
           (print-length nil))
-      (insert ";;; hyalo package cache -*- lexical-binding: t; no-byte-compile: t -*-\n")
+      (insert ";;; hyalo package cache -*- lexical-binding: t; -*-\n")
       (insert ";; Auto-generated — do not edit.  Delete to rebuild.\n")
       (insert (format ";; Emacs %s\n\n" emacs-version))
       ;; Save the Emacs version for invalidation
@@ -154,7 +160,15 @@ Called after a full package-initialize so all autoloads are active."
               (insert contents))
             (insert ")\n"))))
       ;; Mark as initialized
-      (insert "\n(setq package--initialized t)\n"))))
+      (insert "\n(setq package--initialized t)\n")))
+  ;; Byte-compile the cache for faster loading (~15ms → ~5ms)
+  (byte-compile-file hyalo--package-cache-file))
+
+(defun hyalo--package-cache-delete ()
+  "Delete the package cache and its byte-compiled form."
+  (dolist (ext '(".el" ".elc"))
+    (let ((f (concat (file-name-sans-extension hyalo--package-cache-file) ext)))
+      (when (file-exists-p f) (delete-file f)))))
 
 ;; Saved here (before profiler is loaded) and injected later by init.el.
 (defvar hyalo--package-init-timing nil
@@ -167,13 +181,13 @@ Called after a full package-initialize so all autoloads are active."
         ;; Fast path: load the single cache file
         (condition-case err
             (progn
-              (load hyalo--package-cache-file nil 'nomessage 'nosuffix)
+              (load hyalo--package-cache-file nil 'nomessage)
               (setq hyalo--package-init-timing
                     (cons 'package-cache-load (- (float-time) start))))
           (error
            ;; Cache is corrupt or version mismatch — fall back to full init
            (message "Package cache invalid (%s), rebuilding…" (error-message-string err))
-           (delete-file hyalo--package-cache-file)
+           (hyalo--package-cache-delete)
            (hyalo--package-initialize-cached)))
       ;; Slow path: full package-initialize, then write cache
       (let ((debug-on-error nil))
@@ -188,24 +202,27 @@ Called after a full package-initialize so all autoloads are active."
 ;; debugger on those benign errors.  Silence them during package-initialize.
 (hyalo--package-initialize-cached)
 
+;; Restore load-prefer-newer NOW (not on startup-hook) so that edits to
+;; lisp/ and init/ files are always picked up on relaunch, even if stale
+;; .elc files exist.  The package cache (the only file that benefited from
+;; nil) has already been loaded above.
+(setq load-prefer-newer t)
+
 ;; Rebuild package cache after any install so next startup is fast.
 (advice-add 'package-install :after
             (lambda (&rest _)
-              (when (file-exists-p hyalo--package-cache-file)
-                (delete-file hyalo--package-cache-file)
-                (hyalo--package-cache-write)))
+              (hyalo--package-cache-delete)
+              (hyalo--package-cache-write))
             '((name . hyalo-rebuild-cache)))
 (advice-add 'package-delete :after
             (lambda (&rest _)
-              (when (file-exists-p hyalo--package-cache-file)
-                (delete-file hyalo--package-cache-file)))
+              (hyalo--package-cache-delete))
             '((name . hyalo-invalidate-cache)))
 
 (defun hyalo-package-cache-rebuild ()
   "Force rebuild of the package autoload cache."
   (interactive)
-  (when (file-exists-p hyalo--package-cache-file)
-    (delete-file hyalo--package-cache-file))
+  (hyalo--package-cache-delete)
   (package-initialize)
   (hyalo--package-cache-write)
   (message "Package cache rebuilt: %s" hyalo--package-cache-file))
@@ -233,6 +250,8 @@ Called after a full package-initialize so all autoloads are active."
 
 (require 'use-package)
 (setq use-package-always-ensure (not (eq window-system 'ios)))
+;; Reduce macroexpansion overhead across ~30+ use-package forms.
+(setq use-package-expand-minimally t)
 
 ;;; Logging (elog)
 
@@ -251,7 +270,12 @@ Uses elog if available, otherwise falls back to message."
   :ensure t
   :if (not (eq window-system 'ios))
   :vc (:url "https://github.com/Kinneyzhang/elog" :rev :newest)
-  :demand t
+  ;; :vc checks git state even when installed (~15-20ms).
+  ;; Defer unless debugging (--debug-init or HYALO_DEBUG=1).
+  :defer t
+  :commands (elog-logger elog-info elog-debug elog-warn elog-error)
+  :init
+  (when hyalo-debug (require 'elog))
   :config
   ;; Initialize main Emacs logger
   (defvar emacs-logger

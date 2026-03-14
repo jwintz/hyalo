@@ -34,42 +34,6 @@
                     :height hyalo-font-height
                     :weight hyalo-font-weight)
 
-;;;; Fontaine (font presets)
-
-(use-package fontaine
-  :ensure t
-  :demand t
-  :config
-  (setq fontaine-presets
-        `((regular
-           :default-family ,hyalo-font-mono
-           :default-weight ,hyalo-font-weight
-           :default-height ,hyalo-font-height
-           :fixed-pitch-family ,hyalo-font-mono
-           :fixed-pitch-weight ,hyalo-font-weight
-           :fixed-pitch-height 1.0
-           :variable-pitch-family ,hyalo-font-prose
-           :variable-pitch-weight ,hyalo-font-weight
-           :variable-pitch-height 1.0)
-          (presentation
-           :default-family ,hyalo-font-mono
-           :default-weight ,hyalo-font-weight
-           :default-height 150
-           :fixed-pitch-family ,hyalo-font-mono
-           :fixed-pitch-weight ,hyalo-font-weight
-           :fixed-pitch-height 1.0
-           :variable-pitch-family ,hyalo-font-prose
-           :variable-pitch-weight ,hyalo-font-weight
-           :variable-pitch-height 1.0)
-          (t  ; fallback applied to all presets
-           :default-family ,hyalo-font-mono
-           :default-weight ,hyalo-font-weight
-           :default-height ,hyalo-font-height)))
-
-  ;; Persist and restore the latest preset across sessions.
-  (fontaine-set-preset (or (fontaine-restore-latest-preset) 'regular))
-  (add-hook 'kill-emacs-hook #'fontaine-store-latest-preset))
-
 ;;;; Line Spacing
 
 ;; SF Mono 11pt has ~13px line height. Adding 0.15 ratio (~2px) gives
@@ -114,15 +78,19 @@
   (setq modus-themes-italic-constructs t)
   (setq modus-themes-bold-constructs t))
 
-;; ef-themes: additional theme collection by Protesilaos
-;; Must be loaded before enabling modus-themes-include-derivatives-mode
-;; so that ef themes are registered in modus-themes-registered-items.
+;; ef-themes: additional theme collection by Protesilaos.
+;; Deferred to idle — only needed when switching to an ef-* theme.
+;; modus-themes-include-derivatives-mode is enabled on load so ef themes
+;; are registered in modus-themes-registered-items when needed.
 (use-package ef-themes
   :ensure t
-  :demand t
-  :after modus-themes
-  :config
-  (modus-themes-include-derivatives-mode 1))
+  :defer t
+  :commands (ef-themes-select ef-themes-toggle)
+  :init
+  (run-with-idle-timer 2 nil
+                       (lambda ()
+                         (require 'ef-themes)
+                         (modus-themes-include-derivatives-mode 1))))
 
 ;;;; Nano Themes (modus-based, merged into lisp/)
 
@@ -192,11 +160,18 @@
 
 ;;;; Icons
 
+;; Icons aren't visible at startup (no files open yet).
+;; Defer to first buffer switch for ~10-15ms savings.
 (use-package nerd-icons
   :ensure t
-  :demand t
+  :defer t
+  :commands (nerd-icons-icon-for-file nerd-icons-icon-for-dir
+             nerd-icons-icon-for-mode nerd-icons-icon-for-buffer)
+  :init
+  (add-hook 'hyalo-first-buffer-hook
+            (lambda ()
+              (require 'nerd-icons)))
   :config
-  (require 'nerd-icons)
   (setf (cdr (assoc ".?" nerd-icons-dir-icon-alist))
         '(nerd-icons-faicon "nf-fa-folder"))
   (setq nerd-icons-default-file-icon

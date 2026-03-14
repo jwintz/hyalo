@@ -29,6 +29,14 @@ Set via --debug-init flag or HYALO_DEBUG=1 environment variable.")
 
 (hyalo--boot-log "early-init started")
 
+;;; GC suppression — before ANY allocation-heavy work
+;;
+;; The default gc-cons-threshold (800KB) triggers multiple GC cycles during
+;; dylib loading and window setup.  Suppress until init-bootstrap restores
+;; a sane value on emacs-startup-hook.
+(setq gc-cons-threshold most-positive-fixnum)
+(setq gc-cons-percentage 0.6)
+
 ;;; Frame defaults — hide until chrome is installed
 
 ;; Frames start invisible.  hyalo-window--early-setup (called at the top of
