@@ -2,6 +2,8 @@
 
 IDE shell around Emacs for macOS, built as a dynamic module (`.dylib`) loaded by Emacs at startup.
 
+**[Documentation](https://jwintz.github.io/hyalo)**
+
 ## Architecture
 
 ```
