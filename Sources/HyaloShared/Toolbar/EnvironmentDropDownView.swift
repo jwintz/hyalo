@@ -30,7 +30,7 @@ public struct EnvironmentDropDownView: View {
     }
     
     private var summaryIcon: String {
-        model.primaryEnvironment?.displayIcon ?? "cube"
+        model.primaryEnvironment?.displayIcon ?? "puzzlepiece.extension.fill"
     }
     
     public var body: some View {

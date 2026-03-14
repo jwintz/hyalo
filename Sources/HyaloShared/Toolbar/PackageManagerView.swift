@@ -76,7 +76,6 @@ public struct PackageManagerView: View {
                         Image(systemName: "shippingbox")
                     }
                 }
-                .font(.body)
                 .foregroundStyle(activeState == .inactive ? .tertiary : .primary)
 
                 // Badge — only archive-upgradable packages
@@ -96,6 +95,7 @@ public struct PackageManagerView: View {
         }
         .buttonStyle(.bordered)
         .fixedSize()
+        .glassEffect(in: .capsule)
         .help(helpText)
         .onHover { isHovering = $0 }
         .popover(isPresented: $showPopover, arrowEdge: .bottom) {

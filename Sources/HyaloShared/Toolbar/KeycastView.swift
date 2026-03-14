@@ -60,6 +60,8 @@ public struct KeycastView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
             .padding(5)
             .clipShape(Capsule())
             .glassEffect(in: .capsule)
