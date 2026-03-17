@@ -263,7 +263,7 @@ Pops the buffer so the user sees output as lines arrive."
 
 (defun hyalo-channels--handle-build-log-line (line)
   "Append LINE to *hyalo-build*, auto-scrolling when point is at end."
-  (when-let ((buf (get-buffer "*hyalo-build*")))
+  (when-let* ((buf (get-buffer "*hyalo-build*")))
     (with-current-buffer buf
       (let ((inhibit-read-only t)
             (was-at-end (= (point) (point-max))))
@@ -275,7 +275,7 @@ Pops the buffer so the user sees output as lines arrive."
 
 (defun hyalo-channels--handle-build-finish (success)
   "Append a completion marker to *hyalo-build*."
-  (when-let ((buf (get-buffer "*hyalo-build*")))
+  (when-let* ((buf (get-buffer "*hyalo-build*")))
     (with-current-buffer buf
       (let ((inhibit-read-only t))
         (save-excursion

@@ -44,3 +44,4 @@ final class SearchPanel: NSPanel {
         self.setFrameOrigin(NSPoint(x: x, y: y))
     }
 }
+

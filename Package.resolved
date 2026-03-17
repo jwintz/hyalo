@@ -1,5 +1,5 @@
 {
-  "originHash" : "a9893aef11e01e2a219047113de51a97e0a6ec914bac1fff0afedf34ccb6f8d1",
+  "originHash" : "b3ca9ccb84d1d2b807ef0495c1ad57bc0483cffb43cb144c47538901ef60f537",
   "pins" : [
     {
       "identity" : "emacs-swift-module",
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/migueldeicaza/SwiftTerm.git",
       "state" : {
-        "revision" : "b1262db5b6bea699a8260a8c66999436c508ca56",
-        "version" : "1.11.2"
+        "revision" : "3c45fdcfcf4395c72d2a4ee23c0bce79017b5391",
+        "version" : "1.12.0"
       }
     }
   ],

@@ -32,10 +32,13 @@ public struct MinibufferView: View {
                         .lineLimit(1)
                 }
 
-                // Blinking cursor + input text in monospace
+                // Input text with cursor at correct position
                 HStack(spacing: 0) {
-                    Text(viewModel.input)
+                    let pos = min(viewModel.cursorPosition, viewModel.input.count)
+                    let idx = viewModel.input.index(viewModel.input.startIndex, offsetBy: pos)
+                    Text(String(viewModel.input[..<idx]))
                     Cursor()
+                    Text(String(viewModel.input[idx...]))
                 }
                 .font(.system(size: 14, design: .monospaced))
                 .frame(maxWidth: .infinity, alignment: .leading)

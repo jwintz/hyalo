@@ -37,8 +37,9 @@ Used for recursive minibuffers, password prompts, y-or-n-p, etc.")
 (defvar hyalo-minibuffer--history-mode nil
   "Non-nil when the current minibuffer session is free-text (no completion table).")
 
-(defvar hyalo-minibuffer--hide-overlay nil
-  "Overlay that hides the Emacs minibuffer text while the Swift panel is active.")
+(defvar hyalo-minibuffer--face-remap-cookies nil
+  "Face remap cookies for hiding minibuffer text while the Swift panel is active.
+Uses face remapping instead of invisible overlay so cursor movement is unaffected.")
 
 (defvar hyalo-minibuffer--max-candidates 50
   "Maximum number of candidates to send to Swift for rendering performance.")
@@ -361,9 +362,11 @@ rather than starving it through repeated cancellations."
                (extracted (hyalo-minibuffer--extract-candidates))
                (t1 (float-time))
                (input (minibuffer-contents-no-properties))
+               (cursor-pos (- (point) (minibuffer-prompt-end)))
                (payload `((sessionId . ,session)
                           (prompt . ,(or hyalo-minibuffer--prompt ""))
                           (input . ,input)
+                          (cursorPosition . ,cursor-pos)
                           ,@extracted))
                (json (json-encode payload))
                (t2 (float-time)))
@@ -456,6 +459,7 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
       (let* ((payload `((sessionId . ,hyalo-minibuffer--session-id)
                         (prompt . ,(or hyalo-minibuffer--prompt ""))
                         (input . ,initial-input)
+                        (cursorPosition . ,(- (point) (minibuffer-prompt-end)))
                         (historyMode . ,(if hyalo-minibuffer--history-mode t :json-false))
                         (candidates . ,initial-candidates)
                         (selectedIndex . ,initial-selected)
@@ -465,11 +469,13 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
                                (length json))
         (when (fboundp 'hyalo-minibuffer-show)
           (hyalo-minibuffer-show json))))
-    ;; Hide the Emacs minibuffer text — the Swift overlay mirrors it
-    (setq hyalo-minibuffer--hide-overlay
-          (make-overlay (point-min) (point-max) nil nil t))
-    (overlay-put hyalo-minibuffer--hide-overlay 'invisible t)
-    (overlay-put hyalo-minibuffer--hide-overlay 'priority 1000)
+    ;; Hide the Emacs minibuffer text visually — the Swift overlay mirrors it.
+    ;; Uses face remapping (foreground = background) instead of `invisible' overlay
+    ;; so that cursor movement commands (C-b, C-a, M-b, arrows) work normally.
+    (let ((bg (or (face-background 'default nil t) "black")))
+      (setq hyalo-minibuffer--face-remap-cookies
+            (list (face-remap-add-relative 'default :foreground bg)
+                  (face-remap-add-relative 'minibuffer-prompt :foreground bg))))
     ;; Watch for input changes
     (add-hook 'post-command-hook #'hyalo-minibuffer--post-command nil t)
     ;; Schedule initial candidate push (after vertico has computed)
@@ -483,10 +489,10 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
     (hyalo-minibuffer--log "exit-hook: hiding panel")
     (setq hyalo-minibuffer--active nil)
     (setq hyalo-minibuffer--history-mode nil)
-    ;; Remove the hide overlay
-    (when hyalo-minibuffer--hide-overlay
-      (delete-overlay hyalo-minibuffer--hide-overlay)
-      (setq hyalo-minibuffer--hide-overlay nil))
+    ;; Remove face remapping that hid minibuffer text
+    (dolist (cookie hyalo-minibuffer--face-remap-cookies)
+      (face-remap-remove-relative cookie))
+    (setq hyalo-minibuffer--face-remap-cookies nil)
     (when hyalo-minibuffer--update-timer
       (cancel-timer hyalo-minibuffer--update-timer)
       (setq hyalo-minibuffer--update-timer nil))
@@ -497,9 +503,6 @@ INDEX of -1 means confirm current input as-is (free-text mode)."
 (defun hyalo-minibuffer--post-command ()
   "Called after each command in the minibuffer.  Schedule candidate update."
   (when hyalo-minibuffer--active
-    ;; Keep the hide overlay covering all minibuffer text
-    (when hyalo-minibuffer--hide-overlay
-      (move-overlay hyalo-minibuffer--hide-overlay (point-min) (point-max)))
     (hyalo-minibuffer--schedule-update)))
 
 ;; Display suppression — hide the Emacs-side completion UI

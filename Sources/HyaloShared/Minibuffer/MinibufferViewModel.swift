@@ -9,6 +9,7 @@ public struct MinibufferPayload: Codable {
     public let sessionId: Int
     public let prompt: String
     public let input: String
+    public let cursorPosition: Int?
     public let candidates: [MinibufferCandidate]
     public let selectedIndex: Int
     public let totalCandidates: Int
@@ -29,6 +30,7 @@ public final class MinibufferViewModel {
     public var sessionId: Int = 0
     public var prompt: String = ""
     public var input: String = ""
+    public var cursorPosition: Int = 0
     public var candidates: [MinibufferCandidate] = []
     public var selectedIndex: Int = -1
     public var totalCandidates: Int = 0
@@ -55,6 +57,7 @@ public final class MinibufferViewModel {
         sessionId = payload.sessionId
         prompt = payload.prompt
         input = payload.input
+        cursorPosition = payload.cursorPosition ?? payload.input.count
         historyMode = payload.historyMode ?? false
         candidates = payload.candidates
         selectedIndex = payload.selectedIndex
@@ -71,6 +74,7 @@ public final class MinibufferViewModel {
         // Reject stale updates from a previous session
         guard payload.sessionId == sessionId else { return }
         input = payload.input
+        cursorPosition = payload.cursorPosition ?? payload.input.count
         candidates = payload.candidates
         selectedIndex = payload.selectedIndex
         totalCandidates = payload.totalCandidates
@@ -82,6 +86,7 @@ public final class MinibufferViewModel {
         candidates = []
         selectedIndex = -1
         input = ""
+        cursorPosition = 0
         prompt = ""
         historyMode = false
     }

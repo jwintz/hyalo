@@ -24,7 +24,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/migueldeicaza/SwiftTerm.git",
-            from: "1.0.0"
+            from: "1.12.0"
         )
     ],
     targets: [
