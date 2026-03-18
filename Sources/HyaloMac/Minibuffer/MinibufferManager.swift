@@ -1,21 +1,24 @@
-// MinibufferManager.swift - Manager for the native minibuffer overlay panel
+// MinibufferManager.swift - Manager for the native minibuffer overlay
 // Candidate-list overlay only; text editing happens in the Emacs minibuffer.
+// The overlay is rendered inside KelyphosShellView via the client overlays
+// mechanism, replacing the previous standalone SearchPanel NSPanel.
 
 import AppKit
 import SwiftUI
 import HyaloShared
+import KelyphosKit
 
 @available(macOS 26.0, *)
 final class MinibufferManager {
     static let shared = MinibufferManager()
-
-    private var panel: SearchPanel?
 
     let viewModel = MinibufferViewModel()
 
     // Callbacks to Emacs (wired by Module+Minibuffer.swift channel setup)
     var onCandidateSelected: ((String) -> Void)?
     var onAbort: (() -> Void)?
+
+    private var isShowing = false
 
     private init() {}
 
@@ -24,17 +27,8 @@ final class MinibufferManager {
     func show(from data: Data) {
         viewModel.show(from: data)
 
-        if panel != nil {
-            return
-        }
-
-        guard let parentWindow = findParentWindow() else {
-            NSLog("[Hyalo:Minibuffer] no parent window found")
-            return
-        }
-
-        let searchPanel = SearchPanel()
-        panel = searchPanel
+        if isShowing { return }
+        isShowing = true
 
         // Wire view model callbacks to Emacs channel
         viewModel.onCandidateSelected = { [weak self] index in
@@ -44,57 +38,26 @@ final class MinibufferManager {
             self?.onAbort?()
         }
 
-        let contentView = MinibufferView(viewModel: viewModel)
-        searchPanel.contentView = NSHostingView(rootView: contentView)
-
-        // Set panel to proper size before positioning
-        let panelWidth: CGFloat = 680
-        let hasInitialCandidates = !viewModel.candidates.isEmpty || viewModel.totalCandidates > 0
-        let panelHeight: CGFloat = hasInitialCandidates ? 400 : 60
-        searchPanel.setContentSize(NSSize(width: panelWidth, height: panelHeight))
-
-        searchPanel.positionRelativeToParent(parentWindow)
-        parentWindow.addChildWindow(searchPanel, ordered: .above)
-        searchPanel.orderFront(nil)
+        // Toggle overlay on active frame's shell state
+        if let state = HyaloModule.activeShellState {
+            state.showMinibufferOverlay = true
+        }
     }
 
     // MARK: - Update
 
     func update(from data: Data) {
-        let hadCandidates = !viewModel.candidates.isEmpty
         viewModel.update(from: data)
-        let hasCandidates = !viewModel.candidates.isEmpty
-
-        // Re-center panel when candidates appear/disappear (height changes)
-        if hadCandidates != hasCandidates, let searchPanel = panel,
-           let parentWindow = searchPanel.parent {
-            let panelWidth: CGFloat = 680
-            let panelHeight: CGFloat = hasCandidates ? 400 : 60
-            searchPanel.setContentSize(NSSize(width: panelWidth, height: panelHeight))
-            searchPanel.positionRelativeToParent(parentWindow)
-        }
     }
 
     // MARK: - Hide
 
     func hide() {
         viewModel.hide()
-        dismissPanel()
-    }
-
-    // MARK: - Panel Lifecycle
-
-    private func dismissPanel() {
-        guard let p = panel else { return }
-        panel = nil
-        p.close()
-    }
-
-    // MARK: - Window Discovery
-
-    private func findParentWindow() -> NSWindow? {
-        if let window = NSApp.mainWindow, !window.isMiniaturized { return window }
-        if let window = NSApp.keyWindow, !window.isMiniaturized { return window }
-        return NSApp.windows.first { $0.isVisible && !$0.isMiniaturized }
+        isShowing = false
+        // Hide overlay on all frames
+        for state in HyaloModule.allShellStates {
+            state.showMinibufferOverlay = false
+        }
     }
 }

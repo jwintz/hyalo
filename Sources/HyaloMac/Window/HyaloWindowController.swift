@@ -77,6 +77,8 @@ final class HyaloWindowController: NSWindowController {
         // Seed shell title; subtitle is kept in sync by ShellTitleBridgeView inside the content.
         shellState.title = workspace.projectName.isEmpty ? "Emacs" : workspace.projectName
 
+        let minibufferVM = MinibufferManager.shared.viewModel
+
         let shell = KelyphosShellView(
             state: shellState,
             configuration: KelyphosShellConfiguration(
@@ -94,6 +96,15 @@ final class HyaloWindowController: NSWindowController {
                     {
                         AnyView(PackageManagerView(viewModel: toolbarVM))
                     },
+                ],
+                overlays: [
+                    { [shellState, minibufferVM] in
+                        AnyView(Group {
+                            if shellState.showMinibufferOverlay {
+                                MinibufferOverlayView(viewModel: minibufferVM)
+                            }
+                        })
+                    }
                 ],
                 detail: { [emacsView, editorTabViewModel, terminalPalette, shellState] in
                     AnyView(MainContentView(

@@ -31,6 +31,7 @@
   "Non-nil when a package bootstrap is needed (.local or .local/elpa missing).")
 
 (when (and initial-window-system
+           (not (daemonp))
            (fboundp 'hyalo-available-p) (hyalo-available-p))
   ;; Tell Swift whether to show the loading proxy before decoration.
   (when (fboundp 'hyalo-set-needs-bootstrap)

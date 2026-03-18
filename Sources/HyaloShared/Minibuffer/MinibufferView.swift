@@ -107,6 +107,24 @@ public struct MinibufferView: View {
     }
 }
 
+// MARK: - Overlay Container (for use inside KelyphosShellView)
+
+@available(macOS 26.0, *)
+public struct MinibufferOverlayView: View {
+    @Bindable public var viewModel: MinibufferViewModel
+
+    public init(viewModel: MinibufferViewModel) {
+        self.viewModel = viewModel
+    }
+
+    public var body: some View {
+        MinibufferView(viewModel: viewModel)
+            .frame(maxWidth: 680, maxHeight: 400)
+            .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
+            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+    }
+}
+
 // MARK: - Blinking Cursor
 
 @available(macOS 26.0, *)

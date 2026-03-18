@@ -192,15 +192,7 @@ extension HyaloModule {
             """
         ) { (env: EmacsSwiftModule.Environment, frameId: Int) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
-                    if HyaloModule.controllers[frameId] != nil {
-                        return
-                    }
-                    guard let window = findUndecoratedEmacsWindow() else {
-                        return
-                    }
-                    HyaloModule.decorateWindow(window, frameId: frameId)
-                }
+                HyaloModule.decorateFrameWithRetry(frameId: frameId, attempt: 0)
                 return true
             }
             return false
@@ -272,6 +264,26 @@ extension HyaloModule {
 
     // MARK: - Multi-Frame Helpers
 
+    /// Retry finding the undecorated window up to 10 times at 50ms intervals.
+    /// The NSWindow may not yet exist in `NSApp.windows` when the Lisp
+    /// `after-make-frame-functions` hook fires.
+    @available(macOS 26.0, *)
+    static func decorateFrameWithRetry(frameId: Int, attempt: Int) {
+        let maxAttempts = 10
+        DispatchQueue.main.async {
+            if HyaloModule.controllers[frameId] != nil {
+                return
+            }
+            if let window = findUndecoratedEmacsWindow() {
+                HyaloModule.decorateWindow(window, frameId: frameId)
+            } else if attempt < maxAttempts {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    decorateFrameWithRetry(frameId: frameId, attempt: attempt + 1)
+                }
+            }
+        }
+    }
+
     /// Decorate a window with the Hyalo IDE shell.
     @available(macOS 26.0, *)
     @MainActor
@@ -292,7 +304,14 @@ extension HyaloModule {
 
         let workspace = HyaloWorkspaceState()
 
-        let shellState = KelyphosShellState(persistencePrefix: "hyalo")
+        // Initial frame (via hyalo-navigation-setup) uses default panelPrefix
+        // for backward compat; subsequent frames get per-frame panel prefix
+        // so each frame restores its own panel visibility from UserDefaults.
+        let isInitialFrame = controllers.isEmpty
+        let shellState = KelyphosShellState(
+            persistencePrefix: "hyalo",
+            panelPrefix: isInitialFrame ? nil : "hyalo.frame.\(frameId)"
+        )
 
         if !HyaloModule.baseDir.isEmpty {
             let baseName = (HyaloModule.baseDir as NSString).lastPathComponent

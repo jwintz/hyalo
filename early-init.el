@@ -99,7 +99,7 @@ Set via --debug-init flag or HYALO_DEBUG=1 environment variable.")
   ;; Do NOT load the AppKit/SwiftUI module in terminal (-nw) mode.
   ;; The module links against AppKit and segfaults when loaded without
   ;; a graphical session.  `initial-window-system' is nil for -nw.
-  (when (and initial-window-system
+  (when (and (or initial-window-system (daemonp))
              (file-directory-p lisp-dir))
     (add-to-list 'load-path lisp-dir)
     ;; On iOS, the module is statically linked - no dylib to load
@@ -127,23 +127,24 @@ Set via --debug-init flag or HYALO_DEBUG=1 environment variable.")
 ;; dealloc during the Core Animation transaction flush.
 (add-hook 'window-setup-hook
           (lambda ()
-            (let ((vis (frame-visible-p (selected-frame))))
-              (hyalo--boot-log (format "failsafe: frame-visible=%s" vis))
-              (when (and (display-graphic-p) (not vis))
-                (hyalo--boot-log "FAILSAFE: revealing frame")
-                (when (fboundp 'hyalo-loading-done)
-                  (hyalo--boot-log "FAILSAFE: calling hyalo-loading-done")
+            (unless (daemonp)
+              (let ((vis (frame-visible-p (selected-frame))))
+                (hyalo--boot-log (format "failsafe: frame-visible=%s" vis))
+                (when (and (display-graphic-p) (not vis))
+                  (hyalo--boot-log "FAILSAFE: revealing frame")
+                  (when (fboundp 'hyalo-loading-done)
+                    (hyalo--boot-log "FAILSAFE: calling hyalo-loading-done")
+                    (condition-case err
+                        (hyalo-loading-done)
+                      (error (hyalo--boot-log
+                              (format "FAILSAFE: hyalo-loading-done error: %s"
+                                      (error-message-string err))))))
+                  (hyalo--boot-log "FAILSAFE: calling make-frame-visible")
                   (condition-case err
-                      (hyalo-loading-done)
+                      (make-frame-visible)
                     (error (hyalo--boot-log
-                            (format "FAILSAFE: hyalo-loading-done error: %s"
-                                    (error-message-string err))))))
-                (hyalo--boot-log "FAILSAFE: calling make-frame-visible")
-                (condition-case err
-                    (make-frame-visible)
-                  (error (hyalo--boot-log
-                          (format "FAILSAFE: make-frame-visible error: %s"
-                                  (error-message-string err))))))))
+                            (format "FAILSAFE: make-frame-visible error: %s"
+                                    (error-message-string err)))))))))
           90)
 
 (hyalo--boot-log "early-init complete")

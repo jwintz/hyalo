@@ -50,29 +50,38 @@ Channel setup and data push happen later in `hyalo-window-setup'."
 (defun hyalo-window-setup ()
   "Setup channels, push initial data, start status updates.
 Called from `window-setup-hook' after the first frame is ready.
-The window decoration was already done by `hyalo-window--early-setup'."
+The window decoration was already done by `hyalo-window--early-setup'.
+In daemon mode, defers post-setup to the first emacsclient frame."
   (interactive)
   (when (fboundp 'hyalo--boot-log)
     (hyalo--boot-log "hyalo-window-setup: entered"))
   (when (hyalo-available-p)
-    ;; If early setup didn't run (e.g., module loaded late),
-    ;; do the decoration now.  decorateWindow creates the proxy window;
-    ;; hyalo-loading-done (at the end of post-setup) reveals the frame.
-    (unless hyalo-window--early-setup-done
-      (when (fboundp 'hyalo-navigation-setup)
-        (when (fboundp 'hyalo-set-base-dir)
-          (hyalo-set-base-dir (expand-file-name "lisp" hyalo--base-dir)))
-        (let ((frame-id (string-to-number
-                         (or (frame-parameter nil 'window-id) "0"))))
-          (hyalo-navigation-setup frame-id))
-        (hyalo-window--wait-for-controller 0)
-        (setq hyalo-window--early-setup-done t)))
-    ;; If the controller is ready (from early setup), do post-setup
-    ;; directly. Otherwise wait for it.
-    (if (and (fboundp 'hyalo-window-controller-ready-p)
-             (hyalo-window-controller-ready-p))
-        (hyalo-window--post-setup)
-      (hyalo-window--wait-for-controller 0))))
+    (if (daemonp)
+        ;; Daemon mode: no frame exists yet.  Register hooks and defer
+        ;; post-setup to the first emacsclient frame.
+        (progn
+          (add-hook 'after-make-frame-functions #'hyalo-window--on-frame-created)
+          (add-hook 'delete-frame-functions #'hyalo-window--on-frame-deleted)
+          (add-hook 'after-make-frame-functions #'hyalo-window--daemon-first-frame))
+      ;; Normal mode: frame exists, proceed as before.
+      ;; If early setup didn't run (e.g., module loaded late),
+      ;; do the decoration now.  decorateWindow creates the proxy window;
+      ;; hyalo-loading-done (at the end of post-setup) reveals the frame.
+      (unless hyalo-window--early-setup-done
+        (when (fboundp 'hyalo-navigation-setup)
+          (when (fboundp 'hyalo-set-base-dir)
+            (hyalo-set-base-dir (expand-file-name "lisp" hyalo--base-dir)))
+          (let ((frame-id (string-to-number
+                           (or (frame-parameter nil 'window-id) "0"))))
+            (hyalo-navigation-setup frame-id))
+          (hyalo-window--wait-for-controller 0)
+          (setq hyalo-window--early-setup-done t)))
+      ;; If the controller is ready (from early setup), do post-setup
+      ;; directly. Otherwise wait for it.
+      (if (and (fboundp 'hyalo-window-controller-ready-p)
+               (hyalo-window-controller-ready-p))
+          (hyalo-window--post-setup)
+        (hyalo-window--wait-for-controller 0)))))
 
 (defun hyalo-window--wait-for-controller (attempt)
   "Wait for the window controller, retrying up to max retries.
@@ -199,6 +208,15 @@ subsequent steps from running.  Each step logs errors individually."
 
 ;;; Multi-Frame Support
 
+(defun hyalo-window--daemon-first-frame (frame)
+  "One-shot hook for `after-make-frame-functions' in daemon mode.
+When the first emacsclient FRAME arrives, run full post-setup
+\(channels, data push, status) and remove this hook."
+  (when (hyalo-window--decoratable-frame-p frame)
+    (remove-hook 'after-make-frame-functions #'hyalo-window--daemon-first-frame)
+    (select-frame frame)
+    (hyalo-window--post-setup)))
+
 (defun hyalo-window--decoratable-frame-p (frame)
   "Return non-nil if FRAME should receive Hyalo decoration.
 Excludes child frames, terminal frames, and daemon frames."
@@ -209,8 +227,8 @@ Excludes child frames, terminal frames, and daemon frames."
 (defun hyalo-window--on-frame-created (frame)
   "Hook for `after-make-frame-functions'.
 Decorate FRAME with the Hyalo IDE shell if eligible.
-The frame starts invisible via `default-frame-alist'.  The Swift
-side reveals the window after setup() installs the chrome."
+The frame starts invisible via `default-frame-alist'.  After
+decoration completes, a timer reveals the frame."
   (when (and (hyalo-available-p)
              (hyalo-window--decoratable-frame-p frame)
              (fboundp 'hyalo-decorate-frame))
@@ -218,7 +236,23 @@ side reveals the window after setup() installs the chrome."
                      (or (frame-parameter frame 'window-id) "0"))))
       (when (> frame-id 0)
         (hyalo-decorate-frame frame-id)
-        (hyalo-appearance--setup-frame frame)))))
+        (hyalo-appearance--setup-frame frame)
+        ;; Wait for Swift decoration to complete, then reveal the frame.
+        ;; The retry mechanism in decorateFrameWithRetry takes up to 500ms;
+        ;; poll at 50ms intervals for up to 1s.
+        (hyalo-window--reveal-when-decorated frame frame-id 0)))))
+
+(defun hyalo-window--reveal-when-decorated (frame frame-id attempt)
+  "Reveal FRAME once Swift decoration for FRAME-ID is complete.
+Polls at 50ms intervals for up to 20 attempts (1s total)."
+  (if (and (frame-live-p frame)
+           (fboundp 'hyalo-frame-decorated-p)
+           (hyalo-frame-decorated-p frame-id))
+      (make-frame-visible frame)
+    (when (and (< attempt 20) (frame-live-p frame))
+      (run-with-timer 0.05 nil
+                      #'hyalo-window--reveal-when-decorated
+                      frame frame-id (1+ attempt)))))
 
 (defun hyalo-window--on-frame-deleted (frame)
   "Hook for `delete-frame-functions'.
