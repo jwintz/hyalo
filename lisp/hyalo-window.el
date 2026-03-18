@@ -296,6 +296,10 @@ Setup Xcode-like Cmd-0..4 navigator and Cmd-Option-0..3 inspector shortcuts."
     (keymap-global-set "M-s-)" #'hyalo-toggle-utility-area)
     (keymap-global-set "M-s-!" #'hyalo-utility-select-tab-1)
     (keymap-global-set "M-s-@" #'hyalo-utility-select-tab-2)
+    ;; Focus: Cmd-Option-f editor, Cmd-Option-u utility terminal, Cmd-Option-Tab toggle
+    (keymap-global-set "M-s-f" #'hyalo/focus-emacs)
+    (keymap-global-set "M-s-u" #'hyalo/focus-utility)
+    (keymap-global-set "M-s-<tab>" #'hyalo/focus-toggle)
     ;; Delayed setup in case NS functions load after us
     (run-with-timer 2 nil #'hyalo-window--setup-ns-advice-delayed)))
 
@@ -318,7 +322,8 @@ Setup Xcode-like Cmd-0..4 navigator and Cmd-Option-0..3 inspector shortcuts."
   (dolist (key '("s-o" "s-p"
                  "s-0" "s-1" "s-2" "s-3" "s-4"
                  "M-s-0" "M-s-1" "M-s-2" "M-s-3"
-                 "M-s-)" "M-s-!" "M-s-@"))
+                 "M-s-)" "M-s-!" "M-s-@"
+                 "M-s-f" "M-s-u" "M-s-<tab>"))
     (ignore-errors (keymap-global-unset key))))
 
 ;;; Open Quickly Command (Cmd+O)
@@ -352,6 +357,26 @@ renders it natively."
       (and buffer-file-name (file-name-directory buffer-file-name))
       default-directory))
 
+
+;;; Focus Commands
+
+(defun hyalo/focus-emacs ()
+  "Move keyboard focus to the main Emacs editor view."
+  (interactive)
+  (when (fboundp 'hyalo-focus-emacs)
+    (hyalo-focus-emacs)))
+
+(defun hyalo/focus-utility ()
+  "Move keyboard focus to the utility area terminal, showing it if hidden."
+  (interactive)
+  (when (fboundp 'hyalo-focus-utility)
+    (hyalo-focus-utility)))
+
+(defun hyalo/focus-toggle ()
+  "Toggle keyboard focus between the Emacs editor and the utility area terminal."
+  (interactive)
+  (when (fboundp 'hyalo-focus-toggle)
+    (hyalo-focus-toggle)))
 
 ;;; Panel Toggles
 

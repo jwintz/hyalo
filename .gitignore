@@ -21,8 +21,7 @@
 AGENTS.md
 PLAN.md
 TODO.md
-.sisyphus/evidence/*.png
-.sisyphus/evidence/**/*.png
+AUDIT.md
 
 ## ###################################################################
 ## Binary files - NEVER commit these!
@@ -35,7 +34,6 @@ TODO.md
 *.app
 *.framework
 *.png
-!Hyalo-Default.icon/*.png
 *.jpg
 *.jpeg
 *.gif

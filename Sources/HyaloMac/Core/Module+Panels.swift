@@ -205,6 +205,63 @@ extension HyaloModule {
             return false
         }
 
+        // MARK: - Focus Management
+
+        try env.defun("hyalo-focus-emacs",
+            with: "Move keyboard focus to the main Emacs editor view."
+        ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    guard let controller = HyaloModule.activeController else { return }
+                    controller.focusEmacs()
+                }
+                return true
+            }
+            return false
+        }
+
+        try env.defun("hyalo-focus-utility",
+            with: "Move keyboard focus to the utility area terminal, showing it if hidden."
+        ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    guard let controller = HyaloModule.activeController else { return }
+                    if !controller.shellState.utilityAreaVisible {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            controller.shellState.utilityAreaVisible = true
+                        }
+                    }
+                    Task { @MainActor in controller.focusTerminal() }
+                }
+                return true
+            }
+            return false
+        }
+
+        try env.defun("hyalo-focus-toggle",
+            with: "Toggle keyboard focus between the Emacs editor and the utility area terminal."
+        ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    guard let controller = HyaloModule.activeController else { return }
+                    let tv = controller.utilityAreaViewModel.terminalHolder.container?.terminalView
+                    let isTerminalFocused = tv != nil && controller.window?.firstResponder === tv
+                    if isTerminalFocused {
+                        controller.focusEmacs()
+                    } else {
+                        if !controller.shellState.utilityAreaVisible {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                controller.shellState.utilityAreaVisible = true
+                            }
+                        }
+                        Task { @MainActor in controller.focusTerminal() }
+                    }
+                }
+                return true
+            }
+            return false
+        }
+
         // MARK: - Diagnostics
 
         try env.defun("hyalo-update-diagnostics",
