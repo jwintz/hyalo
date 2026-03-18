@@ -65,6 +65,12 @@ iOS/HyaloApp/Resources/
 
 FINDINGS.md
 
+## ###################################################################
+## Hallucinated vault docs (no corresponding source file)
+## ###################################################################
+
+vault/lisp/hyalo-ios.md
+
 ######################################################################
 ### .gitignore ends here
 
