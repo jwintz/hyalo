@@ -16,7 +16,7 @@ extension HyaloModule {
             with: "Toggle the navigator (left sidebar) visibility."
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let controller = HyaloModule.activeController else { return }
                     controller.toggleNavigator()
                 }
@@ -29,7 +29,7 @@ extension HyaloModule {
             with: "Show the navigator (left sidebar)."
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let controller = HyaloModule.activeController else { return }
                     controller.setNavigatorVisible(true)
                 }
@@ -42,7 +42,7 @@ extension HyaloModule {
             with: "Hide the navigator (left sidebar)."
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let controller = HyaloModule.activeController else { return }
                     controller.setNavigatorVisible(false)
                 }
@@ -71,7 +71,7 @@ extension HyaloModule {
             """
         ) { (env: EmacsSwiftModule.Environment, index: Int) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let controller = HyaloModule.activeController else { return }
                     controller.selectNavigatorTab(index)
                 }
@@ -99,7 +99,7 @@ extension HyaloModule {
                 guard let data = jsonData.data(using: .utf8) else { return false }
                 do {
                     let buffers = try JSONDecoder().decode([BufferInfo].self, from: data)
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         NavigatorManager.shared.updateBufferList(buffers)
                     }
                     return true
@@ -121,7 +121,7 @@ extension HyaloModule {
             with: "Set the project root directory. Rebuilds file tree in Swift."
         ) { (env: EmacsSwiftModule.Environment, rootPath: String) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     NavigatorManager.shared.setProjectRoot(rootPath)
                 }
                 return true
@@ -133,7 +133,7 @@ extension HyaloModule {
             with: "Refresh the file tree from the current project root."
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     NavigatorManager.shared.refreshFileTree()
                 }
                 return true
@@ -145,7 +145,7 @@ extension HyaloModule {
             with: "Set the currently active buffer in the navigator."
         ) { (env: EmacsSwiftModule.Environment, bufferName: String) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     NavigatorManager.shared.setActiveBuffer(bufferName)
                 }
                 return true
@@ -157,7 +157,7 @@ extension HyaloModule {
             with: "Set the currently active file in the navigator."
         ) { (env: EmacsSwiftModule.Environment, filePath: String) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     NavigatorManager.shared.setActiveFile(filePath)
                 }
                 return true
@@ -189,7 +189,7 @@ extension HyaloModule {
                     try env.funcall("hyalo-channels--handle-find-file", with: filePath)
                 }
 
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     NavigatorManager.shared.onBufferSelect = bufferSelectCallback
                     NavigatorManager.shared.onBufferClose = bufferCloseCallback
                     NavigatorManager.shared.onFileSelect = fileSelectCallback
@@ -211,7 +211,7 @@ extension HyaloModule {
                 }
                 do {
                     let results = try JSONDecoder().decode([SearchResult].self, from: data)
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         NavigatorManager.shared.updateSearchResults(results)
                     }
                     return true
@@ -244,7 +244,7 @@ extension HyaloModule {
                     navigateCallback("\(file):\(line):\(col)")
                 }
 
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     NavigatorManager.shared.onSearchExecute = searchCallback
                     NavigatorManager.shared.onSearchResultSelect = { file, line, col in
                         navigateCallback("\(file):\(line):\(col)")
@@ -260,7 +260,7 @@ extension HyaloModule {
             with: "Update search status counts in the find navigator."
         ) { (env: EmacsSwiftModule.Environment, resultCount: Int, fileCount: Int) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     NavigatorManager.shared.updateSearchStatus(resultCount: resultCount, fileCount: fileCount)
                 }
                 return true

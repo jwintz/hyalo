@@ -207,6 +207,12 @@ struct ActivityCircularProgressView: View {
                             previousValue = isAnimating
                             isAnimating.toggle()
                         }
+                        .onDisappear {
+                            // Cancel repeatForever by resetting without animation
+                            withAnimation(.linear(duration: 0)) {
+                                isAnimating = false
+                            }
+                        }
                 }
             }
             .rotationEffect(.degrees(-90))

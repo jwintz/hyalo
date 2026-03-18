@@ -229,7 +229,7 @@ extension HyaloModule {
         if buildDbChanged {
             cancelBuildStaleTimer()
             externalBuildInProgress = false
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 ActivityManager.shared.finishModuleBuild(
                     success: true, dylibChanged: dylibChanged)
             }
@@ -271,7 +271,7 @@ extension HyaloModule {
         let mgr = ActivityManager.shared
         let activityID = ActivityManager.moduleBuildID
 
-        DispatchQueue.main.async {
+        Task { @MainActor in
             mgr.clearLog(id: activityID)
             mgr.startModuleBuild()
             HyaloModule.buildStartCallback?(config)
@@ -286,31 +286,40 @@ extension HyaloModule {
         process.standardOutput = pipe
         process.standardError = pipe
 
-        // Wrap the line accumulation buffer in a reference type so it can be
-        // safely shared between the readabilityHandler and terminationHandler
-        // closures. Access is sequential in practice: terminationHandler sets
-        // readabilityHandler = nil before touching the buffer.
-        final class LineAccumulator: @unchecked Sendable { var data = Data() }
+        // Wrap the line accumulation buffer in a reference type shared between
+        // the readabilityHandler and terminationHandler closures. A serial queue
+        // serializes access because readabilityHandler may still be executing
+        // when terminationHandler fires (setting readabilityHandler = nil does
+        // not guarantee the currently-executing handler has completed).
+        final class LineAccumulator: @unchecked Sendable {
+            var data = Data()
+            let queue = DispatchQueue(label: "hyalo.build.lineaccumulator")
+        }
         let acc = LineAccumulator()
 
         let handle = pipe.fileHandleForReading
         handle.readabilityHandler = { fh in
             let chunk = fh.availableData
             guard !chunk.isEmpty else { return }
-            acc.data.append(chunk)
-
-            while let range = acc.data.range(of: Data([0x0A])) {
-                let lineData = acc.data.subdata(in: acc.data.startIndex..<range.lowerBound)
-                acc.data.removeSubrange(acc.data.startIndex...range.lowerBound)
-                if let line = String(data: lineData, encoding: .utf8), !line.isEmpty {
-                    DispatchQueue.main.async {
-                        mgr.appendLog(id: activityID, line: line)
-                        HyaloModule.buildLogLineCallback?(line)
-                        let trimmed = line.trimmingCharacters(in: .whitespaces)
-                        if trimmed.hasPrefix("[") || trimmed.hasPrefix("Build") || trimmed.hasPrefix("Compiling") ||
-                           trimmed.hasPrefix("Linking") || trimmed.hasPrefix("error:") || trimmed.hasPrefix("warning:") {
-                            mgr.updateModuleBuild(message: trimmed)
-                        }
+            var lines: [String] = []
+            acc.queue.sync {
+                acc.data.append(chunk)
+                while let range = acc.data.range(of: Data([0x0A])) {
+                    let lineData = acc.data.subdata(in: acc.data.startIndex..<range.lowerBound)
+                    acc.data.removeSubrange(acc.data.startIndex...range.lowerBound)
+                    if let line = String(data: lineData, encoding: .utf8), !line.isEmpty {
+                        lines.append(line)
+                    }
+                }
+            }
+            for line in lines {
+                Task { @MainActor in
+                    mgr.appendLog(id: activityID, line: line)
+                    HyaloModule.buildLogLineCallback?(line)
+                    let trimmed = line.trimmingCharacters(in: .whitespaces)
+                    if trimmed.hasPrefix("[") || trimmed.hasPrefix("Build") || trimmed.hasPrefix("Compiling") ||
+                       trimmed.hasPrefix("Linking") || trimmed.hasPrefix("error:") || trimmed.hasPrefix("warning:") {
+                        mgr.updateModuleBuild(message: trimmed)
                     }
                 }
             }
@@ -318,15 +327,21 @@ extension HyaloModule {
 
         process.terminationHandler = { proc in
             handle.readabilityHandler = nil
-            if !acc.data.isEmpty, let line = String(data: acc.data, encoding: .utf8) {
-                DispatchQueue.main.async {
+            let remainingLine: String? = acc.queue.sync {
+                if !acc.data.isEmpty, let line = String(data: acc.data, encoding: .utf8) {
+                    return line
+                }
+                return nil
+            }
+            if let line = remainingLine {
+                Task { @MainActor in
                     mgr.appendLog(id: activityID, line: line)
                     HyaloModule.buildLogLineCallback?(line)
                 }
             }
 
             let success = proc.terminationStatus == 0
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 mgr.finishModuleBuild(success: success, dylibChanged: success)
                 HyaloModule.buildFinishCallback?(success)
                 if success {
@@ -352,7 +367,7 @@ extension HyaloModule {
             try process.run()
             buildProcess = process
         } catch {
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 mgr.appendLog(id: activityID, line: "Failed to start: \(error.localizedDescription)")
                 mgr.finishModuleBuild(success: false)
             }

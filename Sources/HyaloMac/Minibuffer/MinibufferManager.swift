@@ -9,6 +9,7 @@ import HyaloShared
 import KelyphosKit
 
 @available(macOS 26.0, *)
+@MainActor
 final class MinibufferManager {
     static let shared = MinibufferManager()
 

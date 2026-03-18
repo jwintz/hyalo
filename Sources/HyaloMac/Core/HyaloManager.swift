@@ -26,7 +26,8 @@ final class HyaloManager {
             forName: NSNotification.Name("AppleInterfaceThemeChangedNotification"),
             object: nil,
             queue: .main
-        ) { [unowned self] _ in
+        ) { [weak self] _ in
+            guard let self else { return }
             MainActor.assumeIsolated {
                 self.updateWindowsForSystemAppearanceChange()
             }

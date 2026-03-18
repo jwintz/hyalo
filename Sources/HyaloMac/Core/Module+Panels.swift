@@ -17,7 +17,7 @@ extension HyaloModule {
             with: "Toggle the inspector (right sidebar) visibility."
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let controller = HyaloModule.activeController else { return }
                     controller.toggleInspector()
                 }
@@ -30,7 +30,7 @@ extension HyaloModule {
             with: "Show the inspector (right sidebar)."
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let controller = HyaloModule.activeController else { return }
                     controller.setInspectorVisible(true)
                 }
@@ -43,7 +43,7 @@ extension HyaloModule {
             with: "Hide the inspector (right sidebar)."
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let controller = HyaloModule.activeController else { return }
                     controller.setInspectorVisible(false)
                 }
@@ -72,7 +72,7 @@ extension HyaloModule {
             """
         ) { (env: EmacsSwiftModule.Environment, index: Int) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let controller = HyaloModule.activeController else { return }
                     controller.selectInspectorTab(index)
                 }
@@ -124,7 +124,7 @@ extension HyaloModule {
                         shellState.utilityAreaVisible = willShow
                     }
                     if willShow {
-                        DispatchQueue.main.async { controller.focusTerminal() }
+                        Task { @MainActor in controller.focusTerminal() }
                     } else {
                         controller.focusEmacs()
                     }
@@ -146,7 +146,7 @@ extension HyaloModule {
                     withAnimation(.easeInOut(duration: 0.15)) {
                         controller.shellState.utilityAreaVisible = true
                     }
-                    DispatchQueue.main.async { controller.focusTerminal() }
+                    Task { @MainActor in controller.focusTerminal() }
                 }
                 return true
             }
@@ -180,7 +180,7 @@ extension HyaloModule {
             """
         ) { (env: EmacsSwiftModule.Environment, index: Int) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let controller = HyaloModule.activeController else { return }
                     controller.selectUtilityAreaTab(index)
                 }
@@ -196,7 +196,7 @@ extension HyaloModule {
             """
         ) { (env: EmacsSwiftModule.Environment, index: Int) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let controller = HyaloModule.activeController else { return }
                     controller.showUtilityAreaTab(index)
                 }

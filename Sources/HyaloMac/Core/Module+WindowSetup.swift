@@ -99,7 +99,8 @@ extension HyaloModule {
                     }
                     if let proxy = HyaloModule.loadingProxyWindow {
                         proxy.orderOut(nil)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(1.0))
                             HyaloModule.loadingProxyWindow = nil
                         }
                     }
@@ -156,7 +157,7 @@ extension HyaloModule {
             "hyalo-set-window-appearance",
             with: "Set window appearance: \"light\", \"dark\", or \"auto\"."
         ) { (env: EmacsSwiftModule.Environment, appearance: String) throws -> Bool in
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 guard let window = findEmacsWindow() else { return }
                 HyaloManager.shared.setWindowAppearance(appearance, for: window)
             }
@@ -206,7 +207,7 @@ extension HyaloModule {
             """
         ) { (env: EmacsSwiftModule.Environment, frameId: Int) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     HyaloModule.undecorateWindow(frameId)
                 }
                 return true
@@ -270,14 +271,15 @@ extension HyaloModule {
     @available(macOS 26.0, *)
     static func decorateFrameWithRetry(frameId: Int, attempt: Int) {
         let maxAttempts = 10
-        DispatchQueue.main.async {
+        Task { @MainActor in
             if HyaloModule.controllers[frameId] != nil {
                 return
             }
             if let window = findUndecoratedEmacsWindow() {
                 HyaloModule.decorateWindow(window, frameId: frameId)
             } else if attempt < maxAttempts {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(0.05))
                     decorateFrameWithRetry(frameId: frameId, attempt: attempt + 1)
                 }
             }

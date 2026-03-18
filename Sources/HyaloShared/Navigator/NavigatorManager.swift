@@ -20,6 +20,15 @@ public struct BufferInfo: Codable, Identifiable, Hashable {
         self.modified = modified
         self.icon = icon
     }
+
+    /// Display icon derived from file extension, falling back to Emacs-provided icon or generic.
+    public var displayIcon: String {
+        if let path, !path.isEmpty {
+            let name = URL(fileURLWithPath: path).lastPathComponent
+            return FileTreeIcons.icon(for: name)
+        }
+        return icon ?? "doc"
+    }
 }
 
 public struct SearchResult: Codable, Identifiable, Hashable {

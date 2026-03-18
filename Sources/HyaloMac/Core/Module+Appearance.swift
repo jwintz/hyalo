@@ -17,7 +17,7 @@ extension HyaloModule {
             with: "Set the vibrancy material level for the main content area."
         ) { (env: EmacsSwiftModule.Environment, material: String) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let mat = VibrancyMaterial(rawValue: material) else { return }
                     for state in HyaloModule.allShellStates {
                         state.vibrancyMaterial = mat
@@ -32,7 +32,7 @@ extension HyaloModule {
             with: "Set the workspace background color. Alpha is preserved from UserDefaults."
         ) { (env: EmacsSwiftModule.Environment, hexColor: String) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let color = NSColor(hexString: hexColor) else { return }
                     for state in HyaloModule.allShellStates {
                         state.backgroundColor = color
@@ -54,7 +54,7 @@ extension HyaloModule {
             """
         ) { (env: EmacsSwiftModule.Environment, appearance: String) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     let nsAppearance: NSAppearance?
                     switch appearance {
                     case "light": nsAppearance = NSAppearance(named: .aqua)
@@ -76,7 +76,7 @@ extension HyaloModule {
             with: "Show the appearance settings in the inspector (tab 3)."
         ) { (env: EmacsSwiftModule.Environment) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     if let wc = HyaloModule.activeController {
                         wc.selectInspectorTab(3)
                     }
@@ -90,7 +90,7 @@ extension HyaloModule {
             with: "Set the current theme name displayed in the appearance panel."
         ) { (env: EmacsSwiftModule.Environment, name: String) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     for workspace in HyaloModule.allWorkspaces {
                         workspace.currentThemeName = name
                     }
@@ -110,7 +110,7 @@ extension HyaloModule {
             """
         ) { (env: EmacsSwiftModule.Environment, variant: String, jsonColors: String) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let data = jsonColors.data(using: .utf8),
                           let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String]
                     else { return }
@@ -134,7 +134,7 @@ extension HyaloModule {
             """
         ) { (env: EmacsSwiftModule.Environment, json: String) throws -> Bool in
             if #available(macOS 26.0, *) {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     guard let data = json.data(using: .utf8),
                           let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
                     else { return }

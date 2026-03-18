@@ -34,7 +34,7 @@ public final class ProjectNavigatorViewModel {
     }
 
     public var sortFoldersOnTop: Bool = true {
-        didSet { Task { await rebuildFileTreeAsync() } }
+        didSet { triggerRebuild() }
     }
 
     public var sourceControlFilter: Bool = false {
@@ -69,6 +69,11 @@ public final class ProjectNavigatorViewModel {
         }
 
         projectRoot = root
+        triggerRebuild()
+    }
+
+    /// Explicit async rebuild trigger — avoids `Task {}` in `didSet`.
+    private func triggerRebuild() {
         Task { await rebuildFileTreeAsync() }
     }
 

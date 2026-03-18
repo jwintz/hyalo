@@ -206,7 +206,7 @@ final class HyaloModule: Module {
 
     func Init(_ env: EmacsSwiftModule.Environment) throws {
         platformWakeEmacs = { ns_wake_emacs?() }
-        DispatchQueue.main.async {
+        Task { @MainActor in
             InspectorAppearanceCallbackWirer.wire()
         }
 

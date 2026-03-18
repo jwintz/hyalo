@@ -77,7 +77,7 @@ public struct BufferListView: View {
                 Text(buffer.name)
                     .font(.system(size: HyaloDesign.FontSize.large))
             } icon: {
-                Image(systemName: bufferIcon(buffer))
+                Image(systemName: buffer.displayIcon)
                     .font(.system(size: HyaloDesign.IconSize.standard))
                     .foregroundStyle(.secondary)
             }
@@ -133,15 +133,4 @@ public struct BufferListView: View {
         }
     }
 
-    // MARK: - Icon
-
-    /// Derive icon from file extension when the buffer has a path,
-    /// falling back to the Emacs-provided icon or a generic document.
-    private func bufferIcon(_ buffer: BufferInfo) -> String {
-        if let path = buffer.path, !path.isEmpty {
-            let name = URL(fileURLWithPath: path).lastPathComponent
-            return FileTreeIcons.icon(for: name)
-        }
-        return buffer.icon ?? "doc"
-    }
 }

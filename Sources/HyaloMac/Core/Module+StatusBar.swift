@@ -30,7 +30,7 @@ extension HyaloModule {
                 if let json = minorModesJson, let data = json.data(using: .utf8) {
                     minorModes = try? JSONDecoder().decode([String].self, from: data)
                 }
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     StatusBarManager.shared.updateStatus(
                         line: line, column: column, mode: mode,
                         encoding: encoding, lineEnding: lineEnding,
@@ -70,7 +70,7 @@ extension HyaloModule {
                     try env.funcall("hyalo-status--set-indent", with: indentJson)
                 }
 
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     let vm = StatusBarManager.shared.viewModel
                     vm.onEncodingChange = encodingCallback
                     vm.onLineEndingChange = lineEndingCallback
@@ -210,7 +210,7 @@ extension HyaloModule {
                     try env.funcall("hyalo-channels--handle-branch-switch", with: branch)
                 }
 
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     ToolbarManager.shared.viewModel.onBranchSwitch = branchSwitchCallback
                 }
 
@@ -347,7 +347,7 @@ extension HyaloModule {
                 HyaloModule.packageUpgradeSingleCallback = upgradeSingleCallback
                 HyaloModule.packageListCallback = listCallback
 
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     let vm = ToolbarManager.shared.viewModel
                     vm.onPackageRefresh = refreshCallback
                     vm.onPackageUpgradeAll = upgradeAllCallback

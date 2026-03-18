@@ -138,8 +138,9 @@ public final class ActivityManager {
     }
 
     public func removeAfterDelay(id: String, delay: TimeInterval = 5.0) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [unowned self] in
-            self.remove(id: id)
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            self?.remove(id: id)
         }
     }
 

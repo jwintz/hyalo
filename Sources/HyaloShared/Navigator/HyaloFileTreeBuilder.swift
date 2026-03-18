@@ -100,19 +100,20 @@ public enum HyaloFileTreeBuilder {
         result.reserveCapacity(64)
         for line in output.split(separator: "\n", omittingEmptySubsequences: true) where line.count >= 4 {
             let code = line.prefix(2)
-            var file = String(line.dropFirst(3))
-            if let arrowRange = file.range(of: " -> ") {
-                file = String(file[arrowRange.upperBound...])
+            var fileSub = line.dropFirst(3)
+            if let arrowRange = fileSub.range(of: " -> ") {
+                fileSub = fileSub[arrowRange.upperBound...]
             }
-            let absolutePath = (root as NSString).appendingPathComponent(file)
-            let status: String? = {
-                if code.contains("M") { return "M" }
-                if code.contains("A") { return "A" }
-                if code.contains("D") { return "D" }
-                if code.contains("R") { return "R" }
-                if code.contains("?") { return "?" }
-                return nil
-            }()
+            let absolutePath = (root as NSString).appendingPathComponent(String(fileSub))
+            // Single-pass status classification using the two-char code
+            let c0 = code[code.startIndex]
+            let c1 = code[code.index(after: code.startIndex)]
+            let status: String? =
+                (c0 == "M" || c1 == "M") ? "M" :
+                (c0 == "A" || c1 == "A") ? "A" :
+                (c0 == "D" || c1 == "D") ? "D" :
+                (c0 == "R" || c1 == "R") ? "R" :
+                (c0 == "?" || c1 == "?") ? "?" : nil
             if let status {
                 result[absolutePath] = status
             }

@@ -60,7 +60,7 @@ public final class TerminalPalette {
 
     // MARK: - Initialization
 
-    nonisolated(unsafe) private var appearanceObserver: NSObjectProtocol?
+    @ObservationIgnored nonisolated(unsafe) private var appearanceObserver: NSObjectProtocol?
 
     private init() {
         // Try to load nano themes from iTermColors files
@@ -276,8 +276,9 @@ public final class TerminalPalette {
             forName: .init("HyaloAppearanceChanged"),
             object: nil,
             queue: .main
-        ) { [unowned self] notification in
+        ) { [weak self] notification in
             Task { @MainActor in
+                guard let self else { return }
                 if let isDark = notification.userInfo?["isDark"] as? Bool {
                     self.setAppearance(isDark: isDark)
                 } else {
