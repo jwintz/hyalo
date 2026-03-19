@@ -379,6 +379,89 @@ extension HyaloModule {
         }
     }
 
+    // MARK: - Welcome Panel
+
+    /// The welcome panel shown when Emacs launches without file arguments.
+    @available(macOS 26.0, *)
+    @MainActor static var welcomePanel: WelcomePanel?
+
+    /// Observable state for the welcome panel, shared with Lisp callbacks.
+    @available(macOS 26.0, *)
+    @MainActor static var welcomeState = WelcomeState()
+
+    /// Channel for notifying Lisp when a project is selected.
+    static var welcomeProjectChannel: Any?
+
+    func setupWelcomeBindings(_ env: EmacsSwiftModule.Environment) throws {
+
+        try env.defun("hyalo-show-welcome",
+            with: """
+            Show the welcome panel with a list of known projects.
+            PROJECTS-JSON is a JSON array of {\"name\":..., \"path\":...} objects
+            from project-known-project-roots.
+            """
+        ) { (env: EmacsSwiftModule.Environment, projectsJson: String) throws -> Bool in
+            if #available(macOS 26.0, *) {
+                let channel = try env.openChannel(name: "hyalo-welcome-project")
+                HyaloModule.welcomeProjectChannel = channel
+                let selectCallback: (String) -> Void = channel.callback {
+                    (env: EmacsSwiftModule.Environment, path: String) in
+                    try env.funcall("hyalo-welcome--on-project-selected", with: path)
+                }
+
+                MainActor.assumeIsolated {
+                    // Parse project list
+                    var projects: [WelcomeState.Project] = []
+                    if let data = projectsJson.data(using: .utf8),
+                       let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: String]] {
+                        for item in parsed {
+                            if let name = item["name"], let path = item["path"] {
+                                projects.append(WelcomeState.Project(name: name, path: path))
+                            }
+                        }
+                    }
+
+                    let state = HyaloModule.welcomeState
+                    state.projects = projects
+                    state.onProjectSelected = { path in
+                        selectCallback(path)
+                        // Dismiss immediately from Swift side
+                        HyaloModule.welcomePanel?.dismiss()
+                        HyaloModule.welcomePanel = nil
+                        // Bring the Emacs window to front
+                        if let controller = HyaloModule.activeController,
+                           let window = controller.window {
+                            window.makeKeyAndOrderFront(nil)
+                            NSApp.activate(ignoringOtherApps: true)
+                        }
+                    }
+
+                    // Create shell state for vibrancy (reads from the shared "hyalo" persistence prefix)
+                    let shellState = KelyphosShellState(persistencePrefix: "hyalo")
+
+                    let panel = WelcomePanel(welcomeState: state, shellState: shellState)
+                    panel.show()
+                    HyaloModule.welcomePanel = panel
+                }
+                return true
+            }
+            return false
+        }
+
+        try env.defun("hyalo-dismiss-welcome",
+            with: "Dismiss the welcome panel if visible."
+        ) { () -> Bool in
+            if #available(macOS 26.0, *) {
+                MainActor.assumeIsolated {
+                    HyaloModule.welcomePanel?.dismiss()
+                    HyaloModule.welcomePanel = nil
+                }
+                return true
+            }
+            return false
+        }
+    }
+
     /// Remove Hyalo decoration from a frame.
     @available(macOS 26.0, *)
     static func undecorateWindow(_ frameId: Int) {

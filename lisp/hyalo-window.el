@@ -37,12 +37,11 @@ Channel setup and data push happen later in `hyalo-window-setup'."
     ;; A single sit-for lets AppKit process the content-view swap before
     ;; we continue.  No polling loop needed.
     (sit-for 0)
-    ;; When no bootstrap is needed, the proxy was not created.
-    ;; Reveal the frame immediately so the user sees the IDE shell
-    ;; while the rest of init loads.  When bootstrapping, the proxy
-    ;; is visible and the frame stays hidden until hyalo-loading-done.
-    (unless (bound-and-true-p hyalo--needs-bootstrap)
-      (make-frame-visible))
+    ;; Frame stays invisible until post-setup decides whether to show
+    ;; the welcome panel or reveal immediately.  When bootstrapping,
+    ;; the loading proxy window is visible instead.  When not
+    ;; bootstrapping, the frame remains hidden briefly (until
+    ;; post-setup runs) so the welcome panel can appear first.
     (setq hyalo-window--early-setup-done t)))
 
 ;;; Core Setup
@@ -202,7 +201,33 @@ subsequent steps from running.  Each step logs errors individually."
       (hyalo-loading-done)
     ;; Module not available — nothing to close.
     nil)
-  (make-frame-visible)
+  ;; Decide whether to show the welcome panel or the Emacs frame.
+  ;; When welcome is shown, the frame stays invisible — the welcome
+  ;; panel is the only visible window.  The frame is revealed when
+  ;; the welcome panel is dismissed (via hyalo-welcome--reveal-frame).
+  (let ((show-welcome nil))
+    (condition-case err
+        (progn
+          (require 'hyalo-welcome nil t)
+          (when (and (fboundp 'hyalo-welcome-show)
+                     (fboundp 'hyalo-splash--should-display-p)
+                     (hyalo-splash--should-display-p))
+            (setq show-welcome t)))
+      (error (message "Hyalo: Welcome check error: %s" (error-message-string err))))
+    (if show-welcome
+        ;; Show welcome panel — frame stays hidden until dismissed
+        (condition-case err
+            (hyalo-welcome-show)
+          (error
+           (message "Hyalo: Welcome panel error: %s" (error-message-string err))
+           ;; Fallback: reveal frame if welcome failed
+           (make-frame-visible)
+           (raise-frame)
+           (select-frame-set-input-focus (selected-frame))))
+      ;; No welcome — reveal frame immediately
+      (make-frame-visible)
+      (raise-frame)
+      (select-frame-set-input-focus (selected-frame))))
   (message "Hyalo: IDE shell initialized (v%s)"
            (or (ignore-errors (hyalo-version-check)) "?")))
 

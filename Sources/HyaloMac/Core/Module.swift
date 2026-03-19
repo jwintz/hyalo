@@ -221,6 +221,7 @@ final class HyaloModule: Module {
         try setupStatusBarBindings(env)
         try setupAppearanceBindings(env)
         try setupBuildBindings(env)
+        try setupWelcomeBindings(env)
         try setupMinibufferBindings(env)
     }
 }
