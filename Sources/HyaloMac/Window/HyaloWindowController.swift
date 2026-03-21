@@ -91,6 +91,9 @@ final class HyaloWindowController: NSWindowController {
                 },
                 trailingToolbarItems: [
                     {
+                        AnyView(GodModeView(viewModel: toolbarVM))
+                    },
+                    {
                         AnyView(KeycastView(viewModel: toolbarVM))
                     },
                     {

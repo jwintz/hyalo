@@ -104,7 +104,6 @@ public struct EditorTabBarView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Spacer()
             }
             .padding(.vertical, 5)
             .padding(.horizontal, 10)

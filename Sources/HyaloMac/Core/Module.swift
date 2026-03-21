@@ -214,6 +214,7 @@ final class HyaloModule: Module {
         try setupCoreBindings(env)
         try setupLoadingBindings(env)
         try setupKeycastBindings(env)
+        try setupGodModeBindings(env)
         try setupWindowBindings(env)
         try setupNavigatorBindings(env)
         try setupPanelBindings(env)

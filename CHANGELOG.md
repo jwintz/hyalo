@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Add god-mode toolbar pill (`GodModeView.swift`, `GodModeState.swift`) showing current editing state (control, literal, meta, control-meta, digit argument, universal argument) with per-state tint colors and icons
+- Add god-mode Emacs integration (`hyalo-god-mode.el`) syncing Swift toolbar visibility and state directly from `god-local-mode`
+- Add debug logging for the god-mode Emacs-to-Swift bridge on both the Lisp and Swift sides
 - Add Shackle configuration (`lisp/hyalo-shackle.el`) to display popup buffers at bottom with sensible defaults for magit, help, compilation, and diagnostics
 - Add iTermColors parser (`ITermColorsParser.swift`) to load terminal color schemes from .itermcolors files
 - Add appearance-aware terminal palette (`TerminalPalette.swift`) with automatic light/dark switching
@@ -17,6 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Center the active buffer label horizontally in `EditorTabBarView` detail tab without affecting pill width or geometry
+- Update god-mode toolbar state detection to follow transient key sequences from the god-mode command path instead of only settled post-command state
+- Update the environment pill build segment to dismiss when no build activity remains active instead of pinning the last finished build inline
 - Update `TerminalPalette` to search for nano themes in multiple locations: `~/.config/hyalo/`, `~/Library/Application Support/hyalo/`, and current working directory
 - Update `hyalo-window--post-setup` to load `hyalo-shackle` module
 - Update `InspectorTerminalView`, `UtilityAreaTerminalView` (macOS), and `UtilityAreaTerminalViewiOS` to use `@Bindable TerminalPalette` for automatic theme updates

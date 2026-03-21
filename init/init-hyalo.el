@@ -114,6 +114,17 @@
   :config
   (hyalo-package-setup))
 
+;;;; Hyalo God-Mode Pill
+
+(use-package hyalo-god-mode
+  :ensure nil
+  :if (eq window-system 'ns)
+  :demand t
+  :after god-mode
+  :commands (hyalo-god-mode-setup hyalo-god-mode-teardown)
+  :config
+  (hyalo-god-mode-setup))
+
 ;;;; Hyalo Keycast
 
 (use-package hyalo-keycast

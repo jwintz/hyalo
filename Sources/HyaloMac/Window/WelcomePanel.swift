@@ -6,6 +6,17 @@ import SwiftUI
 import KelyphosKit
 import HyaloShared
 
+@available(macOS 26.0, *)
+private final class WelcomeProjectPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+
+    override var acceptsMouseMovedEvents: Bool {
+        get { true }
+        set { super.acceptsMouseMovedEvents = newValue }
+    }
+}
+
 /// Creates and manages the welcome panel shown when Emacs launches without file arguments.
 @available(macOS 26.0, *)
 @MainActor
@@ -31,9 +42,9 @@ final class WelcomePanel {
         let hostView = NSHostingView(rootView: contentView)
         hostView.frame = NSRect(x: 0, y: 0, width: 740, height: 432)
 
-        let newPanel = NSPanel(
+        let newPanel = WelcomeProjectPanel(
             contentRect: NSRect(x: 0, y: 0, width: 740, height: 432),
-            styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
+            styleMask: [.titled, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
@@ -42,9 +53,10 @@ final class WelcomePanel {
         newPanel.isOpaque = false
         newPanel.backgroundColor = .clear
         newPanel.isMovableByWindowBackground = true
-        newPanel.isFloatingPanel = true
+        newPanel.isFloatingPanel = false
         newPanel.becomesKeyOnlyIfNeeded = false
-        newPanel.level = .floating
+        newPanel.acceptsMouseMovedEvents = true
+        newPanel.level = .normal
         newPanel.contentView = hostView
 
         // Hide standard window buttons
@@ -184,8 +196,8 @@ private struct ProjectRow: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(isHovered ? Color.primary.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 6))
             .contentShape(Rectangle())
-            .background(isHovered ? Color.primary.opacity(0.06) : Color.clear)
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }

@@ -49,6 +49,10 @@ public final class ToolbarViewModel {
     public var keycastKey: String = ""
     public var keycastCommand: String = ""
 
+    // God-mode
+    public var godModeVisible: Bool = false
+    public var godModeState: GodModeState = .inactive
+
     // Callbacks (set by Module.swift channel setup)
     public var onBranchSwitch: ((String) -> Void)?
     public var onPackageRefresh: (() -> Void)?

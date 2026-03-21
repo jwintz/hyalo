@@ -123,12 +123,11 @@ private struct BuildStatusView: View {
         .onTapGesture { isPresented.toggle() }
         .onChange(of: activityManager.activities) { _, activities in
             withAnimation {
-                displayed = activities.first(where: \.isActive) ?? activities.first
+                displayed = activities.first(where: \.isActive)
             }
         }
         .onAppear {
             displayed = activityManager.activities.first(where: \.isActive)
-                ?? activityManager.activities.first
         }
     }
 
