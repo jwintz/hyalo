@@ -18,6 +18,7 @@
 (require 'init-lang-javascript)
 (require 'init-lang-yaml)
 (require 'init-lang-git)
+(require 'init-lang-abc)
 
 (provide 'init-modes)
 ;;; init-modes.el ends here

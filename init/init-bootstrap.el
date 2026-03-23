@@ -271,11 +271,9 @@ Uses elog if available, otherwise falls back to message."
   :if (not (eq window-system 'ios))
   :vc (:url "https://github.com/Kinneyzhang/elog" :rev :newest)
   ;; :vc checks git state even when installed (~15-20ms).
-  ;; Defer unless debugging (--debug-init or HYALO_DEBUG=1).
-  :defer t
   :commands (elog-logger elog-info elog-debug elog-warn elog-error)
   :init
-  (when hyalo-debug (require 'elog))
+  (require 'elog)
   :config
   ;; Initialize main Emacs logger
   (defvar emacs-logger
@@ -334,11 +332,9 @@ Uses elog if available, otherwise falls back to message."
   :ensure t
   :config
   (when (and (memq window-system '(mac ns x)) (not (eq window-system 'ios)))
-    ;; Non-interactive login shell: faster startup, loads .zshenv/.zprofile only
-    ;; Move PATH exports from .zshrc to .zshenv for this to work
-    (setq exec-path-from-shell-arguments '("-l"))
-    (dolist (var '("SYNTHETIC_API_KEY"))
-      (add-to-list 'exec-path-from-shell-variables var))
+    ;; Non-interactive, non-login shell: reads .zshenv only (fastest).
+    ;; PATH-setting tools (pixi, homebrew) belong in .zshenv.
+    (setq exec-path-from-shell-arguments nil)
     ;; Run on first input, or after 2s idle (whichever comes first).
     ;; The idle fallback ensures PATH is set before incremental package
     ;; loading starts (eglot, magit need correct PATH).

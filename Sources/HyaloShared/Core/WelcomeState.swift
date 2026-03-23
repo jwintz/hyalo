@@ -28,6 +28,9 @@ public final class WelcomeState {
     /// Whether the welcome panel is currently visible.
     public var isVisible: Bool = false
 
+    /// Init time string (e.g. "0.42 seconds") from Emacs, displayed as subtitle.
+    public var initTime: String?
+
     /// Callback invoked when the user selects a project.
     public var onProjectSelected: ((String) -> Void)?
 

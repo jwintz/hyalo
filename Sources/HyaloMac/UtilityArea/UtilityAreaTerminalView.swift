@@ -78,10 +78,19 @@ final class UtilityAreaTerminalHolder {
 
         // Start shell
         let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+
+        // Prepare environment: merge host environment with terminal-specific variables.
+        // SwiftTerm.Terminal.getEnvironmentVariables() is too sparse (missing PATH, etc).
+        var env = ProcessInfo.processInfo.environment
+        env["TERM"] = "xterm-256color"
+        env["COLORTERM"] = "truecolor"
+        if env["LANG"] == nil { env["LANG"] = "en_US.UTF-8" }
+        let envArray = env.map { "\($0.key)=\($0.value)" }
+
         terminalView.startProcess(
             executable: shell,
-            args: ["--login"],
-            environment: SwiftTerm.Terminal.getEnvironmentVariables(termName: "xterm-256color"),
+            args: ["-l", "-i"],
+            environment: envArray,
             currentDirectory: cwd
         )
 

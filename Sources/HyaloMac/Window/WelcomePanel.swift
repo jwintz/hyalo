@@ -90,6 +90,7 @@ private struct WelcomePanelContentView: View {
     var body: some View {
         KelyphosWelcomeView(
             title: "Hyalo",
+            subtitle: welcomeState.initTime.map { "Loaded in \($0)" },
             icon: logoImage,
             state: shellState,
             actions: [

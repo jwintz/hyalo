@@ -399,8 +399,9 @@ extension HyaloModule {
             Show the welcome panel with a list of known projects.
             PROJECTS-JSON is a JSON array of {\"name\":..., \"path\":...} objects
             from project-known-project-roots.
+            INIT-TIME is an optional string like \"0.42 seconds\" from emacs-init-time.
             """
-        ) { (env: EmacsSwiftModule.Environment, projectsJson: String) throws -> Bool in
+        ) { (env: EmacsSwiftModule.Environment, projectsJson: String, initTime: String?) throws -> Bool in
             if #available(macOS 26.0, *) {
                 let channel = try env.openChannel(name: "hyalo-welcome-project")
                 HyaloModule.welcomeProjectChannel = channel
@@ -423,6 +424,7 @@ extension HyaloModule {
 
                     let state = HyaloModule.welcomeState
                     state.projects = projects
+                    state.initTime = initTime
                     state.onProjectSelected = { path in
                         selectCallback(path)
                         // Dismiss immediately from Swift side

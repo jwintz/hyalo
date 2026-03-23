@@ -43,8 +43,10 @@ The Emacs frame is kept invisible while the welcome panel is shown."
   (when (and (hyalo-available-p)
              (hyalo-splash--should-display-p)
              (fboundp 'hyalo-show-welcome))
-    (let ((projects-json (hyalo-welcome--gather-projects)))
-      (hyalo-show-welcome projects-json))
+    (let ((projects-json (hyalo-welcome--gather-projects))
+          (init-time (when (fboundp 'emacs-init-time)
+                       (emacs-init-time "%.2f seconds"))))
+      (hyalo-show-welcome projects-json init-time))
     (setq hyalo-welcome--active t)
     ;; Keep the frame hidden — Emacs may auto-show it after startup.
     ;; Use a timer to re-hide it in case Emacs reveals it after we return.

@@ -243,5 +243,22 @@
   (advice-add 'scroll-up :around #'hyalo/good-scroll--scroll-up)
   (advice-add 'scroll-down :around #'hyalo/good-scroll--scroll-down))
 
+;;;; Page Up/Down: scroll viewport by one line, cursor stays at same screen row
+
+(defun hyalo/scroll-up-keep-screen-pos ()
+  "Scroll buffer up by one line; cursor stays at same screen row."
+  (interactive)
+  (when (ignore-errors (scroll-up 1) t)
+    (forward-line 1)))
+
+(defun hyalo/scroll-down-keep-screen-pos ()
+  "Scroll buffer down by one line; cursor stays at same screen row."
+  (interactive)
+  (when (ignore-errors (scroll-down 1) t)
+    (forward-line -1)))
+
+(global-set-key (kbd "<next>") #'hyalo/scroll-up-keep-screen-pos)
+(global-set-key (kbd "<prior>") #'hyalo/scroll-down-keep-screen-pos)
+
 (provide 'init-emacs)
 ;;; init-emacs.el ends here
