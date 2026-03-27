@@ -18,6 +18,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Add comprehensive OSLog logging to terminal theming system for debugging theme loading and application
 - Add `init-lang-yaml.el` with YAML mode setup and tree-sitter registration
 
+### Removed
+
+- Remove user/host and development environment segments from the environment pill; the pill now only appears when a build or activity is active
+- Remove `EnvironmentBreadcrumbModel.swift`, `UserHostDropDownView.swift`, `EnvironmentDropDownView.swift`
+- Remove `hyalo-environment.el` and all environment detection/push infrastructure
+- Remove environment channel setup from `hyalo-channels.el`, `hyalo-window.el`, and `Module+StatusBar.swift`
+
 ### Changed
 
 - Center the active buffer label horizontally in `EditorTabBarView` detail tab without affecting pill width or geometry
@@ -34,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Fix Swift minibuffer overlay clipping on the left edge by removing hard `minWidth: 680` and adding horizontal padding to keep the overlay within window bounds
 - Suppress nested major-mode hooks during native Markdown code-block fontification to avoid extra Markdown buffer-open work
 - Defer synchronous VC state refresh off the interactive file-open path so visiting tracked files does not block on immediate VC bookkeeping
 - Stop polling buffer modified-state changes from a global `post-command-hook`; track real modified-flag transitions instead

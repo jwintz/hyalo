@@ -130,7 +130,8 @@
 (use-package hyalo-keycast
   :ensure nil
   :if (eq window-system 'ns)
-  :commands (hyalo-keycast-mode))
+  :commands (hyalo-keycast-mode)
+  :init (hyalo-keycast-mode 1))
 
 ;;;; Hyalo Appearance
 

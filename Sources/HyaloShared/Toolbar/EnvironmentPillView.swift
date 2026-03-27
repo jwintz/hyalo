@@ -1,17 +1,8 @@
-// EnvironmentPillView.swift - Toolbar breadcrumb: user/host | environment | build status
+// EnvironmentPillView.swift - Activity-only toolbar pill
 // Target: macOS 26 Tahoe with Liquid Glass design
 //
-// Three-segment layout in a Capsule pill (Tahoe):
-//
-//   [UserHostDropDownView] [EnvironmentDropDownView]  [Build status + spinner]
-//     person icon + user@host  env icon + summary      notification text + ring
-//
-// Segment 1 (UserHostDropDownView): shows user@hostname with SSH actions.
-// Segment 2 (EnvironmentDropDownView): shows detected dev environments.
-// Segment 3: inline build/activity progress (existing, unchanged).
-//
-// State for segments 1 and 2 is pushed from Emacs via the hyalo-environment
-// channel. State for segment 3 is pushed via ActivityManager (unchanged).
+// Shows a glass capsule with build/activity progress. Hidden when idle.
+// State is pushed via ActivityManager (from Emacs activity channel).
 
 import SwiftUI
 
@@ -21,73 +12,27 @@ import SwiftUI
 public struct EnvironmentPillView: View {
     @Bindable public var workspace: HyaloWorkspaceState
 
-    public var model: EnvironmentBreadcrumbModel
+    var activityManager = ActivityManager.shared
+
+    private var hasActivity: Bool {
+        activityManager.hasActiveWork
+    }
 
     public var body: some View {
-        BreadcrumbContent(workspace: workspace, model: model)
+        Group {
+            if hasActivity {
+                BuildStatusView(activityManager: activityManager)
+                    .fixedSize()
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 6)
+                    .transition(.opacity.combined(with: .scale))
+            }
+        }
+        .animation(.easeInOut, value: hasActivity)
     }
 
     public init(workspace: HyaloWorkspaceState) {
         self.workspace = workspace
-        self.model = EnvironmentBreadcrumbModel.shared
-    }
-}
-
-// MARK: - Breadcrumb Content
-
-@available(macOS 26.0, *)
-private struct BreadcrumbContent: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    var workspace: HyaloWorkspaceState
-    var model: EnvironmentBreadcrumbModel
-    var activityManager = ActivityManager.shared
-
-    /// Available width from toolbar layout
-    @State private var availableWidth: CGFloat = .infinity
-
-    // Breakpoints for progressive elision (right to left)
-    private static let showActivityText: CGFloat = 400
-    private static let showEnvironment: CGFloat = 280
-    private static let showUserText: CGFloat = 160
-
-    var body: some View {
-        HStack(spacing: 0) {
-            // Segment 1: user/host
-            UserHostDropDownView(model: model, compact: availableWidth < Self.showUserText)
-
-            // Segment 2: environment (hidden when narrow)
-            if availableWidth >= Self.showEnvironment {
-                EnvironmentDropDownView(model: model)
-            }
-
-            Spacer(minLength: 0)
-
-            // Segment 3: build/activity status
-            BuildStatusView(
-                activityManager: activityManager,
-                compact: availableWidth < Self.showActivityText
-            )
-            .fixedSize()
-            .padding(.trailing, 6)
-        }
-        .padding(5)
-        .clipShape(Capsule())
-        .glassEffect(in: .capsule)
-        .frame(minWidth: 60)
-        .background {
-            GeometryReader { geo in
-                Color.clear.preference(key: PillWidthKey.self, value: geo.size.width)
-            }
-        }
-        .onPreferenceChange(PillWidthKey.self) { availableWidth = $0 }
-    }
-}
-
-private struct PillWidthKey: PreferenceKey {
-    static let defaultValue: CGFloat = .infinity
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
 
@@ -98,7 +43,6 @@ private struct BuildStatusView: View {
     @Environment(\.controlActiveState) private var activeState
 
     var activityManager: ActivityManager
-    var compact: Bool = false
 
     @State private var isPresented = false
     @State private var displayed: ActivityItem?
@@ -107,9 +51,7 @@ private struct BuildStatusView: View {
         Group {
             if let activity = displayed {
                 HStack(spacing: 6) {
-                    if !compact {
-                        buildStatusText(activity)
-                    }
+                    buildStatusText(activity)
                     buildStatusIndicator(activity)
                 }
                 .transition(.opacity.combined(with: .move(edge: .trailing)))

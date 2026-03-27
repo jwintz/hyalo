@@ -6,7 +6,6 @@
 ;;; Code:
 
 (require 'hyalo-source-control nil t)
-(require 'hyalo-environment nil t)
 
 (defvar hyalo-channels--initialized nil
   "Non-nil when all channels have been set up.")
@@ -34,15 +33,10 @@
           (hyalo-setup-package-channel))
         (when (fboundp 'hyalo-setup-source-control-channel)
           (hyalo-setup-source-control-channel))
-        (when (fboundp 'hyalo-setup-environment-channel)
-          (hyalo-setup-environment-channel))
         (when (fboundp 'hyalo-setup-build-channel)
           (hyalo-setup-build-channel))
         (when (fboundp 'hyalo-setup-minibuffer-channel)
           (hyalo-setup-minibuffer-channel))
-        ;; Push initial environment state now that channel is ready
-        (when (fboundp 'hyalo-environment--push-initial)
-          (hyalo-environment--push-initial))
         (setq hyalo-channels--initialized t))
     (error (message "Hyalo: Channel setup error: %s" (error-message-string err)))))
 

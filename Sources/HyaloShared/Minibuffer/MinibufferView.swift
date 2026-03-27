@@ -99,7 +99,6 @@ public struct MinibufferView: View {
         .background(panelBackground)
         .edgesIgnoringSafeArea(.vertical)
         .frame(
-            minWidth: 680,
             minHeight: hasCandidates ? 400 : nil,
             maxHeight: .infinity,
             alignment: .top
@@ -120,6 +119,7 @@ public struct MinibufferOverlayView: View {
     public var body: some View {
         MinibufferView(viewModel: viewModel)
             .frame(maxWidth: 680, maxHeight: 400)
+            .padding(.horizontal, 20)
             .shadow(color: .black.opacity(0.3), radius: 8, y: 6)
             .transition(.opacity.combined(with: .scale(scale: 0.95)))
     }

@@ -56,7 +56,6 @@ final class HyaloModule: Module {
     static var diagnosticsChannel: Any?
     static var packageChannel: Any?
     static var moduleReloadChannel: Any?
-    static var environmentChannel: Any?
     static var buildChannel: Any?
 
     // Window controllers keyed by Emacs frame window-id (desc_ctr)

@@ -276,10 +276,7 @@ buffers regardless of entry point."
           (hyalo-navigator-set-active-buffer buf-name))
         ;; Push active file to project navigator
         (when (and file-path (fboundp 'hyalo-navigator-set-active-file))
-          (hyalo-navigator-set-active-file file-path))
-        ;; Push environment state to the breadcrumb segments
-        (when (fboundp 'hyalo-environment--push)
-          (hyalo-environment--push)))
+          (hyalo-navigator-set-active-file file-path)))
     (error nil))))))
 
 (defun hyalo-sync--buffer-icon (buf)

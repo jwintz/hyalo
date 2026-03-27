@@ -225,10 +225,8 @@ public final class ActivityManager {
         } else {
             finish(id: Self.moduleBuildID, message: msg)
         }
-        // Auto-remove after delay when no reload needed
-        if !dylibChanged {
-            removeAfterDelay(id: Self.moduleBuildID, delay: 5.0)
-        }
+        // Auto-remove after delay (longer when reload is available)
+        removeAfterDelay(id: Self.moduleBuildID, delay: dylibChanged ? 8.0 : 5.0)
     }
 
     // MARK: - Convenience: Package Installation
