@@ -109,6 +109,11 @@ struct UtilityAreaTerminalView: NSViewRepresentable {
     /// Tracks system appearance; changes here guarantee updateNSView is called.
     @Environment(\.colorScheme) private var colorScheme
     private let holder: UtilityAreaTerminalHolder
+    /// Tracks the last applied palette version to skip redundant applyPalette calls.
+    private class PaletteVersionBox {
+        var lastAppliedVersion: Int = -1
+    }
+    private let paletteVersionBox = PaletteVersionBox()
 
     init(holder: UtilityAreaTerminalHolder, palette: TerminalPalette) {
         self.holder = holder
@@ -133,10 +138,11 @@ struct UtilityAreaTerminalView: NSViewRepresentable {
             palette.setAppearance(isDark: systemIsDark)
         }
 
-        // Read version to guarantee @Observable tracking triggers future updates.
-        let _ = palette.version
+        // Only reapply palette when it has actually changed
+        let currentVersion = palette.version
+        guard currentVersion != paletteVersionBox.lastAppliedVersion else { return }
+        paletteVersionBox.lastAppliedVersion = currentVersion
 
-        // Reapply palette on theme change (version, isDark, or colorScheme changes trigger this)
         tv.applyPalette(palette)
     }
 }

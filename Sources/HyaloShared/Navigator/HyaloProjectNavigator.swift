@@ -1,8 +1,9 @@
 // HyaloProjectNavigator.swift - Native file tree navigator
 // Target: macOS 26 Tahoe with Liquid Glass design
 //
-// Renders a collapsible file tree using native SwiftUI List with
-// recursive DisclosureGroups. No external dependencies.
+// Renders a collapsible file tree using a virtualized flat list.
+// The tree is flattened to visible rows so List only materializes
+// on-screen items, reducing WindowServer pressure for large projects.
 
 import SwiftUI
 
@@ -11,12 +12,14 @@ public struct HyaloProjectNavigator: View {
     @Bindable public var viewModel: ProjectNavigatorViewModel
     public let onFileSelect: (String) -> Void
 
+    fileprivate static let indentWidth: CGFloat = 16
+    fileprivate static let chevronWidth: CGFloat = 16
+
     public var body: some View {
         List(selection: $viewModel.selection) {
-            if let root = viewModel.displayRoot {
-                ForEach(root.children ?? [], id: \.id) { child in
-                    ProjectNodeView(node: child, viewModel: viewModel)
-                }
+            ForEach(viewModel.flattenedRows) { row in
+                FlatRowView(row: row, viewModel: viewModel)
+                    .tag(row.node.id)
             }
         }
         .listStyle(.sidebar)
@@ -44,75 +47,61 @@ public struct HyaloProjectNavigator: View {
     }
 }
 
-// MARK: - Node View (concrete type, enables structural diffing)
+// MARK: - Flat Row View (replaces recursive DisclosureGroup)
 
 @available(macOS 26.0, *)
-private struct ProjectNodeView: View {
-    let node: FileTreeNode
+private struct FlatRowView: View {
+    let row: FlatRow
     @Bindable var viewModel: ProjectNavigatorViewModel
 
+    private var isExpanded: Bool {
+        viewModel.expansions.contains(row.node.id)
+    }
+
     var body: some View {
-        if node.isDirectory {
-            DisclosureGroup(isExpanded: expansionBinding) {
-                ForEach(node.children ?? [], id: \.id) { child in
-                    ProjectNodeView(node: child, viewModel: viewModel)
-                }
-            } label: {
-                folderLabel
-            }
-            .tag(node.id)
-        } else {
-            fileLabel
-                .tag(node.id)
-        }
-    }
+        HStack(spacing: 0) {
+            // Indentation
+            Spacer()
+                .frame(width: CGFloat(row.depth) * HyaloProjectNavigator.indentWidth)
 
-    private var expansionBinding: Binding<Bool> {
-        Binding<Bool>(
-            get: { viewModel.expansions.contains(node.id) },
-            set: { newValue in
-                var t = Transaction()
-                t.animation = nil
-                withTransaction(t) {
-                    if newValue {
-                        viewModel.expansions.insert(node.id)
-                    } else {
-                        viewModel.expansions.remove(node.id)
+            if row.node.isDirectory {
+                // Disclosure chevron
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    .frame(width: HyaloProjectNavigator.chevronWidth, height: 22)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        viewModel.toggleExpansion(row.node.id)
                     }
+
+                Label {
+                    Text(row.node.name)
+                        .font(.system(size: HyaloDesign.FontSize.large))
+                } icon: {
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: HyaloDesign.IconSize.standard))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                // Spacer matching chevron width for alignment
+                Spacer()
+                    .frame(width: HyaloProjectNavigator.chevronWidth)
+
+                Label {
+                    Text(row.node.name)
+                        .font(.system(size: HyaloDesign.FontSize.large))
+                } icon: {
+                    Image(systemName: FileTreeIcons.icon(for: row.node.name))
+                        .font(.system(size: HyaloDesign.IconSize.standard))
+                        .foregroundStyle(.secondary)
                 }
             }
-        )
-    }
 
-    @ViewBuilder
-    private var fileLabel: some View {
-        HStack(spacing: 0) {
-            Label {
-                Text(node.name)
-                    .font(.system(size: HyaloDesign.FontSize.large))
-            } icon: {
-                Image(systemName: FileTreeIcons.icon(for: node.name))
-                    .font(.system(size: HyaloDesign.IconSize.standard))
-                    .foregroundStyle(.secondary)
-            }
             Spacer()
         }
-        .contextMenu { pathContextMenu(path: node.path) }
-    }
-
-    @ViewBuilder
-    private var folderLabel: some View {
-        HStack(spacing: 0) {
-            Label {
-                Text(node.name)
-                    .font(.system(size: HyaloDesign.FontSize.large))
-            } icon: {
-                Image(systemName: "folder.fill")
-                    .font(.system(size: HyaloDesign.IconSize.standard))
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-        }
+        .contextMenu { pathContextMenu(path: row.node.path) }
     }
 
     @ViewBuilder

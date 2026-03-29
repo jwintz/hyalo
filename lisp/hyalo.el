@@ -24,6 +24,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'seq)
 
 (defgroup hyalo nil
   "Hyalo IDE shell for Emacs."
@@ -210,11 +211,36 @@ Returns non-nil on success (sync) or t immediately (async)."
             (hyalo-log 'core "Build failed (see %s)" buffer-name)
             nil))))))
 
+(defun hyalo--remove-all-hooks ()
+  "Remove all hyalo hook functions before reload to prevent accumulation."
+  (dolist (hook '(post-command-hook
+                  window-buffer-change-functions
+                  buffer-list-update-hook
+                  after-save-hook
+                  first-change-hook
+                  kill-buffer-hook
+                  kill-emacs-hook
+                  window-selection-change-functions
+                  minibuffer-setup-hook
+                  minibuffer-exit-hook
+                  dired-mode-hook
+                  magit-status-mode-hook
+                  magit-log-mode-hook
+                  magit-diff-mode-hook
+                  magit-post-refresh-hook))
+    (when (boundp hook)
+      (set hook (seq-remove
+                 (lambda (fn)
+                   (and (symbolp fn)
+                        (string-match-p "\\`hyalo-" (symbol-name fn))))
+                 (symbol-value hook))))))
+
 (defun hyalo-rebuild-and-reload ()
   "Rebuild the module synchronously and reload it into Emacs.
 Uses synchronous `call-process-shell-command' (not the async
 build) because the reload must happen after the build completes."
   (interactive)
+  (hyalo--remove-all-hooks)
   (let* ((default-directory hyalo--base-dir)
          (buffer-name "*hyalo-build*")
          (cmd "swift build --product Hyalo -c debug"))

@@ -285,6 +285,7 @@ Runs asynchronously — shows a placeholder while generating."
 
 (use-package diffview
   :ensure t
+  :if (not (eq window-system 'ios))
   :general
   (leader-def
     "v v" '(hyalo-diffview-file :wk "diffview file"))
@@ -347,15 +348,16 @@ Runs asynchronously — shows a placeholder while generating."
         ;; The eldoc hint is sufficient.
         eglot-code-action-indications '(eldoc-hint))
   :config
-  ;; Swift LSP
-  (add-to-list 'eglot-server-programs
-               '(swift-mode . ("xcrun" "sourcekit-lsp")))
-  ;; JavaScript/TypeScript LSP
-  (add-to-list 'eglot-server-programs
-               `((js-mode typescript-mode)
-                 . ,(if (executable-find "typescript-language-server")
-                        '("typescript-language-server" "--stdio")
-                      '("npx" "typescript-language-server" "--stdio"))))
+  ;; Swift LSP (not available on iOS)
+  (unless (eq window-system 'ios)
+    (add-to-list 'eglot-server-programs
+                 '(swift-mode . ("xcrun" "sourcekit-lsp")))
+    ;; JavaScript/TypeScript LSP
+    (add-to-list 'eglot-server-programs
+                 `((js-mode typescript-mode)
+                   . ,(if (executable-find "typescript-language-server")
+                          '("typescript-language-server" "--stdio")
+                        '("npx" "typescript-language-server" "--stdio")))))
 
   ;; Disable the events buffer to avoid GC/CPU churn on pretty-printing.
   (cl-callf plist-put eglot-events-buffer-config :size 0)

@@ -205,6 +205,11 @@ struct InspectorTerminalView: NSViewRepresentable {
             palette.setAppearance(isDark: systemIsDark)
         }
 
+        // Only reapply palette when it has actually changed
+        let currentVersion = palette.version
+        guard currentVersion != context.coordinator.lastAppliedPaletteVersion else { return }
+        context.coordinator.lastAppliedPaletteVersion = currentVersion
+
         if let tv = container.terminalView {
             tv.applyPalette(palette)
         }
@@ -218,6 +223,8 @@ struct InspectorTerminalView: NSViewRepresentable {
 
     final class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
         weak var terminalView: HyaloTerminalView?
+        /// Tracks the last applied palette version to skip redundant applyPalette calls.
+        var lastAppliedPaletteVersion: Int = -1
 
         func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
         func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
@@ -226,9 +233,13 @@ struct InspectorTerminalView: NSViewRepresentable {
         func processTerminated(source: TerminalView, exitCode: Int32?) {
             guard let tv = terminalView else { return }
 
-            // Clear and restart
+            // Reset terminal state (process is already dead when this
+            // delegate callback fires -- no need to call terminate()).
             tv.terminal.feed(text: "\u{001b}c")
             tv.terminal.feed(text: "\u{001b}[2J\u{001b}[H")
+
+            // Re-attach delegate before starting the new process
+            tv.processDelegate = self
 
             let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
             var env = ProcessInfo.processInfo.environment

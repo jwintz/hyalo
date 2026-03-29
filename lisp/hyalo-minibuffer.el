@@ -44,8 +44,9 @@ Uses face remapping instead of invisible overlay so cursor movement is unaffecte
 (defvar hyalo-minibuffer--max-candidates 50
   "Maximum number of candidates to send to Swift for rendering performance.")
 
-(defvar hyalo-minibuffer--update-delay 0.01
-  "Timer delay in seconds for candidate extraction (coalesces rapid keystrokes).")
+(defvar hyalo-minibuffer--update-delay 0.05
+  "Timer delay in seconds for candidate extraction (coalesces rapid keystrokes).
+20 updates/sec is sufficient for smooth UX without overloading the Swift UI layer.")
 
 ;; Logging
 

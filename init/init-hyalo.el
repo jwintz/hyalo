@@ -39,7 +39,9 @@
 ;;;; Hyalo Window Controller
 
 ;; Keybindings: C-c t {n,i,u,m} for navigator, inspector, utility, minimap
-(when (and initial-window-system (hyalo-available-p))
+(when (and initial-window-system
+           (fboundp 'hyalo-available-p)
+           (hyalo-available-p))
   (with-eval-after-load 'general
     (leader-def
       "tn" '(hyalo-toggle-navigator :wk "navigator")

@@ -3,8 +3,17 @@
 //
 // Manages a FileTreeNode tree built from the filesystem.
 // Provides filtering, active file tracking, and expansion state.
+// Exposes a flattened row array for virtualized rendering.
 
 import Foundation
+import SwiftUI
+
+/// A single visible row in the flattened tree, carrying its indentation depth.
+public struct FlatRow: Identifiable {
+    public var id: String { node.id }
+    public let node: FileTreeNode
+    public let depth: Int
+}
 
 @available(macOS 26.0, *)
 @MainActor
@@ -26,6 +35,16 @@ public final class ProjectNavigatorViewModel {
 
     /// Git status map: absolute path -> status code ("M", "A", "D", "?", "R")
     public var gitStatus: [String: String] = [:]
+
+    /// Flattened visible rows for virtualized rendering.
+    /// Only includes rows whose ancestors are all expanded.
+    public var flattenedRows: [FlatRow] {
+        guard let root = displayRoot else { return [] }
+        var rows: [FlatRow] = []
+        rows.reserveCapacity(256)
+        flattenChildren(of: root, depth: 0, into: &rows)
+        return rows
+    }
 
     // MARK: - Filter State
 
@@ -67,6 +86,11 @@ public final class ProjectNavigatorViewModel {
         if normalized == home || normalized == "/" {
             return
         }
+
+        // Release old tree and invalidate builder cache before switching roots
+        masterRoot = nil
+        displayRoot = nil
+        HyaloFileTreeBuilder.invalidateCache()
 
         projectRoot = root
         triggerRebuild()
@@ -199,5 +223,32 @@ public final class ProjectNavigatorViewModel {
 
     public func selectFile(_ path: String) {
         onFileSelect?(path)
+    }
+
+    // MARK: - Tree Flattening
+
+    /// Appends visible children of `node` at `depth` into `rows`.
+    /// Skips collapsed subtrees entirely, so cost is O(visible rows).
+    private func flattenChildren(of node: FileTreeNode, depth: Int, into rows: inout [FlatRow]) {
+        guard let children = node.children else { return }
+        for child in children {
+            rows.append(FlatRow(node: child, depth: depth))
+            if child.isDirectory && expansions.contains(child.id) {
+                flattenChildren(of: child, depth: depth + 1, into: &rows)
+            }
+        }
+    }
+
+    /// Toggle expansion state for a directory node.
+    public func toggleExpansion(_ nodeId: String) {
+        var t = Transaction()
+        t.animation = nil
+        withTransaction(t) {
+            if expansions.contains(nodeId) {
+                expansions.remove(nodeId)
+            } else {
+                expansions.insert(nodeId)
+            }
+        }
     }
 }

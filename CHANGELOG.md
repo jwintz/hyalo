@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Virtualize project navigator file tree rendering using flattened visible-row array so `List` only materializes on-screen items, reducing WindowServer pressure for large projects
+
+### Fixed
+
+- Invalidate `HyaloFileTreeBuilder` cache and release old node graph when switching project roots to prevent stale `FileTreeNode` trees from leaking
+- Reduce minibuffer update timer delay from 0.01s to 0.05s (100 to 20 updates/sec) to reduce Swift UI layer overhead during completion
+- Debounce terminal palette application in `UtilityAreaTerminalView` and `InspectorTerminalView` by tracking palette version and skipping redundant `applyPalette` calls
+- Fix terminal process restart leak: detach delegate and call `terminate()` to release file descriptors and pipes before restarting shell in `processTerminated`
+- Fix hook re-registration on reload: add `hyalo--remove-all-hooks` to strip all hyalo-prefixed hook functions before `hyalo-rebuild-and-reload` re-requires the module
+
 ### Added
 
 - Add god-mode toolbar pill (`GodModeView.swift`, `GodModeState.swift`) showing current editing state (control, literal, meta, control-meta, digit argument, universal argument) with per-state tint colors and icons
